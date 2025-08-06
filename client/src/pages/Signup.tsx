@@ -4,12 +4,16 @@ const Signup = () => {
   const [email, setEmail] = useState<string>("");
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-purple-600">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md text-center">
-        <h1 className="text-2xl font-bold mb-4">Create an account</h1>
-        <h2 className="text-xl font-semibold mb-6">Sign up with your email</h2>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-purple-600 px-4">
+      {/* Title on Purple Background */}
+      <h1 className="text-3xl font-bold text-white mb-6 text-center">Create an account</h1>
 
-        <div className="mb-4 text-left">
+      {/* White Card */}
+      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h2 className="text-xl font-semibold mb-6 text-center">Sign up with your email</h2>
+
+        {/* Email Input */}
+        <div className="mb-4">
           <label htmlFor="email" className="block text-sm font-medium mb-1">
             Email
           </label>
@@ -23,8 +27,9 @@ const Signup = () => {
           />
         </div>
 
+        {/* Continue Button */}
         <button
-          className={`w-full py-2 rounded-md font-semibold text-white ${
+          className={`w-full py-2 rounded-md font-semibold text-white transition ${
             email.includes("@")
               ? "bg-purple-600 hover:bg-purple-700"
               : "bg-gray-300 cursor-not-allowed"
@@ -34,7 +39,8 @@ const Signup = () => {
           Continue
         </button>
 
-        <div className="flex items-start mt-3 text-sm text-left">
+        {/* Subscribe Checkbox */}
+        <div className="flex items-start mt-4 text-sm">
           <input type="checkbox" id="subscribe" className="mr-2 mt-1" />
           <label htmlFor="subscribe">
             I want to receive information, offers, recommendations and updates
@@ -46,6 +52,7 @@ const Signup = () => {
           </label>
         </div>
 
+        {/* Terms and Privacy */}
         <p className="text-xs text-gray-600 mt-4">
           By signing up, you accept our{" "}
           <a href="#" className="text-purple-700 underline">
@@ -59,20 +66,22 @@ const Signup = () => {
           .
         </p>
 
-        <div className="my-5 text-sm text-gray-500">or</div>
+        {/* Divider */}
+        <div className="my-5 text-sm text-gray-500 text-center">or</div>
 
+        {/* Social Buttons */}
         <div className="flex flex-col gap-3">
-          <button className="border border-gray-300 py-2 rounded-md hover:bg-gray-100 flex items-center justify-center gap-2">
+          <button className="flex items-center justify-center gap-3 border border-gray-300 py-2 rounded-md hover:bg-gray-100 transition">
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
-            Continue with Google
+            <span>Continue with Google</span>
           </button>
-          <button className="border border-gray-300 py-2 rounded-md hover:bg-gray-100 flex items-center justify-center gap-2">
+          <button className="flex items-center justify-center gap-3 border border-gray-300 py-2 rounded-md hover:bg-gray-100 transition">
             <img src="https://www.svgrepo.com/show/475699/microsoft.svg" alt="Microsoft" className="w-5 h-5" />
-            Continue with Microsoft
+            <span>Continue with Microsoft</span>
           </button>
-          <button className="border border-gray-300 py-2 rounded-md hover:bg-gray-100 flex items-center justify-center gap-2">
+          <button className="flex items-center justify-center gap-3 border border-gray-300 py-2 rounded-md hover:bg-gray-100 transition">
             <img src="https://www.svgrepo.com/show/452196/facebook-1.svg" alt="Facebook" className="w-5 h-5" />
-            Continue with Facebook
+            <span>Continue with Facebook</span>
           </button>
         </div>
       </div>
