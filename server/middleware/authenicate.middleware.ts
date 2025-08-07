@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import JWT from '../service/JWT';
 import { JwtPayload } from 'jsonwebtoken';
+import { UserRepository } from '../repositories/users.repositories';
 
 type Role = 'admin' | 'user' | 'guest';
 
@@ -17,6 +18,28 @@ declare global {
     interface Request {
       user?: UserPayload;
     }
+  }
+}
+
+export async function isEmailVerified(req: Request, res: Response, next: NextFunction) {
+  const { email } = req.body;
+
+  try {
+    const user = await UserRepository.findByEmail(email);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!user.isVerified) {
+      return res.status(403).json({ message: 'Email not verified' });
+    }
+
+    next(); 
+  } catch (err) {
+    return res.status(500).json({
+      message: (err as Error).message || 'Internal server error while checking email verification'
+    });
   }
 }
 
