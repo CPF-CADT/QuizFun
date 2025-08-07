@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
 import { Encryption } from '../service/encription';
-import { v4 as uuidv4 } from 'uuid';
-import { UserRepository, User, TwoFaTokenRepository } from '../repositories/users.repositories';
+import { UserRepository, UserData as User, UserData } from '../repositories/users.repositories';
 import JWT from '../service/JWT';
 import { generateRandomNumber, getExpiryDate } from '../service/generateRandomNumber';
 import { sentEmail } from '../service/transporter';
-
+import { VerificationCodeRepository } from '../repositories/verification.repositories';
+import { IUser, UserModel } from '../model/User';
 /**
  * @swagger
  * tags:
@@ -40,6 +40,9 @@ import { sentEmail } from '../service/transporter';
  *               password:
  *                 type: string
  *                 example: securePassword123
+ *               role:
+ *                 type: string
+ *                 example: player
  *               profile_url:
  *                 type: string
  *                 format: uri
@@ -105,20 +108,8 @@ import { sentEmail } from '../service/transporter';
  */
 
 
-export async function createUser(req: Request, res: Response): Promise<void> {
-    const {
-        name,
-        email,
-        profile_url,
-        password,
-        role
-    }: {
-        name: string;
-        email: string;
-        profile_url?: string;
-        password: string;
-        role: string
-    } = req.body;
+export async function register(req: Request, res: Response): Promise<void> {
+    const { name, email, password, profile_url, role } = req.body;
 
     if (!name || !email || !password) {
         res.status(400).json({ error: 'Missing required user information' });
@@ -126,27 +117,34 @@ export async function createUser(req: Request, res: Response): Promise<void> {
     }
 
     try {
-        // Check if user already exists
-        const existingUser = await UserRepository.getUser(email);
+        const existingUser = await UserRepository.findByEmail(email);
         if (existingUser) {
-            res.status(400).json({ error: 'email is already used' });
+            res.status(409).json({ error: 'Email is already used' }); // Use 409 Conflict for existing resources
             return;
         }
 
-        const newUser = {
-            id: uuidv4(),
+        const newUserDoc = new UserModel({
             name,
             email,
             password: Encryption.hashPassword(password),
-            profile_url: profile_url || 'http://default.url/image.png',
-            role: role
-        };
+            profileUrl: profile_url || 'http://default.url/image.png',
+            role: role || 'player',
+            isVerified: false,
+        });
 
-        await UserRepository.createUser(newUser);
-        console.log('user create success')
-        res.status(201).json({ message: 'User created successfully' });
+        const createdUser = await UserRepository.create(newUserDoc);
+
+        // --- Automatically send verification email ---
+        const code = generateRandomNumber(6);
+        await VerificationCodeRepository.create(createdUser.id, code, getExpiryDate(15)); // Expires in 15 mins
+
+        const subject = 'Verify Your Email Address';
+        const htmlContent = `<p>Welcome! Your verification code is: <strong>${code}</strong></p>`;
+        await sentEmail(email, subject, '', htmlContent);
+
+        res.status(201).json({ message: 'Registration successful. Please check your email to verify your account.' });
     } catch (error) {
-        console.error("Error in createUser:", error);
+        console.error("Error in register:", error);
         res.status(500).json({ error: 'User creation failed' });
     }
 }
@@ -210,52 +208,38 @@ export async function createUser(req: Request, res: Response): Promise<void> {
  */
 
 
-export async function userLogin(req: Request, res: Response): Promise<void> {
-    const { email, password }: { email: string; password: string } = req.body;
-
-    if (!email || !password) {
-        res.status(400).json({ success: false, message: 'Email and password are required' });
-        return;
-    }
+export async function login(req: Request, res: Response): Promise<void> {
+    const { email, password } = req.body;
 
     try {
-        const user = await UserRepository.getUser(email);
-
+        const user = await UserRepository.findByEmail(email);
         if (!user) {
-            res.status(400).json({ success: false, message: 'User not found' });
+            res.status(404).json({ message: 'User not found' });
             return;
         }
 
-        const isPasswordValid = Encryption.verifyPassword(user.password, password);
+        // CRITICAL CHANGE: Check if the user's email is verified
+        if (!user.isVerified) {
+            res.status(403).json({ message: 'Account not verified. Please check your email.' });
+            return;
+        }
+
+        const isPasswordValid = Encryption.verifyPassword(user.password as string, password);
         if (!isPasswordValid) {
-            res.status(400).json({ success: false, message: 'Incorrect password' });
+            res.status(401).json({ message: 'Incorrect password' });
             return;
         }
 
-        const token = JWT.create({
-            id: user.id,
-            email: user.email,
-            role: user.role,
-            profile_url: user.profile_url
-        });
+        const token = JWT.create({ id: user.id, email: user.email, role: user.role });
+        const { password: _, ...userResponse } = user; // Exclude password from response
 
-        res.status(200).json({
-            success: true,
-            message: 'Login successful',
-            token,
-            user: {
-                id: user.id,
-                email: user.email,
-                name: user.name,
-                profile_url: user.profile_url,
-                role: user.role
-            }
-        });
+        res.status(200).json({ message: 'Login successful', token, user: userResponse });
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ success: false, message: (error as Error).message });
+        res.status(500).json({ message: 'An internal server error occurred' });
     }
 }
+
 
 /**
  * @swagger
@@ -315,31 +299,50 @@ export async function userLogin(req: Request, res: Response): Promise<void> {
 
 export async function updateUserInfo(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
-    const { name, email, password, profile_url } = req.body;
+    const { name, password, profileUrl } = req.body;
 
-    if (!name && !email && !password && !profile_url) {
+    if (!name && !password && !profileUrl) {
         res.status(400).json({ message: 'No update data provided' });
         return;
     }
 
     try {
-        const newData: Partial<User> = {};
+        const dataToUpdate: Partial<UserData> = {};
 
-        if (name) newData.name = name;
-        if (email) newData.email = email;
-        if (profile_url) newData.profile_url = profile_url;
-        if (password) newData.password = Encryption.hashPassword(password);
+        if (name) dataToUpdate.name = name;
+        if (profileUrl) dataToUpdate.profileUrl = profileUrl;
 
-        const updatedUser = await UserRepository.updateData(id, newData);
+        // Only hash and add the password if a new one was provided
+        if (password) {
+            dataToUpdate.password = Encryption.hashPassword(password);
+        }
+
+        const updatedUser = await UserRepository.update(id, dataToUpdate);
+
+        if (!updatedUser) {
+            res.status(404).json({ message: 'User not found' });
+            return;
+        }
+
+        // Ensure the password hash is not sent back in the response
+        const { password: _, ...userResponse } = updatedUser.toObject();
 
         res.status(200).json({
-            message: 'User update successful',
-            user: updatedUser
+            message: 'User updated successfully',
+            user: userResponse,
         });
     } catch (err) {
-        res.status(500).json({ message: (err as Error).message });
+        console.error("Error in updateUserInfo:", err);
+        res.status(500).json({ message: "An internal server error occurred." });
     }
 }
+
+
+
+
+
+
+
 
 
 /**
@@ -400,12 +403,14 @@ export async function sendVerificationCode(req: Request, res: Response): Promise
     } = req.body;
     const { email } = body;
     try {
-        const existingToken = await TwoFaTokenRepository.getToken(email);
-        if (existingToken) {
-            await TwoFaTokenRepository.deteteToken(email)
+        const userTemp = await UserRepository.findByEmail(email)
+        try{
+            await VerificationCodeRepository.delete(userTemp?.id)
+        }catch(err){
+            console.error('Error when sent 2FA')
         }
         const code = generateRandomNumber(6)
-        await TwoFaTokenRepository.addToken(email, code, getExpiryDate(15))
+        await VerificationCodeRepository.create(email, code, getExpiryDate(15))
         const subject = 'Email Verification Code';
         const text = `Your verification code is: ${code}`;
         const htmlContent = `<p>Your verification code is: <strong>${code}</strong></p>`;
@@ -433,12 +438,12 @@ export async function sendVerificationCode(req: Request, res: Response): Promise
  *           schema:
  *             type: object
  *             required:
- *               - phone_number
+ *               - email
  *               - code
  *             properties:
- *               phone_number:
+ *               email:
  *                 type: string
- *                 example: "0123456789"
+ *                 example: "vathanak@gmail.com"
  *               code:
  *                 type: integer
  *                 example: 1234
@@ -485,50 +490,34 @@ export async function sendVerificationCode(req: Request, res: Response): Promise
  *                   example: server fail + error message
  */
 
+export async function verifyEmail(req: Request, res: Response): Promise<void> {
+    const { email, code } = req.body;
 
-
-export async function verifyTwoFaCode(req: Request, res: Response): Promise<void> {
-    const body: {
-        email: string;
-        code: number;
-    } = req.body;
-    const { email, code } = body;
     try {
-        const userToken = await TwoFaTokenRepository.getToken(email);
-        if (userToken) {
-            const now = new Date();
-            if (now < userToken.expires_at) {
-                const success: boolean = code === userToken.code;
-                console.log("Verification attempt:");
-                console.log("Input Code:", code.toString());
-                console.log("Stored Code:", userToken.code);
-                console.log("Success:", success);
-                if (success) {
-                    await TwoFaTokenRepository.deteteToken(email);
-                    // await CusomerRepository.markCustomerAsVerified(customer.customer_id);
-                    const user = await UserRepository.getUser(email) as User;
-                    const token = JWT.create({ id: user.id,role:user.role,email:user.email,profile_url:user.profile_url });
-                    res.status(201).json({
-                        success: true,
-                        message: 'Verification successful and logged in',
-                        token,
-                    });
-                    return;
-                } else {
-                    res.status(401).json({ message: 'verify code is incorrect' });
-                    return;
-                }
-            } else {
-                res.status(401).json({ message: 'verify code is already used' });
-                return;
-            }
-        } else {
-            res.status(401).json({ message: 'verify code is expired' });
-            return;
+        const user = await UserRepository.findByEmail(email);
+        if (!user) {
+            res.status(400).json({ message: 'Invalid verification code or email.' });
+            return
         }
+ 
+        const verificationToken = await VerificationCodeRepository.find(user._id.toString(), code);
+
+        if (!verificationToken) {
+            res.status(400).json({ message: 'Invalid or expired verification code.' });
+            return
+        }
+
+        await UserRepository.update(user._id.toString(), { isVerified: true });
+
+        await VerificationCodeRepository.delete(verificationToken.id);
+
+        const token = JWT.create({ id: user.id, email: user.email, role: user.role });
+        const { password: _, ...userResponse } = user.toObject(); 
+
+        res.status(200).json({ message: 'Email verified successfully. You are now logged in.', token });
+        
     } catch (err) {
-        console.error("Error in verifyTwoFaCode:", err);
-        res.status(500).json({ err: 'server fail ' + (err instanceof Error ? err.message : String(err)) });
-        return;
+        console.error("Error in verifyEmail:", err);
+        res.status(500).json({ error: 'Server failed to verify email.' });
     }
 }
