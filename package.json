@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "@types/axios": "^0.9.36",
-    "axios": "^1.11.0",
-    "react-hot-toast": "^2.5.2"
-  }
-}
