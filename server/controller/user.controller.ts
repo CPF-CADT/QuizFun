@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
 import { Encryption } from '../service/encription';
-import { UserRepository, UserData as User, UserData } from '../repositories/users.repositories';
+import { UserRepository, UserData } from '../repositories/users.repositories';
 import JWT from '../service/JWT';
 import { generateRandomNumber, getExpiryDate } from '../service/generateRandomNumber';
 import { sentEmail } from '../service/transporter';
 import { VerificationCodeRepository } from '../repositories/verification.repositories';
-import { IUser, UserModel } from '../model/User';
+import { UserModel } from '../model/User';
 /**
  * @swagger
  * tags:

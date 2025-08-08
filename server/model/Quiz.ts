@@ -12,6 +12,7 @@ export interface IQuestion {
     point: number;
     timeLimit: number;
     options: IOption[];
+    imageUrl?: string;
     tags?: string[];
 }
 
@@ -21,7 +22,7 @@ export interface IQuiz extends Document {
     creatorId: Types.ObjectId;
     visibility: 'public' | 'private';
     questions: IQuestion[];
-    imageUrl?: string;
+    templateImgUrl?: string;
 }
 
 const OptionSchema = new Schema<IOption>({
@@ -31,6 +32,7 @@ const OptionSchema = new Schema<IOption>({
 
 const QuestionSchema = new Schema<IQuestion>({
     questionText: { type: String, required: true },
+    imageUrl: {type:String,required:false},
     point: { type: Number, required: true, min: 0 },
     timeLimit: { type: Number, required: true, min: 5 },
     options: {
@@ -47,7 +49,7 @@ const QuizSchema = new Schema<IQuiz>({
     creatorId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     visibility: { type: String, enum: ['public', 'private'], default: 'private' },
     questions: { type: [QuestionSchema], required: true },
-    imageUrl: { type: String },
+    templateImgUrl: { type: String },
 }, { timestamps: true });
 
 export const QuizModel = model<IQuiz>('Quiz', QuizSchema);
