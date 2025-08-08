@@ -1,6 +1,5 @@
 import React from 'react';
 import { FaPlus, FaHistory, FaChartLine, FaStar, FaUsers, FaTrophy, FaRocket, FaGamepad, FaBolt } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
 const Homepage: React.FC = () => {
   return (
     <div className="min-h-screen font-sans text-white relative">
@@ -61,19 +60,18 @@ const Homepage: React.FC = () => {
 
           {/* Enhanced action buttons */}
           <div className="flex flex-wrap justify-center gap-4 mb-12">
-            <button className="group flex items-center gap-2 bg-gradient-to-r from-orange-400 to-pink-500 text-white font-bold px-8 py-4 rounded-xl hover:from-orange-500 hover:to-pink-600 transition-all transform hover:scale-110 shadow-2xl">
+            <button className="group flex items-center gap-2 bg-gradient-to-r from-emerald-400 to-teal-500 text-white font-bold px-8 py-4 rounded-xl hover:from-emerald-500 hover:to-teal-600 transition-all transform hover:scale-110 shadow-2xl border border-emerald-300">
               <FaPlus className="group-hover:rotate-90 transition-transform" /> Create Quiz
             </button>
             <button 
-              className="group flex items-center gap-2 text-white font-bold px-8 py-4 rounded-xl hover:opacity-90 transition-all transform hover:scale-110 shadow-2xl border-2 border-purple-400" 
-              style={{ backgroundColor: '#A24FF6' }}
+              className="group flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold px-8 py-4 rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all transform hover:scale-110 shadow-2xl border border-indigo-400" 
             >
               <FaHistory className="group-hover:rotate-12 transition-transform" /> Check History
             </button>
-            <button className="group flex items-center gap-2 bg-gradient-to-r from-red-400 to-red-600 text-white font-bold px-8 py-4 rounded-xl hover:from-red-500 hover:to-red-700 transition-all transform hover:scale-110 shadow-2xl">
+            <button className="group flex items-center gap-2 bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold px-8 py-4 rounded-xl hover:from-pink-600 hover:to-rose-700 transition-all transform hover:scale-110 shadow-2xl border border-pink-400">
               <FaChartLine className="group-hover:bounce transition-transform" /> Reports
             </button>
-            <button className="group bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold px-8 py-4 rounded-xl hover:from-blue-600 hover:to-blue-800 transition-all transform hover:scale-110 shadow-2xl">
+            <button className="group bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold px-8 py-4 rounded-xl hover:from-cyan-600 hover:to-blue-700 transition-all transform hover:scale-110 shadow-2xl border border-cyan-400">
               <FaGamepad className="inline mr-2 group-hover:rotate-12 transition-transform" /> Enter Code
             </button>
           </div>
@@ -99,23 +97,29 @@ const Homepage: React.FC = () => {
         </div>
 
         {/* Floating elements for visual interest */}
-        {/* Floating elements for visual interest */}
-<div className="absolute top-20 left-10 text-yellow-300 text-4xl opacity-70 animate-pulse">✨</div>
-<div className="absolute top-40 right-20 text-pink-300 text-3xl opacity-70 animate-bounce">🎯</div>
-<div className="absolute bottom-40 left-20 text-blue-300 text-3xl opacity-70 animate-pulse">⚡</div>
-<div className="absolute bottom-20 right-10 text-green-300 text-4xl opacity-70 animate-bounce">🚀</div>
-<div className="absolute top-10 right-10 text-purple-300 text-5xl opacity-70 animate-spin">🌟</div>
-<div className="absolute bottom-10 left-10 text-red-300 text-4xl opacity-70 animate-pulse">💡</div>
-<div className="absolute top-[70%] left-[15%] text-white text-6xl opacity-50 animate-pulse">🎉</div>
+        {/* Floating decorative emojis */}
+<div className="absolute inset-0 pointer-events-none">
+  {/* Row 1 */}
+  <div className="absolute top-[5%] left-[5%] text-yellow-300 text-4xl opacity-70 animate-pulse">✨</div>
+  <div className="absolute top-[10%] right-[10%] text-purple-300 text-5xl opacity-70 animate-spin">🌟</div>
+  
+  {/* Row 2 */}
+  <div className="absolute top-[25%] left-[15%] text-white text-4xl sm:text-6xl opacity-70 animate-bounce">🎉</div>
+  <div className="absolute top-[30%] right-[15%] text-teal-300 text-3xl sm:text-4xl opacity-60 animate-bounce">📚</div>
+  
+  {/* Row 3 */}
+  <div className="absolute top-[50%] left-[5%] text-lime-300 text-3xl opacity-70 animate-bounce">🧠</div>
+  <div className="absolute top-[50%] right-[5%] text-pink-400 text-4xl sm:text-5xl opacity-80 animate-pulse">💖</div>
+  
+  {/* Row 4 */}
+  <div className="absolute bottom-[15%] left-[20%] text-blue-300 text-3xl opacity-70 animate-pulse">⚡</div>
+  <div className="absolute bottom-[15%] right-[20%] text-yellow-200 text-3xl opacity-70 animate-bounce">🎵</div>
+  
+  {/* Row 5 */}
+  <div className="absolute bottom-[5%] left-[10%] text-red-300 text-3xl sm:text-4xl opacity-70 animate-pulse">💡</div>
+  <div className="absolute bottom-[5%] right-[10%] text-blue-400 text-4xl opacity-80 animate-pulse">🎨</div>
+</div>
 
-{/* Extra decorations */}
-<div className="absolute top-32 left-[45%] text-orange-300 text-3xl opacity-70 animate-bounce">🏆</div>
-<div className="absolute top-[60%] right-[25%] text-teal-300 text-4xl opacity-60 animate-ping">📚</div>
-<div className="absolute bottom-[15%] right-[40%] text-pink-400 text-5xl opacity-80 animate-pulse">💖</div>
-<div className="absolute top-[15%] left-[60%] text-yellow-200 text-3xl opacity-70 animate-bounce">🎵</div>
-<div className="absolute bottom-[5%] left-[55%] text-indigo-300 text-4xl opacity-75 animate-spin">🎲</div>
-<div className="absolute top-[50%] left-[5%] text-lime-300 text-3xl opacity-70 animate-bounce">🧠</div>
-<div className="absolute bottom-[5%] right-[5%] text-blue-400 text-4xl opacity-80 animate-pulse">🎨</div>
 
       </div>
 
@@ -165,37 +169,35 @@ const Homepage: React.FC = () => {
         </div>
       </div>
       <section className="py-20 bg-gray-50">
-        <div className='maxow-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-          <div className='text center mb-12'>
-            <h2 className='text-4xl font-bold text-gray-900 mb-4 text-center'>
-              Customize Your Quiz Experience
-            </h2>
-            <p className='text-xl text-gray-600 text-center max-w-2xl mx-auto'>
-              Choose from beautiful themes that match your style and engate your students.
-            </p>
-            <div className="flex justify-center items-center min-h-screen">
-  <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 mt-8 justify-center items-center">
-    {[1, 2, 3, 4].map((i) => (
-      <div
-        key={i}
-        className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 hover:scale-105"
-        style={{ width: "600px", height: "300px" }}
-      >
-        <img
-          src={`./image/theme${i}.jpg`}
-          alt="Quiz Themes"
-          className="w-full h-full rounded-lg object-cover"
-        />
-      </div>
-    ))}
-  </div>
-</div>
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="text-center mb-12">
+      <h2 className="text-4xl font-bold text-gray-900 mb-4">
+        Customize Your Quiz Experience
+      </h2>
+      <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+        Choose from beautiful themes that match your style and engage your students.
+      </p>
+    </div>
 
-
-
-          </div>
+      <div className="flex justify-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 mt-8 justify-center">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-transform duration-300 hover:scale-105 w-full max-w-[600px] aspect-[2/1]"
+            >
+              <img
+                src={`./image/theme${i}.jpg`}
+                alt="Quiz Themes"
+                className="w-full h-full rounded-lg object-cover"
+              />
+            </div>
+          ))}
         </div>
-      </section>
+      </div>
+    </div>
+  </section>
+
       {/* CTA Section */}
       <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-purple-700 py-20">
         <div className="max-w-4xl mx-auto px-4 text-center">
