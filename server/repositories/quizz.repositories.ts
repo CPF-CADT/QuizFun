@@ -109,4 +109,12 @@ export class QuizzRepositories {
 
 		return result.modifiedCount > 0;
 	}
+
+	static async deleteQuizz(quizzId: string): Promise<boolean> {
+		const result = await QuizModel.deleteOne(
+			{ _id: quizzId },
+		).exec();
+
+		return result.deletedCount !== undefined && result.deletedCount > 0;
+	}
 }

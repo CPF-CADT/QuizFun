@@ -120,21 +120,18 @@ import { QuizzRepositories } from '../repositories/quizz.repositories';
  *                     $ref: '#/components/schemas/Quiz'
  */
 export async function getAllQuizzes(req: Request, res: Response) {
-    try {
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 10;
 
-        const result = await QuizzRepositories.getAllQuizzes(page, limit);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
 
-        return res.status(200).json({
-            total: result.total,
-            page: result.page,
-            totalPages: result.totalPages,
-            quizzes: result.quizzes
-        });
-    } catch (error) {
-        return res.status(500).json({ message: 'Failed to fetch quizzes', error });
-    }
+    const result = await QuizzRepositories.getAllQuizzes(page, limit);
+
+    res.status(200).json({
+        total: result.total,
+        page: result.page,
+        totalPages: result.totalPages,
+        quizzes: result.quizzes
+    });
 }
 
 
@@ -180,18 +177,13 @@ export async function getAllQuizzes(req: Request, res: Response) {
 
 
 export async function getQuizzById(req: Request, res: Response) {
-    try {
-        const { quizzId } = req.params;
-        const quiz = await QuizzRepositories.findById(quizzId);
+    const { quizzId } = req.params;
+    const quiz = await QuizzRepositories.findById(quizzId);
 
-        if (!quiz) {
-            return res.status(404).json({ message: 'Quiz not found' });
-        }
-
-        return res.status(200).json(quiz);
-    } catch (error: any) {
-        return res.status(500).json({ message: error.message });
+    if (!quiz) {
+        return res.status(404).json({ message: 'Quiz not found' });
     }
+    res.status(200).json(quiz);
 }
 
 /**
@@ -223,18 +215,14 @@ export async function getQuizzById(req: Request, res: Response) {
  */
 
 export async function getQuizzByUser(req: Request, res: Response) {
-    try {
-        const { userId } = req.params;
-        const quizzes = await QuizzRepositories.getQuizzByUser(userId);
+    const { userId } = req.params;
+    const quizzes = await QuizzRepositories.getQuizzByUser(userId);
 
-        if (!quizzes || quizzes.length === 0) {
-            return res.status(404).json({ message: 'No quizzes found for this user.' });
-        }
-
-        res.status(200).json(quizzes);
-    } catch (error: any) {
-        res.status(500).json({ message: 'Error fetching quizzes', error: error.message });
+    if (!quizzes || quizzes.length === 0) {
+        res.status(404).json({ message: 'No quizzes found for this user.' });
     }
+
+    res.status(200).json(quizzes);
 }
 
 /**
@@ -301,19 +289,14 @@ export async function getQuizzByUser(req: Request, res: Response) {
 
 export async function createQuizz(req: Request, res: Response) {
     const { title, description, creatorId, visibility, templateImgUrl } = req.body;
-    try {
-        const quizz = await QuizzRepositories.createQuizz({
-            title,
-            description,
-            creatorId,
-            visibility,
-            templateImgUrl,
-        } as IQuiz);
-        res.status(201).json({ message: 'quizz create success', data: quizz });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Internal server error', error: (err as Error).message });
-    }
+    const quizz = await QuizzRepositories.createQuizz({
+        title,
+        description,
+        creatorId,
+        visibility,
+        templateImgUrl,
+    } as IQuiz);
+    res.status(201).json({ message: 'quizz create success', data: quizz });
 }
 
 
@@ -366,13 +349,8 @@ export async function createQuizz(req: Request, res: Response) {
 
 export async function addQuestionForQuizz(req: Request, res: Response) {
     const { quizzId, question } = req.body;
-    try {
-        await QuizzRepositories.addQuestion(quizzId as string, question as IQuestion);
-        res.status(201).json({ message: 'add question success' });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Internal server error', error: (err as Error).message });
-    }
+    await QuizzRepositories.addQuestion(quizzId as string, question as IQuestion);
+    res.status(201).json({ message: 'add question success' });
 }
 
 /**
@@ -422,16 +400,12 @@ export async function updateQuestion(req: Request, res: Response) {
     const { quizzId, questionId } = req.params;
     const questionUpdate = req.body as IQuestion;
 
-    try {
-        const updatedQuestion = await QuizzRepositories.updateQuestion(quizzId, questionId, questionUpdate);
-        if (!updatedQuestion) {
-            return res.status(404).json({ message: 'Quiz or Question not found' });
-        }
-        res.status(200).json({ message: 'Question updated successfully', question: updatedQuestion });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Internal server error', error: (err as Error).message });
+
+    const updatedQuestion = await QuizzRepositories.updateQuestion(quizzId, questionId, questionUpdate);
+    if (!updatedQuestion) {
+        res.status(404).json({ message: 'Quiz or Question not found' });
     }
+    res.status(200).json({ message: 'Question updated successfully', question: updatedQuestion });
 }
 
 /**
@@ -487,16 +461,12 @@ export async function updateOption(req: Request, res: Response) {
     const { quizzId, questionId, optionId } = req.params;
     const optionUpdate = req.body as IOption;
 
-    try {
-        const updatedOption = await QuizzRepositories.updateOption(quizzId, questionId, optionId, optionUpdate);
-        if (!updatedOption) {
-            return res.status(404).json({ message: 'Quiz, Question or Option not found' });
-        }
-        res.status(200).json({ message: 'Option updated successfully', option: updatedOption });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Internal server error', error: (err as Error).message });
+
+    const updatedOption = await QuizzRepositories.updateOption(quizzId, questionId, optionId, optionUpdate);
+    if (!updatedOption) {
+        return res.status(404).json({ message: 'Quiz, Question or Option not found' });
     }
+    res.status(200).json({ message: 'Option updated successfully', option: updatedOption });
 }
 
 /**
@@ -537,16 +507,12 @@ export async function updateOption(req: Request, res: Response) {
 export async function deleteQuestion(req: Request, res: Response) {
     const { quizzId, questionId } = req.params;
 
-    try {
-        const deleted = await QuizzRepositories.deleteQuestion(quizzId, questionId);
-        if (!deleted) {
-            return res.status(404).json({ message: 'Quiz or Question not found' });
-        }
-        res.status(200).json({ message: 'Question deleted successfully' });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Internal server error', error: (err as Error).message });
+
+    const deleted = await QuizzRepositories.deleteQuestion(quizzId, questionId);
+    if (!deleted) {
+        return res.status(404).json({ message: 'Quiz or Question not found' });
     }
+    res.status(200).json({ message: 'Question deleted successfully' });
 }
 
 /**
@@ -593,15 +559,50 @@ export async function deleteQuestion(req: Request, res: Response) {
 export async function deleteOption(req: Request, res: Response) {
     const { quizzId, questionId, optionId } = req.params;
 
-    try {
-        const deleted = await QuizzRepositories.deleteOption(quizzId, questionId, optionId);
-        if (!deleted) {
-            return res.status(404).json({ message: 'Quiz, Question or Option not found' });
-        }
-        res.status(200).json({ message: 'Option deleted successfully' });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Internal server error', error: (err as Error).message });
+
+    const deleted = await QuizzRepositories.deleteOption(quizzId, questionId, optionId);
+    if (!deleted) {
+        return res.status(404).json({ message: 'Quiz, Question or Option not found' });
     }
+    res.status(200).json({ message: 'Option deleted successfully' });
 }
 
+/**
+ * @swagger
+ * /api/quizz/{quizzId}:
+ *   delete:
+ *     summary: Delete a quizz from a quiz
+ *     tags: [Quiz]
+ *     parameters:
+ *       - in: path
+ *         name: quizzId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Quiz ID
+ *     responses:
+ *       200:
+ *         description: Quizz deleted successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Quizz deleted successfully
+ *       404:
+ *         description: Quiz or Quizz not found
+ *       500:
+ *         description: Internal server error
+ */
+export async function deleteQuizz(req: Request, res: Response) {
+    const { quizzId } = req.params;
+
+
+    const deleted = await QuizzRepositories.deleteQuizz(quizzId);
+    if (!deleted) {
+        return res.status(404).json({ message: 'Quiz or Question not found' });
+    }
+    res.status(200).json({ message: 'Question deleted successfully' });
+}

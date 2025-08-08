@@ -137,6 +137,7 @@
     "skipLibCheck": true
   },
   "include": [
-     "**/*.ts" 
+     "**/*.ts" ,
+     "**/*express.d.ts"
   ] /* Specify which files to include in the compilation. */
 }

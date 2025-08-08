@@ -116,37 +116,32 @@ export async function register(req: Request, res: Response): Promise<void> {
         return;
     }
 
-    try {
-        const existingUser = await UserRepository.findByEmail(email);
-        if (existingUser) {
-            res.status(409).json({ error: 'Email is already used' }); // Use 409 Conflict for existing resources
-            return;
-        }
-
-        const newUserDoc = new UserModel({
-            name,
-            email,
-            password: Encryption.hashPassword(password),
-            profileUrl: profile_url || 'http://default.url/image.png',
-            role: role || 'player',
-            isVerified: false,
-        });
-
-        const createdUser = await UserRepository.create(newUserDoc);
-
-        // --- Automatically send verification email ---
-        const code = generateRandomNumber(6);
-        await VerificationCodeRepository.create(createdUser.id, code, getExpiryDate(15)); // Expires in 15 mins
-
-        const subject = 'Verify Your Email Address';
-        const htmlContent = `<p>Welcome! Your verification code is: <strong>${code}</strong></p>`;
-        await sentEmail(email, subject, '', htmlContent);
-
-        res.status(201).json({ message: 'Registration successful. Please check your email to verify your account.' });
-    } catch (error) {
-        console.error("Error in register:", error);
-        res.status(500).json({ error: 'User creation failed' });
+    const existingUser = await UserRepository.findByEmail(email);
+    if (existingUser) {
+        res.status(409).json({ error: 'Email is already used' }); // Use 409 Conflict for existing resources
+        return;
     }
+
+    const newUserDoc = new UserModel({
+        name,
+        email,
+        password: Encryption.hashPassword(password),
+        profileUrl: profile_url || 'http://default.url/image.png',
+        role: role || 'player',
+        isVerified: false,
+    });
+
+    const createdUser = await UserRepository.create(newUserDoc);
+
+    // --- Automatically send verification email ---
+    const code = generateRandomNumber(6);
+    await VerificationCodeRepository.create(createdUser.id, code, getExpiryDate(15)); // Expires in 15 mins
+
+    const subject = 'Verify Your Email Address';
+    const htmlContent = `<p>Welcome! Your verification code is: <strong>${code}</strong></p>`;
+    await sentEmail(email, subject, '', htmlContent);
+
+    res.status(201).json({ message: 'Registration successful. Please check your email to verify your account.' });
 }
 
 /**
@@ -211,33 +206,28 @@ export async function register(req: Request, res: Response): Promise<void> {
 export async function login(req: Request, res: Response): Promise<void> {
     const { email, password } = req.body;
 
-    try {
-        const user = await UserRepository.findByEmail(email);
-        if (!user) {
-            res.status(404).json({ message: 'User not found' });
-            return;
-        }
-
-        // CRITICAL CHANGE: Check if the user's email is verified
-        if (!user.isVerified) {
-            res.status(403).json({ message: 'Account not verified. Please check your email.' });
-            return;
-        }
-
-        const isPasswordValid = Encryption.verifyPassword(user.password as string, password);
-        if (!isPasswordValid) {
-            res.status(401).json({ message: 'Incorrect password' });
-            return;
-        }
-
-        const token = JWT.create({ id: user.id, email: user.email, role: user.role });
-        const { password: _, ...userResponse } = user; // Exclude password from response
-
-        res.status(200).json({ message: 'Login successful', token, user: userResponse });
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ message: 'An internal server error occurred' });
+    const user = await UserRepository.findByEmail(email);
+    if (!user) {
+        res.status(404).json({ message: 'User not found' });
+        return;
     }
+
+    // CRITICAL CHANGE: Check if the user's email is verified
+    if (!user.isVerified) {
+        res.status(403).json({ message: 'Account not verified. Please check your email.' });
+        return;
+    }
+
+    const isPasswordValid = Encryption.verifyPassword(user.password as string, password);
+    if (!isPasswordValid) {
+        res.status(401).json({ message: 'Incorrect password' });
+        return;
+    }
+
+    const token = JWT.create({ id: user.id, email: user.email, role: user.role });
+    const { password: _, ...userResponse } = user; // Exclude password from response
+
+    res.status(200).json({ message: 'Login successful', token, user: userResponse });
 }
 
 
@@ -306,35 +296,31 @@ export async function updateUserInfo(req: Request, res: Response): Promise<void>
         return;
     }
 
-    try {
-        const dataToUpdate: Partial<UserData> = {};
+    const dataToUpdate: Partial<UserData> = {};
 
-        if (name) dataToUpdate.name = name;
-        if (profileUrl) dataToUpdate.profileUrl = profileUrl;
+    if (name) dataToUpdate.name = name;
+    if (profileUrl) dataToUpdate.profileUrl = profileUrl;
 
-        // Only hash and add the password if a new one was provided
-        if (password) {
-            dataToUpdate.password = Encryption.hashPassword(password);
-        }
-
-        const updatedUser = await UserRepository.update(id, dataToUpdate);
-
-        if (!updatedUser) {
-            res.status(404).json({ message: 'User not found' });
-            return;
-        }
-
-        // Ensure the password hash is not sent back in the response
-        const { password: _, ...userResponse } = updatedUser.toObject();
-
-        res.status(200).json({
-            message: 'User updated successfully',
-            user: userResponse,
-        });
-    } catch (err) {
-        console.error("Error in updateUserInfo:", err);
-        res.status(500).json({ message: "An internal server error occurred." });
+    // Only hash and add the password if a new one was provided
+    if (password) {
+        dataToUpdate.password = Encryption.hashPassword(password);
     }
+
+    const updatedUser = await UserRepository.update(id, dataToUpdate);
+
+    if (!updatedUser) {
+        res.status(404).json({ message: 'User not found' });
+        return;
+    }
+
+    // Ensure the password hash is not sent back in the response
+    const { password: _, ...userResponse } = updatedUser.toObject();
+
+    res.status(200).json({
+        message: 'User updated successfully',
+        user: userResponse,
+    });
+
 }
 
 
@@ -402,26 +388,20 @@ export async function sendVerificationCode(req: Request, res: Response): Promise
         email: string;
     } = req.body;
     const { email } = body;
+    const userTemp = await UserRepository.findByEmail(email)
     try {
-        const userTemp = await UserRepository.findByEmail(email)
-        try{
-            await VerificationCodeRepository.delete(userTemp?.id)
-        }catch(err){
-            console.error('Error when sent 2FA')
-        }
-        const code = generateRandomNumber(6)
-        await VerificationCodeRepository.create(email, code, getExpiryDate(15))
-        const subject = 'Email Verification Code';
-        const text = `Your verification code is: ${code}`;
-        const htmlContent = `<p>Your verification code is: <strong>${code}</strong></p>`;
-        await sentEmail(email, subject, text, htmlContent);
-        res.status(201).json({ message: 'Verification code sent successfully!' });
-        return;
+        await VerificationCodeRepository.delete(userTemp?.id)
     } catch (err) {
-        console.error("Error in sendVerificationCode:", err);
-        res.status(500).json({ err: 'Server failed to process verification code request: ' + (err instanceof Error ? err.message : String(err)) });
-        return;
+        console.error('Error when sent 2FA')
     }
+    const code = generateRandomNumber(6)
+    await VerificationCodeRepository.create(email, code, getExpiryDate(15))
+    const subject = 'Email Verification Code';
+    const text = `Your verification code is: ${code}`;
+    const htmlContent = `<p>Your verification code is: <strong>${code}</strong></p>`;
+    await sentEmail(email, subject, text, htmlContent);
+    res.status(201).json({ message: 'Verification code sent successfully!' });
+    return;
 }
 
 
@@ -493,31 +473,26 @@ export async function sendVerificationCode(req: Request, res: Response): Promise
 export async function verifyEmail(req: Request, res: Response): Promise<void> {
     const { email, code } = req.body;
 
-    try {
-        const user = await UserRepository.findByEmail(email);
-        if (!user) {
-            res.status(400).json({ message: 'Invalid verification code or email.' });
-            return
-        }
- 
-        const verificationToken = await VerificationCodeRepository.find(user._id.toString(), code);
-
-        if (!verificationToken) {
-            res.status(400).json({ message: 'Invalid or expired verification code.' });
-            return
-        }
-
-        await UserRepository.update(user._id.toString(), { isVerified: true });
-
-        await VerificationCodeRepository.delete(verificationToken.id);
-
-        const token = JWT.create({ id: user.id, email: user.email, role: user.role });
-        const { password: _, ...userResponse } = user.toObject(); 
-
-        res.status(200).json({ message: 'Email verified successfully. You are now logged in.', token });
-        
-    } catch (err) {
-        console.error("Error in verifyEmail:", err);
-        res.status(500).json({ error: 'Server failed to verify email.' });
+    const user = await UserRepository.findByEmail(email);
+    if (!user) {
+        res.status(400).json({ message: 'Invalid verification code or email.' });
+        return
     }
+
+    const verificationToken = await VerificationCodeRepository.find(user._id.toString(), code);
+
+    if (!verificationToken) {
+        res.status(400).json({ message: 'Invalid or expired verification code.' });
+        return
+    }
+
+    await UserRepository.update(user._id.toString(), { isVerified: true });
+
+    await VerificationCodeRepository.delete(verificationToken.id);
+
+    const token = JWT.create({ id: user.id, email: user.email, role: user.role });
+    const { password: _, ...userResponse } = user.toObject();
+
+    res.status(200).json({ message: 'Email verified successfully. You are now logged in.', token });
+
 }
