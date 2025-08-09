@@ -24,12 +24,12 @@ export class QuizzRepositories {
 		return QuizModel.create(quizz);
 	}
 	static async getQuizzByUser(userId: string) {
-		return QuizModel.find({ creatorId: userId }).exec();
+		return QuizModel.find({ $match: { _id: new Types.ObjectId(userId) } }).exec();
 	}
 
 	static async addQuestion(quizId: string, question: IQuestion): Promise<boolean> {
 		const result = await QuizModel.updateOne(
-			{ _id: quizId },
+			 { $match: { _id: new Types.ObjectId(quizId) } },
 			{ $push: { questions: question } }
 		);
 		return result.modifiedCount > 0;
@@ -43,7 +43,7 @@ export class QuizzRepositories {
 		questionUpdate: Partial<IQuestion>
 	): Promise<IQuestion | null> {
 		const quiz = await QuizModel.findOneAndUpdate(
-			{ _id: quizzId, 'questions._id': questionId },
+			{ $match: { _id: new Types.ObjectId(quizzId) }, 'questions._id': questionId },
 			{
 				$set: Object.entries(questionUpdate).reduce((acc, [k, v]) => {
 					acc[`questions.$.${k}`] = v;
@@ -64,7 +64,7 @@ export class QuizzRepositories {
 		optionUpdate: Partial<IOption>
 	): Promise<IOption | null> {
 		const quiz = await QuizModel.findOneAndUpdate(
-			{ _id: quizzId, 'questions._id': questionId, 'questions.options._id': optionId },
+			{ $match: { _id: new Types.ObjectId(quizzId) }, 'questions._id': questionId, 'questions.options._id': optionId },
 			{
 				$set: Object.entries(optionUpdate).reduce((acc, [k, v]) => {
 					acc[`questions.$[q].options.$[o].${k}`] = v;
@@ -90,7 +90,7 @@ export class QuizzRepositories {
 
 	static async deleteQuestion(quizzId: string, questionId: string): Promise<boolean> {
 		const result = await QuizModel.updateOne(
-			{ _id: quizzId },
+			{ $match: { _id: new Types.ObjectId(quizzId) } },
 			{ $pull: { questions: { _id: questionId } } }
 		).exec();
 
@@ -103,7 +103,7 @@ export class QuizzRepositories {
 		optionId: string
 	): Promise<boolean> {
 		const result = await QuizModel.updateOne(
-			{ _id: quizzId, 'questions._id': questionId },
+			{ $match: { _id: new Types.ObjectId(quizzId) }, 'questions._id': questionId },
 			{ $pull: { 'questions.$.options': { _id: optionId } } }
 		).exec();
 
@@ -112,7 +112,7 @@ export class QuizzRepositories {
 
 	static async deleteQuizz(quizzId: string): Promise<boolean> {
 		const result = await QuizModel.deleteOne(
-			{ _id: quizzId },
+			{ $match: { _id: new Types.ObjectId(quizzId) } },
 		).exec();
 
 		return result.deletedCount !== undefined && result.deletedCount > 0;

@@ -5,7 +5,7 @@ export class VerificationCodeRepository {
 
     static async create(userId: string, Code: number, expiresAt: Date): Promise<void> {
         const verificationCode = new VerificationCodeModel({
-            userId,
+            $match: { _id: new Types.ObjectId(userId) },
             Code,
             expiresAt,
         });
@@ -24,7 +24,7 @@ export class VerificationCodeRepository {
     }
 
     static async delete(id: string): Promise<void> {
-        await VerificationCodeModel.findByIdAndDelete(id).exec();
+        await VerificationCodeModel.findByIdAndDelete( new Types.ObjectId(id)).exec();
     }
 
 

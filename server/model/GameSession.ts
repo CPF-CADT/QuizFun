@@ -3,16 +3,17 @@ import { Schema, model, Document, Types } from 'mongoose';
 export interface IGameSessionParticipant {
   userId: Types.ObjectId;
   nickname: string;
-  finalScore: number;
-  finalRank: number;
+  finalScore?: number;
+  finalRank?: number;
 }
 
 export interface IGameSession extends Document {
+  _id: Types.ObjectId;
   quizId: Types.ObjectId;
   hostId: Types.ObjectId;
   joinCode: string;
   status: 'waiting' | 'in_progress' | 'completed';
-  results: IGameSessionParticipant[];
+  results?: IGameSessionParticipant[];
   startedAt?: Date;
   endedAt?: Date;
 }
