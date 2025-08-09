@@ -1,11 +1,8 @@
+// src/contexts/authContext.ts
+
 import { createContext, useState, useContext, useEffect, useCallback, type ReactNode } from 'react';
-import { 
-  isTokenValid, 
-  setToken, 
-  getStoredUser, 
-  setStoredUser, 
-  logout as clearAuthData 
-} from '../service/auth';
+import { setToken, setStoredUser, getStoredUser, clearClientAuthData } from '../service/auth';
+import { authApi, apiClient } from '../service/api';
 
 interface User {
   id: string;
@@ -13,14 +10,14 @@ interface User {
   email: string;
 }
 
-interface LoginResponse {
-  token: string;
+interface LoginResponseData {
+  accessToken: string;
   user: User;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (loginResponse: LoginResponse) => void;
+  login: (credentials: object) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -32,50 +29,66 @@ interface AuthProviderProps {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// Apply the correct props type to the function signature
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const validateAuth = useCallback(() => {
+  const logoutUser = useCallback(async () => {
     try {
-      if (isTokenValid()) {
-        const storedUser = getStoredUser();
-        setUser(storedUser);
-      } else {
-        clearAuthData();
-        setUser(null);
-      }
+      await authApi.logout();
     } catch (error) {
-      console.error("Authentication validation failed:", error);
-      clearAuthData();
-      setUser(null);
+      console.error("Logout failed on server:", error);
     } finally {
-      setIsLoading(false);
+      clearClientAuthData();
+      setUser(null);
     }
   }, []);
 
-  useEffect(() => {
-    validateAuth();
-  }, [validateAuth]);
+  const verifyAuth = useCallback(async () => {
+    try {
+      const { data } = await apiClient.post<{ accessToken: string }>('/user/refresh-token');
+      setToken(data.accessToken);
+      const storedUser = getStoredUser();
+      if (storedUser) {
+        setUser(storedUser);
+      } else {
+        // If we have a valid session but no user data, the user should be logged out.
+        await logoutUser();
+      }
+    } catch (error) {
+      setUser(null);
+      clearClientAuthData();
+    } finally {
+      setIsLoading(false);
+    }
+  }, [logoutUser]);
 
-  const login = (loginResponse: LoginResponse) => {
-    setToken(loginResponse.token);
-    setStoredUser(loginResponse.user);
-    setUser(loginResponse.user);
+  useEffect(() => {
+    verifyAuth();
+  }, [verifyAuth]);
+
+  const login = async (credentials: object) => {
+    const { data } = await authApi.login(credentials);
+    const { accessToken, user: userData }: LoginResponseData = data;
+    
+    setToken(accessToken);
+    setStoredUser(userData);
+    setUser(userData);
   };
 
-  const logout = () => {
-    clearAuthData();
-    setUser(null);
-    window.location.href = '/login'; 
+  const logout = async () => {
+    await logoutUser();
+    // Redirect after state is cleared
+    window.location.href = '/login';
   };
 
   const value: AuthContextType = {
     user,
     login,
     logout,
-    isAuthenticated: !!user && !isLoading,
-    isLoading, 
+    isAuthenticated: !!user,
+    isLoading,
   };
 
   return (

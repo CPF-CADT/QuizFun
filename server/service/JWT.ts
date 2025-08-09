@@ -1,30 +1,38 @@
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv'
-dotenv.config();
+import jwt from "jsonwebtoken";
+export class JWT {
+    static JWT_SECRET = process.env.JWT_SECRET || "access_secret";
+    static JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "refresh_secret";
 
-export default class JWT {
-    private static JWT_SECRET = process.env.JWT_SECRET as string;
+    static createTokens({
+        id,
+        email,
+        role
+    }: {
+        id: string;
+        email?: string;
+        role: string;
+    }): { accessToken: string; refreshToken: string } {
+        
+        const payload = { id, email, role };
 
-    static create({ id,profile_url, email, role }: { id:string,profile_url?: string,email?:string ,role:string}): string {
-        return jwt.sign(
-            {
-                id,profile_url, email, role
+        // Short-lived access token
+        const accessToken = jwt.sign(payload, this.JWT_SECRET, {
+            expiresIn: "15m"
+        });
 
-            },
-            JWT.JWT_SECRET,
-            { expiresIn: '24h' }
-        );
+        // Long-lived refresh token
+        const refreshToken = jwt.sign(payload, this.JWT_REFRESH_SECRET, {
+            expiresIn: "7d"
+        });
+
+        return { accessToken, refreshToken };
     }
 
-    static verify(token: string): any {
-        if (!token) {
-            throw new Error('Access token missing');
-        }
+    static verifyAccessToken(token: string) {
+        return jwt.verify(token, this.JWT_SECRET);
+    }
 
-        try {
-            return jwt.verify(token, JWT.JWT_SECRET);
-        } catch (err) {
-            throw new Error('Invalid or expired token');
-        }   
+    static verifyRefreshToken(token: string) {
+        return jwt.verify(token, this.JWT_REFRESH_SECRET);
     }
 }
