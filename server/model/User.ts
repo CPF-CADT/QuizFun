@@ -1,14 +1,16 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
-export interface IUser extends Document {
-  _id: Types.ObjectId;
+export interface IUserData {
   name: string;
   email: string;
   password?: string;
   role: 'player' | 'admin';
   profileUrl?: string;
   googleId?: string;
-  isVerified: boolean; 
+  isVerified: boolean;
+}
+export interface IUser extends IUserData, Document {
+  _id: Types.ObjectId; 
 }
 
 const UserSchema = new Schema<IUser>({
@@ -23,6 +25,8 @@ const UserSchema = new Schema<IUser>({
     required: true,
     default: false,
   },
-}, { timestamps: true });
+}, { timestamps: true,
+  collection: 'users' 
+ });
 
 export const UserModel = model<IUser>('User', UserSchema);

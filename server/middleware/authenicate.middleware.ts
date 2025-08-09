@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import JWT from '../service/JWT';
+import {JWT }from '../service/JWT';
 import { JwtPayload } from 'jsonwebtoken';
 import { UserRepository } from '../repositories/users.repositories';
 
@@ -53,7 +53,7 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
   const token = authHeader.split(' ')[1];
 
   try {
-    const decoded = JWT.verify(token) as UserPayload;
+    const decoded = JWT.verifyAccessToken(token) as UserPayload;
 
     req.user = {
       id: decoded.id,

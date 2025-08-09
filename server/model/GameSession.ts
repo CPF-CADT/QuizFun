@@ -36,6 +36,6 @@ const GameSessionSchema = new Schema<IGameSession>({
   results: [GameSessionParticipantSchema],
   startedAt: { type: Date },
   endedAt: { type: Date },
-}, { timestamps: true });
+}, { timestamps: true ,collection:'gamesessions'});
 
 export const GameSessionModel = model<IGameSession>('GameSession', GameSessionSchema);

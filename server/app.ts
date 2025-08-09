@@ -5,6 +5,9 @@ import { swaggerSpec } from './service/swaggerConfig';
 import { userRouter } from './routes/users.route';
 import { quizzRouter } from './routes/quizz.route';
 import { errorHandler } from './middleware/errHandle.middleware';
+import { serviceRouter } from './routes/service.route';
+// import { createRandomGameHistory,createRandomGameSession,createRandomQuiz,createRandomUserData,createRandomVerificationCode } from './faker/seed';
+import { runSeed } from './faker/seed'; 
 
 const app = express();
 
@@ -18,6 +21,7 @@ app.get('/', (req, res) => {
 app.use('/api/user', userRouter);
 app.use('/api/quizz', quizzRouter);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-app.use('/api/service')
+app.use('/api/service',serviceRouter)
 app.use(errorHandler)
+runSeed();
 export default app;

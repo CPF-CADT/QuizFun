@@ -22,6 +22,7 @@ const GameHistorySchema = new Schema<IGameHistory>({
   timeTakenMs: { type: Number, required: true },
 }, {
   timestamps: { createdAt: 'answeredAt', updatedAt: false }, 
+  collection:'gamehistories'
 });
 
 export const GameHistoryModel = model<IGameHistory>('GameHistory', GameHistorySchema);
