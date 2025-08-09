@@ -3,7 +3,8 @@ import Signup from "./pages/Signup";
 import Login from "./pages/Login"; 
 import Homepage from "./pages/Homepage"; // Importing Homepage component
 import Joingame from "./pages/Joingame";
-
+import Dashboard from "./pages/Dashboard";
+import Explore from "./pages/Explore"; // Importing Explore component
 function App() {
   return (
     <Router>
@@ -15,6 +16,8 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/enter-pin" element={<Joingame />} /> {/* ✅ new route */}
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/explore" element={<Explore />} /> 
       </Routes>
     </Router>
   );

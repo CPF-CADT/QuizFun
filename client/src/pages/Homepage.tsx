@@ -71,7 +71,8 @@ const Homepage: React.FC = () => {
             <button className="group flex items-center gap-2 bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold px-8 py-4 rounded-xl hover:from-pink-600 hover:to-rose-700 transition-all transform hover:scale-110 shadow-2xl border border-pink-400">
               <FaChartLine className="group-hover:bounce transition-transform" /> Reports
             </button>
-            <button className="group bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold px-8 py-4 rounded-xl hover:from-cyan-600 hover:to-blue-700 transition-all transform hover:scale-110 shadow-2xl border border-cyan-400">
+            <button className="group bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold px-8 py-4 rounded-xl hover:from-cyan-600 hover:to-blue-700 transition-all transform hover:scale-110 shadow-2xl border border-cyan-400"
+            onClick={()=> (window.location.href = "/enter-pin")}>
               <FaGamepad className="inline mr-2 group-hover:rotate-12 transition-transform" /> Enter Code
             </button>
           </div>
