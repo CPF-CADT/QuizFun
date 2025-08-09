@@ -1,17 +1,57 @@
 import { Request, Response } from 'express';
 import { Encryption } from '../service/encription';
 import { UserRepository, UserData } from '../repositories/users.repositories';
-import JWT from '../service/JWT';
+import { JWT } from '../service/JWT';
 import { generateRandomNumber, getExpiryDate } from '../service/generateRandomNumber';
 import { sentEmail } from '../service/transporter';
 import { VerificationCodeRepository } from '../repositories/verification.repositories';
 import { UserModel } from '../model/User';
+import jwt from "jsonwebtoken";
 /**
  * @swagger
  * tags:
  *   name: User
  *   description: User Management
  */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           example: 123e4567-e89b-12d3-a456-426614174000
+ *         name:
+ *           type: string
+ *           example: Alice Doe
+ *         email:
+ *           type: string
+ *           format: email
+ *           example: alice@example.com
+ *         password:
+ *           type: string
+ *           example: hashed_password_123
+ *         role:
+ *           type: string
+ *           example: user
+ *         profile_url:
+ *           type: string
+ *           format: uri
+ *           example: https://example.com/profile.jpg
+ *         google_id:
+ *           type: string
+ *           nullable: true
+ *           example: google-uid-001
+ *   securitySchemes:
+ *     cookieAuth:
+ *       type: apiKey
+ *       in: cookie
+ *       name: refreshToken
+ */
+
 
 /**
  * @swagger
@@ -73,40 +113,6 @@ import { UserModel } from '../model/User';
  *       500:
  *         description: Internal server error
  */
-
-/**
- * @swagger
- * components:
- *   schemas:
- *     User:
- *       type: object
- *       properties:
- *         id:
- *           type: string
- *           example: 123e4567-e89b-12d3-a456-426614174000
- *         name:
- *           type: string
- *           example: Alice Doe
- *         email:
- *           type: string
- *           format: email
- *           example: alice@example.com
- *         password:
- *           type: string
- *           example: hashed_password_123
- *         role:
- *           type: string
- *           example: user
- *         profile_url:
- *           type: string
- *           format: uri
- *           example: https://example.com/profile.jpg
- *         google_id:
- *           type: string
- *           nullable: true
- *           example: google-uid-001
- */
-
 
 export async function register(req: Request, res: Response): Promise<void> {
     const { name, email, password, profile_url, role } = req.body;
@@ -208,27 +214,39 @@ export async function login(req: Request, res: Response): Promise<void> {
 
     const user = await UserRepository.findByEmail(email);
     if (!user) {
-        res.status(404).json({ message: 'User not found' });
+        res.status(404).json({ message: "User not found" });
         return;
     }
 
-    // CRITICAL CHANGE: Check if the user's email is verified
     if (!user.isVerified) {
-        res.status(403).json({ message: 'Account not verified. Please check your email.' });
+        res.status(403).json({ message: "Account not verified. Please check your email." });
         return;
     }
 
     const isPasswordValid = Encryption.verifyPassword(user.password as string, password);
     if (!isPasswordValid) {
-        res.status(401).json({ message: 'Incorrect password' });
+        res.status(401).json({ message: "Incorrect password" });
         return;
     }
 
-    const token = JWT.create({ id: user.id, email: user.email, role: user.role });
-    const { password: _, ...userResponse } = user; // Exclude password from response
+    const tokens = JWT.createTokens({ id: user.id, email: user.email, role: user.role });
 
-    res.status(200).json({ message: 'Login successful', token, user: userResponse });
+    res.cookie("refreshToken", tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production", 
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000, 
+    });
+
+    const { password: _, ...userResponse } = user; 
+
+    res.status(200).json({
+        message: "Login successful",
+        accessToken: tokens.accessToken,
+        user: userResponse,
+    });
 }
+
 
 
 /**
@@ -313,7 +331,6 @@ export async function updateUserInfo(req: Request, res: Response): Promise<void>
         return;
     }
 
-    // Ensure the password hash is not sent back in the response
     const { password: _, ...userResponse } = updatedUser.toObject();
 
     res.status(200).json({
@@ -322,14 +339,6 @@ export async function updateUserInfo(req: Request, res: Response): Promise<void>
     });
 
 }
-
-
-
-
-
-
-
-
 
 /**
  * @swagger
@@ -471,28 +480,149 @@ export async function sendVerificationCode(req: Request, res: Response): Promise
  */
 
 export async function verifyEmail(req: Request, res: Response): Promise<void> {
-    const { email, code } = req.body;
+  const { email, code } = req.body;
 
-    const user = await UserRepository.findByEmail(email);
-    if (!user) {
-        res.status(400).json({ message: 'Invalid verification code or email.' });
-        return
+  if (!email || !code) {
+    res.status(400).json({ message: "Email and code are required." });
+    return;
+  }
+
+  const user = await UserRepository.findByEmail(email);
+  if (!user) {
+    res.status(400).json({ message: "Invalid verification code or email." });
+    return;
+  }
+
+  const verificationToken = await VerificationCodeRepository.find(user._id.toString(), code);
+
+  if (!verificationToken) {
+    res.status(400).json({ message: "Invalid or expired verification code." });
+    return;
+  }
+
+  await UserRepository.update(user._id.toString(), { isVerified: true });
+  await VerificationCodeRepository.delete(verificationToken.id);
+
+  const tokens = JWT.createTokens({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+  });
+
+  res.cookie("refreshToken", tokens.refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production", // secure only in prod (HTTPS)
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000, 
+  });
+
+  const { password, ...userResponse } = user.toObject();
+
+  res.status(200).json({
+    message: "Email verified successfully. You are now logged in.",
+    accessToken: tokens.accessToken,
+    user: userResponse,
+  });
+}
+
+
+/**
+ * @swagger
+ * /api/user/refresh-token:
+ *   post:
+ *     summary: Generate a new access token using the refresh token in HTTP-only cookie
+ *     tags: [User]
+ *     description: >
+ *       Uses the refresh token stored in the client's HTTP-only cookie to issue a new short-lived access token.
+ *       The refresh token must be valid and not expired.  
+ *       No request body is required, but the cookie must be sent.
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: New access token issued successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *       401:
+ *         description: Refresh token missing
+ *       403:
+ *         description: Refresh token invalid or expired
+ *       500:
+ *         description: Server error
+ */
+
+
+export async function refreshToken(req: Request, res: Response): Promise<void> {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+        res.status(401).json({ message: "Refresh token missing" });
+        return;
     }
 
-    const verificationToken = await VerificationCodeRepository.find(user._id.toString(), code);
-
-    if (!verificationToken) {
-        res.status(400).json({ message: 'Invalid or expired verification code.' });
-        return
+    let decodedUser;
+    try {
+        decodedUser = JWT.verifyRefreshToken(refreshToken) as {
+            id: string;
+            email?: string;
+            role: string;
+        };
+    } catch (err) {
+        res.status(403).json({ message: "Invalid or expired refresh token" });
+        return;
     }
+    const accessToken = jwt.sign(
+        {
+            id: decodedUser.id,
+            email: decodedUser.email,
+            role: decodedUser.role
+        },
+        JWT.JWT_SECRET,
+        { expiresIn: "15m" }
+    );
 
-    await UserRepository.update(user._id.toString(), { isVerified: true });
+    res.json({ accessToken });
+}
 
-    await VerificationCodeRepository.delete(verificationToken.id);
+/**
+ * @swagger
+ * /api/user/logout:
+ *   post:
+ *     summary: Logout the user by clearing the refresh token cookie
+ *     tags: [User]
+ *     description: >
+ *       Clears the refresh token stored in the HTTP-only cookie,
+ *       effectively logging the user out from the session.
+ *       No request body required.
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Logout successful
+ *       500:
+ *         description: Server error
+ */
+export async function logout(req: Request, res: Response): Promise<void> {
+    const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict" as const,
+    };
 
-    const token = JWT.create({ id: user.id, email: user.email, role: user.role });
-    const { password: _, ...userResponse } = user.toObject();
-
-    res.status(200).json({ message: 'Email verified successfully. You are now logged in.', token });
-
+    res.clearCookie("refreshToken", cookieOptions);
+    res.status(200).json({ message: "Logout successful" });
 }
