@@ -1,13 +1,15 @@
-interface Participants {
+​export interface Participants {
+  socket_id: string;
   user_id: string;
   user_name: string;
   user_profile: string;
-}
+  isOnline:boolean;
+} 
 
-interface SessionData {
-  game_id: string;
+export interface SessionData {
   quizId: string;
   hostId: string;
+  host_socket_id: string;
   participants?: Participants[];
 }
 
@@ -15,8 +17,9 @@ export class GameSessionManager {
   static waitLobby = new Map<number, SessionData>();
   static currentGamePlay = new Map<number, SessionData>();
 
-  static addSession(code: number, session: SessionData): void {
+  static addSession(code: number, session: SessionData): boolean {
     GameSessionManager.waitLobby.set(code, session);
+    return GameSessionManager.waitLobby.has(code);
   }
 
   static isSessionActive(code: number): boolean {

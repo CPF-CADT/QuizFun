@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lobby</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .dot-flashing { position: relative; width: 10px; height: 10px; border-radius: 5px; background-color: #4f46e5; color: #4f46e5; animation: dotFlashing 1s infinite linear alternate; animation-delay: .5s; display: inline-block; margin-left: 5px; }
+        .dot-flashing::before, .dot-flashing::after { content: ''; display: inline-block; position: absolute; top: 0; }
+        .dot-flashing::before { left: -15px; width: 10px; height: 10px; border-radius: 5px; background-color: #4f46e5; color: #4f46e5; animation: dotFlashing 1s infinite alternate; animation-delay: 0s; }
+        .dot-flashing::after { left: 15px; width: 10px; height: 10px; border-radius: 5px; background-color: #4f46e5; color: #4f46e5; animation: dotFlashing 1s infinite alternate; animation-delay: 1s; }
+        @keyframes dotFlashing { 0% { background-color: #4f46e5; } 50%, 100% { background-color: #c7d2fe; } }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+
+    <div class="w-full max-w-lg bg-white rounded-lg shadow-md p-8">
+
+        <div id="join-form-page" class="hidden">
+            <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">Join a Room</h1>
+            <div class="space-y-4">
+                <input id="joinRoomInput" type="text" placeholder="Enter Room ID" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                <input id="usernameInput" type="text" placeholder="Enter Your Name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                <button onclick="joinRoom()" class="w-full mt-2 bg-green-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-700">
+                    Join Room
+                </button>
+                 <a href="index.html" class="block text-center w-full mt-2 bg-gray-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-600">
+                    Back
+                </a>
+            </div>
+        </div>
+        
+        <div id="host-lobby-page" class="hidden">
+            <h1 class="text-2xl font-bold text-center text-gray-800">Host Lobby</h1>
+            <p class="text-center text-gray-500 mb-4">Share this Room ID with your friends:</p>
+            <p class="text-center text-2xl font-mono bg-gray-200 px-2 py-2 rounded-md tracking-widest" id="hostRoomIdDisplay"></p>
+            
+            <div class="border-t pt-4 mt-4">
+                 <h2 class="text-lg font-semibold text-gray-700">Players in Room</h2>
+                 <ul id="player-list-host" class="mt-2 mb-4 space-y-2 h-32 overflow-y-auto">
+                    </ul>
+            </div>
+
+             <div class="border-t pt-4 mt-4">
+                 <h2 class="text-lg font-semibold text-gray-700 mb-2">Send Message to Players</h2>
+                 <div class="flex space-x-2">
+                    <input id="host-message-input" type="text" placeholder="Type your message..." class="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button onclick="sendMessage()" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700">Send</button>
+                 </div>
+             </div>
+        </div>
+
+        <div id="player-lobby-page" class="hidden">
+             <h1 class="text-2xl font-bold text-center text-gray-800">Lobby</h1>
+             <p class="text-center text-gray-500 mb-4">Room ID: <span id="playerRoomIdDisplay" class="font-mono bg-gray-200 px-2 py-1 rounded-md"></span></p>
+
+             <div class="border-t pt-4 mt-4">
+                 <h2 class="text-lg font-semibold text-gray-700">Players in Room</h2>
+                 <ul id="player-list-client" class="mt-2 mb-4 space-y-2 h-24 overflow-y-auto">
+                    </ul>
+             </div>
+
+             <div class="border-t pt-4 mt-4">
+                <h2 class="text-lg font-semibold text-gray-700 mb-2">Messages from Host</h2>
+                <div id="messages-from-host" class="p-2 bg-gray-100 rounded-md h-24 overflow-y-auto text-gray-600">
+                    Waiting for host...
+                </div>
+             </div>
+             <div id="lobby-status" class="text-center text-gray-600 p-4 rounded-md"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        // Use a placeholder URL. Replace with your actual server URL.
+        const socket = io('http://localhost:3000/');
+        let currentRoomId = null;
+        let isHost = false;
+        let gameData = {
+            quizId:'12312',
+            hostId:'88871'
+        }
+        // --- UI Element References ---
+        const pages = ['join-form-page', 'host-lobby-page', 'player-lobby-page'];
+        const joinRoomInput = document.getElementById('joinRoomInput');
+        const usernameInput = document.getElementById('usernameInput');
+        const hostRoomIdDisplay = document.getElementById('hostRoomIdDisplay');
+        const playerRoomIdDisplay = document.getElementById('playerRoomIdDisplay');
+        const playerListHost = document.getElementById('player-list-host');
+        const playerListClient = document.getElementById('player-list-client');
+        const hostMessageInput = document.getElementById('host-message-input');
+        const messagesFromHostDiv = document.getElementById('messages-from-host');
+        const lobbyStatus = document.getElementById('lobby-status');
+
+        // --- UI Navigation ---
+        function showPage(pageId) {
+            pages.forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById(pageId).classList.remove('hidden');
+        }
+
+        // --- Core Functions ---
+        function joinRoom() {
+            const roomId = parseInt(joinRoomInput.value.trim());
+            const username = usernameInput.value.trim();
+            const user_id = 'guest'+Math.random().toString()
+            const user_profile = 'https://helo.png'
+            const data ={
+                roomId,
+                username,
+                user_id,
+                user_profile
+            }
+            if (roomId && username) {
+                socket.emit('join-room',data);
+            } else {
+                alert('Please enter both a Room ID and your name.');
+            }
+        }
+        
+        function sendMessage() {
+            const message = hostMessageInput.value.trim();
+            if (message && currentRoomId) {
+                socket.emit('host-message', { roomId: currentRoomId, message: message });
+                hostMessageInput.value = ''; // Clear input
+            }
+        }
+        
+        // --- Socket.io Listeners ---
+        socket.on('room-created', (roomId) => {
+            currentRoomId = roomId;
+            hostRoomIdDisplay.textContent = roomId;
+        });
+        
+        socket.on('join-successful', (data) => {
+            currentRoomId = data.roomId;
+            playerRoomIdDisplay.textContent = data.roomId;
+            showPage('player-lobby-page');
+            updatePlayerListView(data.players);
+        });
+
+        socket.on('update-room-state', (room) => {
+            if (isHost) {
+                updateHostListView(room.participants);
+            } else {
+                updatePlayerListView(room.participants);
+            }
+        });
+        
+        socket.on('new-message', (message) => {
+            if(messagesFromHostDiv.innerText === 'Waiting for host...'){
+                messagesFromHostDiv.innerHTML = '';
+            }
+            const messageEl = document.createElement('p');
+            messageEl.textContent = message;
+            messagesFromHostDiv.appendChild(messageEl);
+            messagesFromHostDiv.scrollTop = messagesFromHostDiv.scrollHeight;
+        });
+
+        socket.on('error-message', (message) => {
+            alert(`Error: ${message}`);
+            window.location.href = 'index.html'; // Go back to start on error
+        });
+        
+        // --- List-building Helper Functions (Refactored) ---
+        
+        function updateHostListView(players) {
+            playerListHost.innerHTML = '';
+            
+            if (players.length === 0) {
+                playerListHost.innerHTML = '<li class="text-gray-400">Waiting for players to join...</li>';
+                return;
+            }
+            
+            players.forEach(player => {
+                // 'isYou' is always false, as the host is viewing other players.
+                playerListHost.appendChild(createPlayerElement(player, false));
+            });
+        }
+        
+        function updatePlayerListView(players) {
+            playerListClient.innerHTML = '';
+
+            players.forEach(player => {
+                playerListClient.appendChild(createPlayerElement(player, player.socket_id === socket.id));
+            });
+            
+            // If there is only one player in the list (the user themselves), wait for more.
+            if (players.length < 2) {
+                lobbyStatus.innerHTML = `<span>Waiting for more players...</span><div class="dot-flashing"></div>`;
+            } else {
+                lobbyStatus.innerHTML = `🎉 Room is ready!`;
+            }
+        }
+        
+        function createPlayerElement(player, isYou = false) {
+             const el = document.createElement('li');
+             el.className = 'bg-white p-3 rounded-md shadow-sm flex items-center justify-between';
+             const nameDiv = document.createElement('div');
+             nameDiv.className = 'flex items-center';
+             const statusDot = document.createElement('span');
+             // Use the 'isOnline' property from your player object
+             statusDot.className = `w-3 h-3 rounded-full mr-3 ${player.isOnline ? 'bg-green-500' : 'bg-gray-400'}`;
+             nameDiv.appendChild(statusDot);
+             const nameSpan = document.createElement('span');
+             nameSpan.textContent = player.user_name;
+             nameDiv.appendChild(nameSpan);
+             el.appendChild(nameDiv);
+             if (isYou) {
+                 const youTag = document.createElement('span');
+                 youTag.className = 'text-xs font-semibold bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full';
+                 youTag.textContent = 'You';
+                 el.appendChild(youTag);
+             }
+             return el;
+        }
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const action = urlParams.get('action');
+
+            if (action === 'create') {
+                isHost = true;
+                socket.emit('create-room', gameData);
+                showPage('host-lobby-page');
+            } else if (action === 'join') {
+                isHost = false;
+                showPage('join-form-page');
+            } else {
+                // If no action is specified, redirect to the start page.
+                window.location.href = 'index.html';
+            }
+        });
+    </script>
+</body>
+</html>
