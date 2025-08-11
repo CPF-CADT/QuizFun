@@ -19,7 +19,12 @@ export class QuizzRepositories {
             totalPages: Math.ceil(total / limit)
         };
     }
-
+	static async getQuizz(qId: string) {
+		if (!Types.ObjectId.isValid(qId)) {
+			throw new Error("Invalid quiz ID");
+		}
+		return QuizModel.findById(qId).lean();
+	}
 	static async createQuizz(quizz: IQuiz): Promise<IQuiz | null> {
 		return QuizModel.create(quizz);
 	}

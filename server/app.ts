@@ -26,5 +26,5 @@ app.use('/api/service',serviceRouter)
 // app.use('/api/game',gameRouter)
 
 app.use(errorHandler)
-// runSeed();
+// runSeed();   
 export default app;
