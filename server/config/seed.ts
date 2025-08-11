@@ -1,12 +1,26 @@
 import { faker } from '@faker-js/faker';
 import { Types } from 'mongoose';
-import { GameHistoryModel, IGameHistory } from '../model/GameHistory'; 
+import { GameHistoryModel, historyResponse, IGameHistory } from '../model/GameHistory'; 
 import { GameSessionModel, IGameSession, IGameSessionParticipant } from '../model/GameSession'; 
 import { IQuiz, IQuestion, IOption, QuizModel } from '../model/Quiz'; 
 import { IUserData, UserModel } from '../model/User'; 
 import { IVerificationCode, VerificationCodeModel } from '../model/VerificationToken'; 
+import { IResponse } from '../model/GameHistory';
 
-
+const createRandomResponses = (question: IQuestion): IResponse[] => {
+  const count = faker.number.int({ min: 1, max: 100 });
+  const responses: IResponse[] = [];
+  let lastTime = 0;
+  for (let i = 0; i < count; i++) {
+    const option = faker.helpers.arrayElement(question.options);
+    lastTime += faker.number.int({ min: 1000, max: 5000 });
+    responses.push({
+      selectedOptionId: option._id,
+      timeStamp: new Date(Date.now() + lastTime),
+    });
+  }
+  return responses;
+};
 export const createRandomUserData = (): IUserData => {
   return {
     name: faker.person.fullName(),
@@ -88,10 +102,14 @@ export const createRandomGameHistory = (
   gameSessionId: Types.ObjectId,
   quizId: Types.ObjectId,
   userId: Types.ObjectId,
-  question: IQuestion
+  question: IQuestion,
+  allQuestions: IQuestion[]
 ): IGameHistory => {
   const selectedOption = faker.helpers.arrayElement(question.options);
-
+   const questionsWithResponses: historyResponse[] = allQuestions.map(q => ({
+    ...q,
+    responses: createRandomResponses(q),
+  }));
   return {
     _id: new Types.ObjectId(),
     gameSessionId: gameSessionId,
@@ -102,6 +120,7 @@ export const createRandomGameHistory = (
     isCorrect: selectedOption.isCorrect,
     pointsAwarded: selectedOption.isCorrect ? question.point : 0,
     timeTakenMs: faker.number.int({ min: 1000, max: question.timeLimit * 1000 }),
+    questions:questionsWithResponses,
   } as IGameHistory;
 };
 
@@ -149,7 +168,7 @@ export async function runSeed() {
 
   // 5. Create and save game history (for one question)
   const question = randomQuiz.questions[0];
-  const randomGameHistory = createRandomGameHistory(gameSessionDoc.hostId, quizDoc.id, userDoc._id, question);
+  const randomGameHistory = createRandomGameHistory(gameSessionDoc.hostId, quizDoc.id, userDoc._id,randomQuiz.questions[0],randomQuiz.questions);
   const gameHistoryDoc = new GameHistoryModel(randomGameHistory);
   await gameHistoryDoc.save();
   console.log('--- Game History saved ---', gameHistoryDoc);

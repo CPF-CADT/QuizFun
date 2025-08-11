@@ -3,17 +3,18 @@ import { Types } from 'mongoose';
 
 export class VerificationCodeRepository {
 
-    static async create(userId: string, Code: number, expiresAt: Date): Promise<void> {
-        const verificationCode = new VerificationCodeModel({
-            $match: { _id: new Types.ObjectId(userId) },
-            Code,
-            expiresAt,
-        });
-        await verificationCode.save();
-    }
+static async create(userId: string, Code: number, expiresAt: Date): Promise<void> {
+    const verificationCode = new VerificationCodeModel({
+        userId: new Types.ObjectId(userId),
+        Code: Code.toString(),
+        expiresAt,
+    });
+    await verificationCode.save();
+}
+
 
     static async find(userId: string, Code: number): Promise<{ id: string; userId: string } | null> {
-        const foundCode = await VerificationCodeModel.findOne({
+          const foundCode = await VerificationCodeModel.findOne({
             userId: new Types.ObjectId(userId),
             Code: Code,
         }).exec() as IVerificationCode;
