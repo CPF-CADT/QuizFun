@@ -5,7 +5,7 @@ import { JWT } from '../service/JWT';
 import { generateRandomNumber, getExpiryDate } from '../service/generateRandomNumber';
 import { sentEmail } from '../service/transporter';
 import { VerificationCodeRepository } from '../repositories/verification.repositories';
-import { UserModel } from '../model/User';
+import { IUser, UserModel } from '../model/User';
 import jwt from "jsonwebtoken";
 /**
  * @swagger
@@ -128,16 +128,15 @@ export async function register(req: Request, res: Response): Promise<void> {
         return;
     }
 
-    const newUserDoc = new UserModel({
-        name,
+
+
+    const createdUser = await UserRepository.create({name,
         email,
         password: Encryption.hashPassword(password),
         profileUrl: profile_url || 'http://default.url/image.png',
         role: role || 'player',
         isVerified: false,
-    });
-
-    const createdUser = await UserRepository.create(newUserDoc);
+    } as IUser);
 
     // --- Automatically send verification email ---
     const code = generateRandomNumber(6);
