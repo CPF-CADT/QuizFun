@@ -5,6 +5,7 @@ import Homepage from "./pages/Homepage"; // Importing Homepage component
 import Joingame from "./pages/Joingame";
 import Dashboard from "./pages/Dashboard";
 import Explore from "./pages/Explore"; // Importing Explore component
+import CreateQuiz from "./pages/CreateQuiz";
 function App() {
   return (
     <Router>
@@ -18,6 +19,7 @@ function App() {
         <Route path="/enter-pin" element={<Joingame />} /> {/* ✅ new route */}
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/explore" element={<Explore />} /> 
+        <Route path="/create-quiz" element={<CreateQuiz />} />
       </Routes>
     </Router>
   );
