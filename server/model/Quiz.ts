@@ -28,8 +28,6 @@ export interface IQuiz extends Document {
 }
 
 
-
-
 const OptionSchema = new Schema<IOption>({
     text: { type: String, required: true },
     isCorrect: { type: Boolean, required: true },
