@@ -6,6 +6,7 @@ import Joingame from "./pages/Joingame";
 import Dashboard from "./pages/Dashboard";
 import Explore from "./pages/Explore"; // Importing Explore component
 import CreateQuiz from "./pages/CreateQuiz";
+import Quizz from './test/Quizz'
 function App() {
   return (
     <Router>
@@ -20,6 +21,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/explore" element={<Explore />} /> 
         <Route path="/create-quiz" element={<CreateQuiz />} />
+        <Route path="/game" element={<Quizz />}  />
       </Routes>
     </Router>
   );
