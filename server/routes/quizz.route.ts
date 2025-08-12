@@ -1,6 +1,8 @@
 import express from 'express'
 import {addQuestionForQuizz,createQuizz, deleteOption, deleteQuestion, getAllQuizzes, getQuizzById, getQuizzByUser, updateOption, updateQuestion,deleteQuizz} from '../controller/quizz.controller'
+
 export const quizzRouter = express.Router();
+
 quizzRouter.get('/', getAllQuizzes); 
 quizzRouter.get('/:quizzId', getQuizzById);
 quizzRouter.get('/user/:userId', getQuizzByUser);
