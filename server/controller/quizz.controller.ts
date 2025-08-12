@@ -703,3 +703,12 @@ export async function deleteQuizz(req: Request, res: Response) {
     }
     res.status(200).json({ message: 'Question deleted successfully' });
 }
+
+export async function getDashboardStats(req: Request, res: Response) {
+    try {
+        const stats = await QuizzRepositories.getDashboardStats();
+        res.status(200).json(stats);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching dashboard stats', error });
+    }
+}

@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import { QuizModel, IQuestion, IQuiz, IOption, } from "../model/Quiz";
+<<<<<<< refs/remotes/origin/chhunhour
 
 export interface PaginatedQuizzes {
 	quizzes: IQuiz[];
@@ -10,6 +11,10 @@ export interface PaginatedQuizzes {
 	hasPrev: boolean;
 }
 
+=======
+import { UserModel } from "../model/User";
+import { GameSessionModel } from "../model/GameSession";
+>>>>>>> local
 export class QuizzRepositories {
 
 	static async getAllQuizzes(
@@ -200,4 +205,24 @@ export class QuizzRepositories {
 
 		return result.deletedCount !== undefined && result.deletedCount > 0;
 	}
+
+	static async getDashboardStats() {
+        const totalQuizzes = await QuizModel.countDocuments();
+        const totalStudents = await UserModel.countDocuments({ role: 'player' });
+        const completedQuizzes = await GameSessionModel.countDocuments({ status: 'completed' });
+
+        const avgScoreAggregation = await GameSessionModel.aggregate([
+            { $unwind: "$results" },
+            { $group: { _id: null, avgScore: { $avg: "$results.finalScore" } } }
+        ]);
+
+        const averageScore = avgScoreAggregation.length > 0 ? avgScoreAggregation[0].avgScore : 0;
+
+        return {
+            totalQuizzes,
+            totalStudents,
+            completedQuizzes,
+            averageScore: parseFloat(averageScore.toFixed(2))
+        };
+    }
 }
