@@ -120,11 +120,16 @@ import { QuizzRepositories } from '../repositories/quizz.repositories';
  *                     $ref: '#/components/schemas/Quiz'
  */
 export async function getAllQuizzes(req: Request, res: Response) {
-
+try {
+    
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
+    const sortBy= req.query.sortBy  as string ||'create_at';
+    const sortOrder= (req.query.sortOrder as 'asc' | 'desc') || 'desc'
+    const seachQuery= req.query.seachQuery as string;
+    
 
-    const result = await QuizzRepositories.getAllQuizzes(page, limit);
+    const result = await QuizzRepositories.getAllQuizzes(page,limit,sortBy,sortOrder,seachQuery);
 
     res.status(200).json({
         total: result.total,
@@ -132,6 +137,9 @@ export async function getAllQuizzes(req: Request, res: Response) {
         totalPages: result.totalPages,
         quizzes: result.quizzes
     });
+} catch (error) {
+     res.status(400).json({message:error})
+}
 }
 
 

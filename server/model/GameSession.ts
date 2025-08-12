@@ -1,10 +1,15 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
+export interface IFeedback{
+  rating:Types.Decimal128,
+  comment: string
+}
 export interface IGameSessionParticipant {
   userId: Types.ObjectId;
   nickname: string;
   finalScore?: number;
   finalRank?: number;
+  feedback?: IFeedback[]
 }
 
 export interface IGameSession extends Document {
@@ -17,12 +22,16 @@ export interface IGameSession extends Document {
   startedAt?: Date;
   endedAt?: Date;
 }
-
+const  GameSessionFeedback = new Schema<IFeedback>({
+  rating:{type:Schema.Types.Decimal128},
+  comment:{type:String}
+})
 const GameSessionParticipantSchema = new Schema<IGameSessionParticipant>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   nickname: { type: String, required: true },
   finalScore: { type: Number, required: true },
   finalRank: { type: Number, required: true },
+  feedback:[GameSessionFeedback]
 }, { _id: false });
 
 const GameSessionSchema = new Schema<IGameSession>({

@@ -2,15 +2,22 @@ import { Types } from "mongoose";
 import { QuizModel, IQuestion, IQuiz, IOption, } from "../model/Quiz";
 export class QuizzRepositories {
 
-	static async getAllQuizzes(page: number, limit: number) {
+	static async getAllQuizzes(page: number, limit: number,sortBy: string = 'createdAt',sortOrder: string = 'desc',searchQuery?:string) {
         const skip = (page - 1) * limit;
+		   const filter: any = { visibility: 'public' };
+    if (searchQuery) {
+        filter.title = { $regex: searchQuery, $options: 'i' }; 
+    }
+const sort: any = {};
+    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
 
         const quizzes = await QuizModel.find({visibility:'public'})
             .skip(skip)
             .limit(limit)
-            .sort({ createdAt: -1 }); 
+            .sort(sort); 
 
-        const total = await QuizModel.countDocuments();
+        const total = await QuizModel.countDocuments(filter);
 
         return {
             quizzes,

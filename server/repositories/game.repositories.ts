@@ -24,6 +24,7 @@ export class GameRepository {
   static async fetchGameSession(page: number, limit: number){
     
     const skip = (page - 1) * limit;
+    
 
       const [data, total] = await Promise.all([
           GameSessionModel.find().skip(skip).limit(limit),
