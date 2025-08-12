@@ -1,10 +1,12 @@
 import express from 'express'
 import {addQuestionForQuizz,createQuizz, deleteOption, deleteQuestion, getAllQuizzes, getQuizzById, getQuizzByUser, updateOption, updateQuestion,deleteQuizz} from '../controller/quizz.controller'
+import { validationBody } from '../middleware/validation.middleware';
+import { quizzCreate } from '../config/CheckValidation';
 export const quizzRouter = express.Router();
 quizzRouter.get('/', getAllQuizzes); 
 quizzRouter.get('/:quizzId', getQuizzById);
 quizzRouter.get('/user/:userId', getQuizzByUser);
-quizzRouter.post('/',createQuizz);
+quizzRouter.post('/',validationBody(quizzCreate),createQuizz);
 quizzRouter.post('/question',addQuestionForQuizz);
 quizzRouter.post('/', createQuizz);
 quizzRouter.post('/question', addQuestionForQuizz);
