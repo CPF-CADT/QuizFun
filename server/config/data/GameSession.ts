@@ -1,88 +1,75 @@
-import { IQuestion } from "../../model/Quiz"; // Assuming this is your Mongoose schema type
+import { IQuestion } from "../../model/Quiz";
 
 // --- TYPE DEFINITIONS ---
-// These types define the data structures for managing game state on the server.
 
 export type ParticipantRole = 'host' | 'player';
 export type GameState = 'lobby' | 'question' | 'results' | 'end';
 
+export interface GameSettings {
+    autoNext: boolean;
+    allowAnswerChange: boolean;
+}
+
 export interface Participant {
-    socket_id: string;      // The current socket ID, which can change on reconnection
-    user_id: string;        // The persistent unique identifier for the user
+    socket_id: string;
+    user_id: string;
     user_name: string;
     isOnline: boolean;
     score: number;
     role: ParticipantRole;
-    hasAnswered: boolean;   // Tracks if a player has submitted an answer for the current question
+    hasAnswered: boolean;
 }
 
 export interface SessionData {
     quizId: string;
-    hostId: string;         // The user_id of the host
+    hostId: string;
     participants: Participant[];
     questions?: IQuestion[];
     currentQuestionIndex: number;
-    // Maps user_id to their chosen option index for the current question
-    answers: Map<string, number>; 
+    answers: Map<string, number>;
     questionTimer?: NodeJS.Timeout;
+    autoNextTimer?: NodeJS.Timeout;
     gameState: GameState;
+    isFinalResults: boolean;
+    settings: GameSettings;
+    answerCounts: number[];
+    questionStartTime?: number;
 }
 
 /**
  * Manages all active game sessions in memory.
- * This class is a singleton, meaning only one instance is used across the application.
  */
 class Manager {
-    // A Map to store all active game sessions, with the room ID as the key.
     private sessions: Map<number, SessionData> = new Map();
 
-    /**
-     * Creates and adds a new game session.
-     * @param roomId The unique ID for the new room.
-     * @param data Initial data for the session.
-     */
-    public addSession(roomId: number, data: Pick<SessionData, 'quizId' | 'hostId'>) {
+    public addSession(roomId: number, data: Pick<SessionData, 'quizId' | 'hostId' | 'settings'>) {
         const session: SessionData = {
             ...data,
             participants: [],
             currentQuestionIndex: -1,
             answers: new Map(),
-            gameState: 'lobby', // Initial state is always the lobby
+            gameState: 'lobby',
+            isFinalResults: false,
+            answerCounts: [],
         };
         this.sessions.set(roomId, session);
-        console.log(`[GameSession] Room ${roomId} created.`);
+        console.log(`[GameSession] Room ${roomId} created with settings:`, data.settings);
     }
 
-    /**
-     * Retrieves a session by its room ID.
-     * @param roomId The ID of the room to retrieve.
-     * @returns The session data, or undefined if not found.
-     */
     public getSession(roomId: number): SessionData | undefined {
         return this.sessions.get(roomId);
     }
 
-    /**
-     * Removes a session from the manager, clearing any active timers.
-     * @param roomId The ID of the room to remove.
-     */
     public removeSession(roomId: number) {
         const room = this.getSession(roomId);
         if (room) {
-            if (room.questionTimer) {
-                clearTimeout(room.questionTimer);
-            }
+            if (room.questionTimer) clearTimeout(room.questionTimer);
+            if (room.autoNextTimer) clearTimeout(room.autoNextTimer);
             this.sessions.delete(roomId);
             console.log(`[GameSession] Room ${roomId} removed.`);
         }
     }
 
-    /**
-     * Finds a user's session information based on their socket ID.
-     * This is primarily used during disconnect events.
-     * @param socketId The socket ID of the user.
-     * @returns An object with the roomId and session data, or undefined if not found.
-     */
     public findSessionBySocketId(socketId: string): { roomId: number, session: SessionData } | undefined {
         for (const [roomId, session] of this.sessions.entries()) {
             if (session.participants.some(p => p.socket_id === socketId)) {
@@ -93,5 +80,4 @@ class Manager {
     }
 }
 
-// Export a singleton instance so the entire application uses the same game manager.
 export const GameSessionManager = new Manager();
