@@ -1,106 +1,26 @@
 import { Types } from "mongoose";
 import { QuizModel, IQuestion, IQuiz, IOption, } from "../model/Quiz";
-<<<<<<< refs/remotes/origin/chhunhour
-
-export interface PaginatedQuizzes {
-	quizzes: IQuiz[];
-	total: number;
-	page: number;
-	totalPages: number;
-	hasNext: boolean;
-	hasPrev: boolean;
-}
-
-=======
 import { UserModel } from "../model/User";
 import { GameSessionModel } from "../model/GameSession";
->>>>>>> local
 export class QuizzRepositories {
 
-	static async getAllQuizzes(
-		page: number = 1, 
-		limit: number = 10, 
-		search?: string, 
-		visibility?: 'public' | 'private',
-		sortBy: string = 'createdAt',
-		sortOrder: 'asc' | 'desc' = 'desc'
-	): Promise<PaginatedQuizzes> {
+	static async getAllQuizzes(page: number, limit: number) {
         const skip = (page - 1) * limit;
 
-		// Build search query
-		const searchQuery: any = {};
-		
-		if (visibility) {
-			searchQuery.visibility = visibility;
-		} else {
-			searchQuery.visibility = 'public'; // Default to public quizzes
-		}
+        const quizzes = await QuizModel.find({visibility:'public'})
+            .skip(skip)
+            .limit(limit)
+            .sort({ createdAt: -1 }); 
 
-		if (search) {
-			searchQuery.$or = [
-				{ title: { $regex: search, $options: 'i' } },
-				{ description: { $regex: search, $options: 'i' } }
-			];
-		}
-
-		// Build sort object
-		const sortObject: any = {};
-		sortObject[sortBy] = sortOrder === 'asc' ? 1 : -1;
-
-        const [quizzes, total] = await Promise.all([
-			QuizModel.find(searchQuery)
-				.skip(skip)
-				.limit(limit)
-				.sort(sortObject)
-				.exec(),
-			QuizModel.countDocuments(searchQuery).exec()
-		]);
-
-        const totalPages = Math.ceil(total / limit);
+        const total = await QuizModel.countDocuments();
 
         return {
             quizzes,
             total,
             page,
-            totalPages,
-			hasNext: page < totalPages,
-			hasPrev: page > 1
+            totalPages: Math.ceil(total / limit)
         };
     }
-
-	static async getQuizzesByUser(
-		userId: string, 
-		page: number = 1, 
-		limit: number = 10,
-		visibility?: 'public' | 'private'
-	): Promise<PaginatedQuizzes> {
-		const skip = (page - 1) * limit;
-
-		const searchQuery: any = { creatorId: userId };
-		if (visibility) {
-			searchQuery.visibility = visibility;
-		}
-
-		const [quizzes, total] = await Promise.all([
-			QuizModel.find(searchQuery)
-				.skip(skip)
-				.limit(limit)
-				.sort({ createdAt: -1 })
-				.exec(),
-			QuizModel.countDocuments(searchQuery).exec()
-		]);
-
-		const totalPages = Math.ceil(total / limit);
-
-		return {
-			quizzes,
-			total,
-			page,
-			totalPages,
-			hasNext: page < totalPages,
-			hasPrev: page > 1
-		};
-	}
 	static async getQuizz(qId: string) {
 		if (!Types.ObjectId.isValid(qId)) {
 			throw new Error("Invalid quiz ID");
@@ -110,9 +30,8 @@ export class QuizzRepositories {
 	static async createQuizz(quizz: IQuiz): Promise<IQuiz | null> {
 		return QuizModel.create(quizz);
 	}
-	
 	static async getQuizzByUser(userId: string) {
-		return QuizModel.find({ creatorId: userId }).exec();
+		return QuizModel.find({ $match: { _id: new Types.ObjectId(userId) } }).exec();
 	}
 
 	static async addQuestion(quizId: string, question: IQuestion): Promise<boolean> {

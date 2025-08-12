@@ -167,10 +167,6 @@ export async function getAllQuizzes(req: Request, res: Response) {
         const result = await QuizzRepositories.getAllQuizzes(
             page, 
             limit, 
-            search, 
-            visibility, 
-            finalSortBy, 
-            sortOrder
         );
 
         res.status(200).json(result);
@@ -306,9 +302,9 @@ export async function getQuizzByUser(req: Request, res: Response) {
     const visibility = req.query.visibility as 'public' | 'private';
 
     try {
-        const result = await QuizzRepositories.getQuizzesByUser(userId, page, limit, visibility);
+        const result = await QuizzRepositories.getQuizzByUser(userId);
 
-        if (result.total === 0) {
+        if (result.length === 0) {
             res.status(404).json({ message: 'No quizzes found for this user.' });
             return;
         }
