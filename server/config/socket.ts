@@ -1,25 +1,33 @@
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 import http from "http";
-
-// --- Unified Imports ---
-// All handlers are now imported from a single, consolidated file,
-// which represents the logic in your "game.handlers.ts" Canvas.
-// You will also need to move your lobby handlers into this file.
 import {
     handleCreateRoom,
     handleJoinRoom,
     startGame,
-    handleRejoinGame,
     handleSubmitAnswer,
     handleRequestNextQuestion,
-    handleDisconnect
-} from "../sockets/event/handlers"; // Assuming a single 'handlers.ts' file now
+    handleRejoinGame,
+    handleDisconnect,
+    handlePlayAgain
+} from "../sockets/event/handlers";
+import { GameSessionManager } from "./data/GameSession";
 
+/**
+ * Sets up all Socket.IO event listeners and routing.
+ */
 export default function socketSetup(server: http.Server) {
     const io = new Server(server, { cors: { origin: "*" } });
 
-    io.on("connection", (socket) => {
-        console.log("User connected", socket.id);
+    io.on("connection", (socket: Socket) => {
+        console.log(`[Connection] User connected with socket ID: ${socket.id}`);
+        
+        const { roomId, userId } = socket.handshake.query;
+        if (roomId && userId && typeof roomId === 'string' && typeof userId === 'string') {
+             const room = GameSessionManager.getSession(parseInt(roomId, 10));
+             if (room && room.participants.some(p => p.user_id === userId)) {
+                handleRejoinGame(socket, io, { roomId: parseInt(roomId, 10), userId });
+             }
+        }
 
         // --- Lobby Events ---
         socket.on("create-room", (data) => handleCreateRoom(socket, io, data));
@@ -29,8 +37,8 @@ export default function socketSetup(server: http.Server) {
         // --- Game Events ---
         socket.on("submit-answer", (data) => handleSubmitAnswer(socket, io, data));
         socket.on("request-next-question", (roomId) => handleRequestNextQuestion(socket, io, roomId));
-        socket.on("rejoin-game", (data) => handleRejoinGame(socket, io, data));
-
+        socket.on("play-again", (roomId) => handlePlayAgain(socket, io, roomId));
+        
         // --- Disconnect Event ---
         socket.on("disconnect", () => handleDisconnect(socket, io));
     });

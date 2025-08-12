@@ -41,16 +41,14 @@ function nextQuestion(io: Server, roomId: number) {
     if (!room || !room.questions) return;
 
     room.currentQuestionIndex++;
-    room.answers.clear(); // Reset answers for the new round
-    room.participants.forEach(p => p.answered = false); // Reset answered status
+    room.answers.clear(); 
+    room.participants.forEach(p => p.answered = false);
 
-    // Check if the game is over
     if (room.currentQuestionIndex >= room.questions.length) {
         console.log(`[Game] Game over for room ${roomId}.`);
         room.gameState = 'end';
         broadcastGameState(io, roomId);
-        // Clean up the session after a delay
-        setTimeout(() => GameSessionManager.removeSession(roomId), 60000); // 1 minute
+        setTimeout(() => GameSessionManager.removeSession(roomId), 60000); 
         return;
     }
 
@@ -88,7 +86,6 @@ export function handleSubmitAnswer(socket: Socket, io: Server, data: { roomId: n
 
 export function handleRequestNextQuestion(socket: Socket, io: Server, roomId: number) {
     const room = GameSessionManager.getSession(roomId);
-    // Only the host can trigger the next question, and only from the results screen
     if (room && room.host_socket_id === socket.id && room.gameState === 'results') {
         nextQuestion(io, roomId);
     }

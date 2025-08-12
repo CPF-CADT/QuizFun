@@ -2,6 +2,7 @@ import express from 'express'
 import {register,login,updateUserInfo,sendVerificationCode,verifyEmail,refreshToken,logout,getAllUsers,getUsersByRole} from '../controller/user.controller'
 import { authenticateToken, isEmailVerified } from '../middleware/authenicate.middleware';
 import { validationBody } from '../middleware/validation.middleware';
+import { userlogin, userRegister } from '../config/CheckValidation';
 
 
 export const userRouter = express.Router();

@@ -10,7 +10,7 @@ import { serviceRouter } from './routes/service.route';
 import { docsRouter } from './routes/docs.route';
 // import { createRandomGameHistory,createRandomGameSession,createRandomQuiz,createRandomUserData,createRandomVerificationCode } from './faker/seed';
 import { runSeed } from './config/seed'; 
-// import { gameRouter } from './routes/game.route';
+import gameRouter from './routes/game.route';
 
 const app = express();
 
@@ -32,9 +32,9 @@ app.get('/test', (req, res) => {
 // API Routes
 app.use('/api/user', userRouter);
 app.use('/api/quizz', quizzRouter);
-app.use('/api/service', serviceRouter);
-app.use('/api/docs', docsRouter);
-// app.use('/api/game',gameRouter)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api/service',serviceRouter)
+app.use('/api/games',gameRouter)
 
 // Swagger Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
