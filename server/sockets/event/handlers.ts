@@ -1,5 +1,5 @@
 import { Server, Socket } from "socket.io";
-import { GameSessionManager, Participant } from "../../config/data/GameSession";
+import { GameSessionManager, Participant, GameSettings } from "../../config/data/GameSession";
 import { generateRandomNumber } from '../../service/generateRandomNumber';
 import { QuizModel } from "../../model/Quiz";
 import { broadcastGameState, endRound } from "./shared";
@@ -8,15 +8,12 @@ import { broadcastGameState, endRound } from "./shared";
 // LOBBY & GAME SETUP HANDLERS
 // =================================================================================
 
-/**
- * Handles the 'create-room' event from a client.
- * Creates a new game session and adds the host.
- */
-export function handleCreateRoom(socket: Socket, io: Server, data: { quizId: string, userId: string, hostName: string }) {
-    const roomId = generateRandomNumber(6); // Generate a 6-digit room code
+export function handleCreateRoom(socket: Socket, io: Server, data: { quizId: string, userId: string, hostName: string, settings: GameSettings }) {
+    const roomId = generateRandomNumber(6);
     GameSessionManager.addSession(roomId, {
         quizId: data.quizId,
         hostId: data.userId,
+        settings: data.settings,
     });
 
     const room = GameSessionManager.getSession(roomId)!;
@@ -31,24 +28,16 @@ export function handleCreateRoom(socket: Socket, io: Server, data: { quizId: str
     };
     room.participants.push(hostParticipant);
     socket.join(roomId.toString());
-
-    console.log(`[Lobby] Host ${data.hostName} (${data.userId}) created room: ${roomId}`);
     broadcastGameState(io, roomId);
 }
 
-/**
- * Handles the 'join-room' event.
- * Adds a new player to an existing lobby.
- */
 export function handleJoinRoom(socket: Socket, io: Server, data: { roomId: number; username: string, userId: string }) {
     const { roomId, username, userId } = data;
     const room = GameSessionManager.getSession(roomId);
 
-    // Validation checks
     if (!room) return socket.emit("error-message", `Room "${roomId}" does not exist.`);
     if (room.gameState !== 'lobby') return socket.emit("error-message", `Game in room "${roomId}" has already started.`);
     if (room.participants.some(p => p.user_id === userId)) {
-         // This user is already in the room, treat it as a rejoin.
         return handleRejoinGame(socket, io, { roomId, userId });
     }
     if (room.participants.length >= 50) return socket.emit("error-message", `Room "${roomId}" is full.`);
@@ -64,21 +53,15 @@ export function handleJoinRoom(socket: Socket, io: Server, data: { roomId: numbe
     };
     room.participants.push(player);
     socket.join(roomId.toString());
-
-    console.log(`[Lobby] Player ${username} (${userId}) joined room: ${roomId}`);
     broadcastGameState(io, roomId);
 }
 
-/**
- * Handles the 'start-game' event from the host.
- * Fetches quiz questions and transitions the game state to 'question'.
- */
 export async function startGame(socket: Socket, io: Server, roomId: number) {
     const room = GameSessionManager.getSession(roomId);
     const host = room?.participants.find(p => p.role === 'host');
 
-    if (!room || host?.socket_id !== socket.id) return socket.emit("error-message", "Only the host can start the game.");
-    if (room.participants.filter(p => p.role === 'player' && p.isOnline).length === 0) return socket.emit("error-message", "Cannot start with no players.");
+    if (!room || !host || host.socket_id !== socket.id) return;
+    if (room.participants.filter(p => p.role === 'player' && p.isOnline).length === 0) return;
 
     try {
         const quiz = await QuizModel.findById(room.quizId).lean();
@@ -86,62 +69,31 @@ export async function startGame(socket: Socket, io: Server, roomId: number) {
             return broadcastGameState(io, roomId, "Error: This quiz has no questions.");
         }
         room.questions = quiz.questions;
-        nextQuestion(io, roomId); // Start with the first question
+        nextQuestion(io, roomId);
     } catch (error) {
         console.error(`[Game] Error starting game for room ${roomId}:`, error);
         broadcastGameState(io, roomId, "A server error occurred while starting the game.");
     }
 }
 
-
 // =================================================================================
 // CORE GAMEPLAY HANDLERS
 // =================================================================================
 
-/**
- * Handles a player submitting an answer. Allows for changing answers.
- */
-export function handleSubmitAnswer(socket: Socket, io: Server, data: { roomId: number; userId: string, optionIndex: number }) {
-    const { roomId, userId, optionIndex } = data;
-    const room = GameSessionManager.getSession(roomId);
-    const player = room?.participants.find(p => p.user_id === userId);
-
-    if (!room || !player || player.role !== 'player' || room.gameState !== 'question') return;
-
-    // Record or update the player's answer
-    room.answers.set(userId, optionIndex);
-    if (!player.hasAnswered) {
-        player.hasAnswered = true;
-    }
-    console.log(`[Game] Player ${player.user_name} in room ${roomId} answered with index ${optionIndex}.`);
-
-    // Check if all active players have now answered
-    const activePlayers = room.participants.filter(p => p.role === 'player' && p.isOnline);
-    if (activePlayers.every(p => p.hasAnswered)) {
-        endRound(io, roomId);
-    } else {
-        // If not everyone has answered, just update the state to show who has
-        broadcastGameState(io, roomId);
-    }
-}
-
-/**
- * Sends the next question to all players or ends the game if none are left.
- */
 export function nextQuestion(io: Server, roomId: number) {
     const room = GameSessionManager.getSession(roomId);
     if (!room || !room.questions) return;
 
     room.currentQuestionIndex++;
     room.answers.clear();
-    room.participants.forEach(p => p.hasAnswered = false); // Reset answer status for the new round
+    room.answerCounts = [];
+    room.participants.forEach(p => p.hasAnswered = false);
 
     if (room.currentQuestionIndex >= room.questions.length) {
-        console.log(`[Game] Game over for room ${roomId}.`);
+        console.log(`[Game] Final question answered for room ${roomId}.`);
         room.gameState = 'end';
+        room.isFinalResults = true;
         broadcastGameState(io, roomId);
-        // Clean up the session after a delay to allow players to see final scores
-        setTimeout(() => GameSessionManager.removeSession(roomId), 60000);
         return;
     }
 
@@ -150,26 +102,74 @@ export function nextQuestion(io: Server, roomId: number) {
     broadcastGameState(io, roomId);
 }
 
+export function handleSubmitAnswer(socket: Socket, io: Server, data: { roomId: number; userId: string, optionIndex: number }) {
+    const { roomId, userId, optionIndex } = data;
+    const room = GameSessionManager.getSession(roomId);
+    const player = room?.participants.find(p => p.user_id === userId);
 
-/**
- * Handles the host's request to move to the next question from the results screen.
- */
+    if (!room || !player || player.role !== 'player' || room.gameState !== 'question') return;
+
+    // If answer changes are disallowed and player has already answered, do nothing.
+    if (!room.settings.allowAnswerChange && player.hasAnswered) {
+        return;
+    }
+    
+    room.answers.set(userId, optionIndex);
+    
+    if (!player.hasAnswered) {
+        player.hasAnswered = true;
+    }
+    console.log(`[Game] Player ${player.user_name} in room ${roomId} submitted answer ${optionIndex}.`);
+
+    // Only broadcast state back if answer changes are allowed.
+    // Otherwise, the UI locks and we wait for the round to end.
+    if (room.settings.allowAnswerChange) {
+        broadcastGameState(io, roomId);
+    }
+
+    // If answer changes are NOT allowed, we only end the round when all players have answered.
+    // If they ARE allowed, we wait for the timer.
+    const activePlayers = room.participants.filter(p => p.role === 'player' && p.isOnline);
+    if (!room.settings.allowAnswerChange && activePlayers.every(p => p.hasAnswered)) {
+        endRound(io, roomId);
+    }
+}
+
 export function handleRequestNextQuestion(socket: Socket, io: Server, roomId: number) {
     const room = GameSessionManager.getSession(roomId);
     const host = room?.participants.find(p => p.role === 'host');
     if (room && host?.socket_id === socket.id && room.gameState === 'results') {
+        if (room.autoNextTimer) {
+            clearTimeout(room.autoNextTimer);
+            room.autoNextTimer = undefined;
+        }
         nextQuestion(io, roomId);
     }
 }
 
+export function handlePlayAgain(socket: Socket, io: Server, roomId: number) {
+    const room = GameSessionManager.getSession(roomId);
+    const host = room?.participants.find(p => p.role === 'host');
+
+    if (room && host?.socket_id === socket.id && room.gameState === 'end') {
+        console.log(`[Lobby] Host is restarting game in room ${roomId}`);
+        room.gameState = 'lobby';
+        room.currentQuestionIndex = -1;
+        room.answers.clear();
+        room.answerCounts = [];
+        room.isFinalResults = false;
+        room.participants.forEach(p => {
+            p.score = 0;
+            p.hasAnswered = false;
+        });
+        broadcastGameState(io, roomId);
+    }
+}
 
 // =================================================================================
 // CONNECTION & DISCONNECTION HANDLERS
 // =================================================================================
 
-/**
- * Handles a user rejoining a game after a disconnection.
- */
 export function handleRejoinGame(socket: Socket, io: Server, data: { roomId: number, userId: string }) {
     const { roomId, userId } = data;
     const room = GameSessionManager.getSession(roomId);
@@ -177,21 +177,16 @@ export function handleRejoinGame(socket: Socket, io: Server, data: { roomId: num
 
     const participant = room.participants.find(p => p.user_id === userId);
     if (participant) {
-        console.log(`[Connection] Participant ${participant.user_name} (${userId}) reconnected to room ${roomId} with new socket ${socket.id}.`);
-        participant.socket_id = socket.id; // Update to the new socket ID
+        console.log(`[Connection] Participant ${participant.user_name} reconnected.`);
+        participant.socket_id = socket.id;
         participant.isOnline = true;
-
         socket.join(roomId.toString());
         broadcastGameState(io, roomId);
     } else {
-        // This can happen if the game ended while they were disconnected
         socket.emit('error-message', 'Could not find your session in this game.');
     }
 }
 
-/**
- * Handles a user disconnecting from the socket server.
- */
 export function handleDisconnect(socket: Socket, io: Server) {
     const sessionInfo = GameSessionManager.findSessionBySocketId(socket.id);
     if (sessionInfo) {
@@ -199,17 +194,19 @@ export function handleDisconnect(socket: Socket, io: Server) {
         const disconnectedUser = session.participants.find(p => p.socket_id === socket.id);
 
         if (disconnectedUser) {
-            console.log(`[Connection] User ${disconnectedUser.user_name} disconnected from room ${roomId}.`);
+            console.log(`[Connection] User ${disconnectedUser.user_name} disconnected.`);
             disconnectedUser.isOnline = false;
 
-            // If the host disconnects, end the game. A grace period could be added here.
             if (disconnectedUser.role === 'host') {
-                console.log(`[Game] Host disconnected. Ending game in room ${roomId}.`);
                 broadcastGameState(io, roomId, "The host has disconnected. The game has ended.");
                 GameSessionManager.removeSession(roomId);
             } else {
-                // If a player disconnects, just update everyone's state
-                broadcastGameState(io, roomId);
+                const activePlayers = session.participants.filter(p => p.role === 'player' && p.isOnline);
+                if (session.gameState === 'question' && !session.settings.allowAnswerChange && activePlayers.length > 0 && activePlayers.every(p => p.hasAnswered)) {
+                    endRound(io, roomId);
+                } else {
+                    broadcastGameState(io, roomId);
+                }
             }
         }
     }
