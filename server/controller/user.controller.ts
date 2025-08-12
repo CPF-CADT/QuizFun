@@ -45,12 +45,149 @@ import jwt from "jsonwebtoken";
  *           type: string
  *           nullable: true
  *           example: google-uid-001
+ *     PaginatedUsers:
+ *       type: object
+ *       properties:
+ *         users:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/User'
+ *         total:
+ *           type: integer
+ *           example: 100
+ *         page:
+ *           type: integer
+ *           example: 1
+ *         totalPages:
+ *           type: integer
+ *           example: 10
+ *         hasNext:
+ *           type: boolean
+ *           example: true
+ *         hasPrev:
+ *           type: boolean
+ *           example: false
  *   securitySchemes:
  *     cookieAuth:
  *       type: apiKey
  *       in: cookie
  *       name: refreshToken
  */
+
+
+/**
+ * @swagger
+ * /api/user:
+ *   get:
+ *     summary: Get all users with pagination and search
+ *     tags: [User]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *           maximum: 100
+ *         description: Number of users per page (max 100)
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search users by name or email
+ *     responses:
+ *       200:
+ *         description: A list of users with pagination info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedUsers'
+ *       400:
+ *         description: Invalid query parameters
+ *       500:
+ *         description: Internal server error
+ */
+export async function getAllUsers(req: Request, res: Response): Promise<void> {
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 10));
+  const search = req.query.search as string;
+
+  try {
+    const result = await UserRepository.getAllUsers(page, limit, search);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Failed to fetch users', 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+}
+
+/**
+ * @swagger
+ * /api/user/by-role/{role}:
+ *   get:
+ *     summary: Get users by role with pagination
+ *     tags: [User]
+ *     parameters:
+ *       - in: path
+ *         name: role
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [player, admin, moderator]
+ *         description: User role to filter by
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *           maximum: 100
+ *         description: Number of users per page (max 100)
+ *     responses:
+ *       200:
+ *         description: A list of users with specified role and pagination info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedUsers'
+ *       400:
+ *         description: Invalid role or query parameters
+ *       500:
+ *         description: Internal server error
+ */
+export async function getUsersByRole(req: Request, res: Response): Promise<void> {
+  const { role } = req.params;
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 10));
+
+  const validRoles = ['player', 'admin', 'moderator'];
+  if (!validRoles.includes(role)) {
+    res.status(400).json({ message: 'Invalid role. Must be one of: player, admin, moderator' });
+    return;
+  }
+
+  try {
+    const result = await UserRepository.getUsersByRole(role, page, limit);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Failed to fetch users by role', 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+}
 
 
 /**

@@ -1,120 +1,113 @@
-import { Server, Socket } from "socket.io";
-import { GameSessionManager, Participant, SessionData, GameState } from "../../config/data/GameSession";
+import { Server } from "socket.io";
+import { GameSessionManager } from "../../config/data/GameSession";
 import { IQuestion } from "../../model/Quiz";
+import { nextQuestion } from "./handlers";
 
-// Define a specific type for the question data sent to players
-interface PlayerQuestion {
-    questionText: string;
-    point: number;
-    timeLimit: number;
-    imageUrl?: string;
-    options: { text: string }[];
-    correctAnswerIndex?: number; // Optional, only sent during the 'results' phase
-}
-
-// Define the shape of the state object sent to players
-interface PlayerState {
-    roomId: number;
-    gameState: GameState;
-    participants: Participant[];
-    currentQuestionIndex: number;
-    totalQuestions: number;
-    error?: string;
-    question: PlayerQuestion | null;
-    yourSocketId: string;
-}
-
-// Define the shape of the state object sent to the host
-interface HostState extends Omit<PlayerState, 'question'> {
-    question: IQuestion | null;
-}
-
+const RESULTS_DISPLAY_DURATION = 5000;
 
 /**
- * Sanitizes and sends the current game state to all participants in a room.
- * Hosts receive the full state, while players receive a version with sensitive data removed.
+ * Ends the current question round, calculates scores, and transitions to the 'results' state.
+ */
+export function endRound(io: Server, roomId: number) {
+    const room = GameSessionManager.getSession(roomId);
+    if (!room || room.gameState !== 'question' || !room.questions) return;
+
+    if (room.questionTimer) {
+        clearTimeout(room.questionTimer);
+        room.questionTimer = undefined;
+    }
+
+    console.log(`[Game] Round over for room ${roomId}. Calculating scores.`);
+    const currentQuestion = room.questions[room.currentQuestionIndex];
+    const correctAnswerIndex = currentQuestion.options.findIndex(opt => opt.isCorrect);
+
+    // Tally answers for statistics
+    const answerCounts = new Array(currentQuestion.options.length).fill(0);
+    for (const optionIndex of room.answers.values()) {
+        if (answerCounts[optionIndex] !== undefined) {
+            answerCounts[optionIndex]++;
+        }
+    }
+    room.answerCounts = answerCounts;
+
+    // Calculate scores
+    room.participants.forEach(p => {
+        if (p.role === 'player') {
+            const playerAnswer = room.answers.get(p.user_id);
+            if (playerAnswer !== undefined && playerAnswer === correctAnswerIndex) {
+                p.score += currentQuestion.point;
+            }
+        }
+    });
+
+    room.gameState = 'results';
+    
+    // If auto-next is enabled, set a timer to advance automatically
+    if (room.settings.autoNext) {
+        room.autoNextTimer = setTimeout(() => {
+            nextQuestion(io, roomId);
+        }, RESULTS_DISPLAY_DURATION);
+    }
+
+    broadcastGameState(io, roomId);
+}
+
+/**
+ * Broadcasts a tailored game state to every participant in the room.
  */
 export function broadcastGameState(io: Server, roomId: number, errorMessage?: string) {
     const room = GameSessionManager.getSession(roomId);
     if (!room) return;
 
-    // Create a base state object
     const baseState = {
         roomId: roomId,
         gameState: room.gameState,
         participants: room.participants,
         currentQuestionIndex: room.currentQuestionIndex,
         totalQuestions: room.questions?.length || 0,
+        isFinalResults: room.isFinalResults,
+        settings: room.settings,
+        questionStartTime: room.questionStartTime,
+        answerCounts: room.answerCounts,
         error: errorMessage,
     };
 
-    // --- Prepare Host State (Full data) ---
-    const hostState: Omit<HostState, 'yourSocketId'> = {
-        ...baseState,
-        question: room.questions ? room.questions[room.currentQuestionIndex] : null,
-    };
+    const currentQuestion = (room.questions && room.currentQuestionIndex >= 0)
+        ? room.questions[room.currentQuestionIndex]
+        : null;
 
-    // --- Prepare Player State (Sanitized data) ---
-    const playerState: Omit<PlayerState, 'yourSocketId'> = { ...baseState, question: null };
-    if (room.questions && room.currentQuestionIndex >= 0) {
-        const currentQuestion = room.questions[room.currentQuestionIndex];
-        
-        // Players get the question text and options, but not the answer
-        const sanitizedQuestion: PlayerQuestion = {
-            questionText: currentQuestion.questionText,
-            point: currentQuestion.point,
-            timeLimit: currentQuestion.timeLimit,
-            imageUrl: currentQuestion.imageUrl,
-            options: currentQuestion.options.map(opt => ({ text: opt.text })), // Remove isCorrect flag
-        };
+    room.participants.forEach(p => {
+        let questionPayload: IQuestion | object | null = null;
+        if (currentQuestion) {
+            const sanitizedQuestion: any = {
+                questionText: currentQuestion.questionText,
+                point: currentQuestion.point,
+                timeLimit: currentQuestion.timeLimit,
+                imageUrl: currentQuestion.imageUrl,
+                options: currentQuestion.options.map(opt => ({ text: opt.text })),
+            };
 
-        // In the results phase, add the correct answer index
-        if (room.gameState === 'results') {
-            sanitizedQuestion.correctAnswerIndex = currentQuestion.options.findIndex(opt => opt.isCorrect);
+            if (room.gameState === 'results' || room.gameState === 'end') {
+                sanitizedQuestion.correctAnswerIndex = currentQuestion.options.findIndex(opt => opt.isCorrect);
+                const playerAnswerIndex = room.answers.get(p.user_id);
+                if (playerAnswerIndex !== undefined) {
+                    sanitizedQuestion.yourAnswer = {
+                        optionIndex: playerAnswerIndex,
+                        wasCorrect: playerAnswerIndex === sanitizedQuestion.correctAnswerIndex,
+                    };
+                }
+            }
+            questionPayload = sanitizedQuestion;
         }
 
-        playerState.question = sanitizedQuestion;
-    }
-
-    // Broadcast the appropriate state to each participant
-    room.participants.forEach(p => {
-        const stateToSend = p.role === 'host' ? { ...hostState, yourSocketId: p.socket_id } : { ...playerState, yourSocketId: p.socket_id };
+        const stateToSend = { ...baseState, question: questionPayload, yourUserId: p.user_id };
         io.to(p.socket_id).emit('game-update', stateToSend);
     });
 
-    // Start a server-side timer for the question round
-    if (room.gameState === 'question' && !room.questionTimer && room.questions) {
-        const timeLimit = room.questions[room.currentQuestionIndex].timeLimit;
-        room.questionTimer = setTimeout(() => {
-            endRound(io, roomId);
-        }, timeLimit * 1000);
+    if (room.gameState === 'question' && !room.questionTimer && currentQuestion) {
+        room.questionStartTime = Date.now();
+        room.questionTimer = setTimeout(() => endRound(io, roomId), currentQuestion.timeLimit * 1000);
+        // We need to broadcast again immediately to send the startTime
+        broadcastGameState(io, roomId);
     }
-}
-
-// --- Disconnect Handler ---
-export function handleDisconnect(socket: Socket,io: Server) {
-    const sessionInfo = GameSessionManager.getSessionBySocketId(socket.id);
-    if (sessionInfo) {
-        const { roomId, session } = sessionInfo;
-        const disconnectedUser = session.participants.find(p => p.socket_id === socket.id);
-
-        if (disconnectedUser) {
-            console.log(`User ${disconnectedUser.user_name} (${socket.id}) disconnected from room ${roomId}.`);
-            if (disconnectedUser.role === 'host') {
-                console.log(`Host disconnected. Ending game in room ${roomId}.`);
-                broadcastGameState(io, roomId, "The host has disconnected. The game has ended.");
-                GameSessionManager.removeSession(roomId);
-            } else {
-                disconnectedUser.isOnline = false;
-                broadcastGameState(io, roomId);
-            }
-        }
-    }
-}
-
-// Dummy endRound function to avoid circular dependency errors in this file's context
-function endRound(io: Server, roomId: number) {
-    // This uses require() to lazily import and break the circular dependency between game.ts and shared.ts
-    const { endRound: actualEndRound } = require('./game');
-    actualEndRound(io, roomId);
 }
