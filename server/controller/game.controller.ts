@@ -121,6 +121,8 @@ export class GameController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
+
+      
       
       // Call repository
       const result = await GameRepository.fetchGameSession(page, limit);

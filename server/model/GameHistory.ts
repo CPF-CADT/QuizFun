@@ -51,7 +51,7 @@ const GameHistorySchema = new Schema<IGameHistory>({
   },
   timeTakenMs: { type: Number, required: true },
 }, {
-  timestamps: { createdAt: 'answeredAt', updatedAt: false }, 
+  timestamps: { createdAt: 'createdAt', updatedAt: false }, 
   collection: 'gamehistories'
 });
 

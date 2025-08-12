@@ -77,7 +77,16 @@ const createRandomParticipant = (userId: Types.ObjectId): IGameSessionParticipan
   nickname: faker.internet.userName(),
   finalScore: faker.number.int({ min: 0, max: 1000 }),
   finalRank: faker.number.int({ min: 1, max: 50 }),
+  feedback: [
+    {
+      rating: Types.Decimal128.fromString(
+        faker.number.float({ min: 1, max: 5}).toFixed(1)
+      ),
+      comment: faker.lorem.sentence()
+    }
+  ]
 });
+
 
 export const createRandomGameSession = (quizId: Types.ObjectId, hostId: Types.ObjectId, userIds: Types.ObjectId[]): IGameSession => {
   const participants = userIds.map(createRandomParticipant);
