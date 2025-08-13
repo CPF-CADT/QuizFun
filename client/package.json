@@ -13,6 +13,7 @@
     "@tailwindcss/vite": "^4.1.11",
     "axios": "^1.11.0",
     "lucide-react": "^0.539.0",
+    "mongoose": "^8.17.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hot-toast": "^2.5.2",

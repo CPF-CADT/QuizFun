@@ -20,14 +20,14 @@ export class GameController {
    *       201:
    *         description: Game created successfully
    */
-  static async hostNewGame(req: Request, res: Response) {
-    try {
-      const game = await GameRepository.hostNewGame(req.body);
-      res.status(201).json(game);
-    } catch (err) {
-      res.status(500).json({ error: (err as Error).message });
-    }
-  }
+  // static async hostNewGame(req: Request, res: Response) {
+  //   try {
+  //     const game = await GameRepository.hostNewGame(req.body);
+  //     res.status(201).json(game);
+  //   } catch (err) {
+  //     res.status(500).json({ error: (err as Error).message });
+  //   }
+  // }
 
   /**
    * @swagger
@@ -54,19 +54,19 @@ export class GameController {
    *       200:
    *         description: Player added successfully
    */
-  static async addPlayer(req: Request, res: Response) {
-    try {
-      const { gameId } = req.params;
-      const success = await GameRepository.addPlayerAndResultInGame(gameId, req.body);
-      if (success) {
-        res.json({ message: 'Player added successfully' });
-      } else {
-        res.status(404).json({ error: 'Game not found' });
-      }
-    } catch (err) {
-      res.status(500).json({ error: (err as Error).message });
-    }
-  }
+  // static async addPlayer(req: Request, res: Response) {
+  //   try {
+  //     const { gameId } = req.params;
+  //     const success = await GameRepository.addPlayerAndResultInGame(gameId, req.body);
+  //     if (success) {
+  //       res.json({ message: 'Player added successfully' });
+  //     } else {
+  //       res.status(404).json({ error: 'Game not found' });
+  //     }
+  //   } catch (err) {
+  //     res.status(500).json({ error: (err as Error).message });
+  //   }
+  // }
 
   /**
  * @swagger
@@ -117,25 +117,25 @@ export class GameController {
  *       500:
  *         description: Server error
  */
-  static async getAllGames(req: Request, res: Response) {
-    try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+  // static async getAllGames(req: Request, res: Response) {
+  //   try {
+  //     const page = parseInt(req.query.page as string) || 1;
+  //     const limit = parseInt(req.query.limit as string) || 10;
 
       
       
-      // Call repository
-      const result = await GameRepository.fetchGameSession(page, limit);
+  //     // Call repository
+  //     const result = await GameRepository.fetchGameSession(page, limit);
 
-      res.status(200).json({
-        success: true,
-        message: "Game sessions fetched successfully",
-        ...result // contains data, total, totalPages, currentPage
-      });
-    } catch (err) {
-      res.status(500).json({ error: (err as Error).message });
-    }
-  }
+  //     res.status(200).json({
+  //       success: true,
+  //       message: "Game sessions fetched successfully",
+  //       ...result // contains data, total, totalPages, currentPage
+  //     });
+  //   } catch (err) {
+  //     res.status(500).json({ error: (err as Error).message });
+  //   }
+  // }
 
   /**
    * @swagger
@@ -147,14 +147,14 @@ export class GameController {
    *       200:
    *         description: List of games with history
    */
-  static async getGamesWithHistory(req: Request, res: Response) {
-    try {
-      const data = await GameRepository.fetchGameSessionWithHistory();
-      res.json(data);
-    } catch (err) {
-      res.status(500).json({ error: (err as Error).message });
-    }
-  }
+  // static async getGamesWithHistory(req: Request, res: Response) {
+  //   try {
+  //     const data = await GameRepository.fetchGameSessionWithHistory();
+  //     res.json(data);
+  //   } catch (err) {
+  //     res.status(500).json({ error: (err as Error).message });
+  //   }
+  // }
 
   /**
    * @swagger
@@ -180,13 +180,13 @@ export class GameController {
    *     summary: Get join history for a user
    *     tags: [Game]
    */
-  static async getUserJoinHistory(req: Request, res: Response) {
-    try {
-      const { userId } = req.params;
-      const data = await GameRepository.fetchUserJoinHistory(userId);
-      res.json(data);
-    } catch (err) {
-      res.status(500).json({ error: (err as Error).message });
-    }
-  }
+  // static async getUserJoinHistory(req: Request, res: Response) {
+  //   try {
+  //     const { userId } = req.params;
+  //     const data = await GameRepository.fetchUserJoinHistory(userId);
+  //     res.json(data);
+  //   } catch (err) {
+  //     res.status(500).json({ error: (err as Error).message });
+  //   }
+  // }
 }
