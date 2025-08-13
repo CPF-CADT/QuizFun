@@ -3,6 +3,7 @@ import { GameSessionManager, Participant, GameSettings } from "../../config/data
 import { generateRandomNumber } from '../../service/generateRandomNumber';
 import { QuizModel } from "../../model/Quiz";
 import { broadcastGameState, endRound } from "./shared";
+import { PlayerAnswer } from "../../config/data/GameSession";
 
 // =================================================================================
 // LOBBY & GAME SETUP HANDLERS
@@ -113,9 +114,35 @@ export function handleSubmitAnswer(socket: Socket, io: Server, data: { roomId: n
     if (!room.settings.allowAnswerChange && player.hasAnswered) {
         return;
     }
-    
-    room.answers.set(userId, optionIndex);
-    
+    // Calculate elapsed and remaining time in milliseconds
+    if (!room.questions) {
+        console.error(`Room ${roomId} has no questions.`);
+        return;
+    }
+
+    const elapsedMs = Date.now() - (room.questionStartTime ?? Date.now());
+    const timeLimitSec = room.questions?.[room.currentQuestionIndex]?.timeLimit ?? 0;
+    const remainingSec = Math.max(0, timeLimitSec - elapsedMs / 1000);
+
+    // Ensure user's answer array exists
+    let userAnswer = room.answers.get(userId);
+    if (!userAnswer) {
+        userAnswer = [];
+    }
+
+    // Create PlayerAnswer object
+    const playerAnswer: PlayerAnswer = {
+        optionIndex: optionIndex,
+        remainingTime: remainingSec,
+        isCorrect: false,
+    };
+
+    // Push the answer to the user's stack
+    userAnswer.push(playerAnswer);
+
+    room.answers.set(userId, userAnswer);
+
+
     if (!player.hasAnswered) {
         player.hasAnswered = true;
     }

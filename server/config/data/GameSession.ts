@@ -19,6 +19,12 @@ export interface Participant {
     role: ParticipantRole;
     hasAnswered: boolean;
 }
+export type PlayerAnswer = {
+    optionIndex: number;
+    remainingTime: number;
+    isCorrect:boolean;
+};
+
 
 export interface SessionData {
     quizId: string;
@@ -26,7 +32,7 @@ export interface SessionData {
     participants: Participant[];
     questions?: IQuestion[];
     currentQuestionIndex: number;
-    answers: Map<string, number>;
+    answers: Map<string, PlayerAnswer[]>;
     questionTimer?: NodeJS.Timeout;
     autoNextTimer?: NodeJS.Timeout;
     gameState: GameState;
