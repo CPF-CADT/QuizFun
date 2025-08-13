@@ -103,19 +103,16 @@ const difficultyConfig = {
     bg: 'bg-gradient-to-r from-emerald-100 to-emerald-50', 
     text: 'text-emerald-700',
     border: 'border-emerald-200',
-    icon: '🌱'
   },
   Medium: { 
     bg: 'bg-gradient-to-r from-amber-100 to-yellow-50', 
     text: 'text-amber-700',
     border: 'border-amber-200',
-    icon: '⚡'
   },
   Hard: { 
     bg: 'bg-gradient-to-r from-red-100 to-rose-50', 
     text: 'text-red-700',
     border: 'border-red-200',
-    icon: '🔥'
   },
 };
 

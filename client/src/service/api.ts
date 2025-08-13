@@ -72,6 +72,27 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+export const apiService = {
+
+  uploadImageToCloudinary: async (file: string | Blob) => {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const res = await apiClient.post('service/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      return res.data.url;
+
+    } catch (error) {
+      throw new Error((error as Error).message || "Failed to upload image");
+    }
+  },
+
+}
 
 export const authApi = {
   login: async (credentials: object) => {
@@ -80,4 +101,7 @@ export const authApi = {
   logout: async () => {
     return apiClient.post('/user/logout');
   },
+  signUp: async() =>{
+    return apiClient.post('/user/')
+  }
 };

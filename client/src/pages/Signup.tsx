@@ -29,6 +29,7 @@ const Signup: React.FC = () => {
     formData.password.length >= 6 &&
     formData.password === formData.confirmPassword;
 
+  
   return (
     <div
       className="min-h-screen flex items-center justify-center relative overflow-hidden"

@@ -1,49 +1,83 @@
-​export interface Participants {
-  socket_id: string;
-  user_id: string;
-  user_name: string;
-  user_profile: string;
-  isOnline:boolean;
-} 
+import { IQuestion } from "../../model/Quiz";
+
+// --- TYPE DEFINITIONS ---
+
+export type ParticipantRole = 'host' | 'player';
+export type GameState = 'lobby' | 'question' | 'results' | 'end';
+
+export interface GameSettings {
+    autoNext: boolean;
+    allowAnswerChange: boolean;
+}
+
+export interface Participant {
+    socket_id: string;
+    user_id: string;
+    user_name: string;
+    isOnline: boolean;
+    score: number;
+    role: ParticipantRole;
+    hasAnswered: boolean;
+}
 
 export interface SessionData {
-  quizId: string;
-  hostId: string;
-  host_socket_id: string;
-  participants?: Participants[];
+    quizId: string;
+    hostId: string;
+    participants: Participant[];
+    questions?: IQuestion[];
+    currentQuestionIndex: number;
+    answers: Map<string, number>;
+    questionTimer?: NodeJS.Timeout;
+    autoNextTimer?: NodeJS.Timeout;
+    gameState: GameState;
+    isFinalResults: boolean;
+    settings: GameSettings;
+    answerCounts: number[];
+    questionStartTime?: number;
 }
 
-export class GameSessionManager {
-  static waitLobby = new Map<number, SessionData>();
-  static currentGamePlay = new Map<number, SessionData>();
+/**
+ * Manages all active game sessions in memory.
+ */
+class Manager {
+    private sessions: Map<number, SessionData> = new Map();
 
-  static addSession(code: number, session: SessionData): boolean {
-    GameSessionManager.waitLobby.set(code, session);
-    return GameSessionManager.waitLobby.has(code);
-  }
-
-  static isSessionActive(code: number): boolean {
-    return GameSessionManager.waitLobby.has(code) || GameSessionManager.currentGamePlay.has(code);
-  }
-
-  static addPlayerToSession(code: number, player: Participants): void {
-    const session = GameSessionManager.waitLobby.get(code);
-    if (session) {
-      if (!session.participants) session.participants = [];
-      session.participants.push(player);
+    public addSession(roomId: number, data: Pick<SessionData, 'quizId' | 'hostId' | 'settings'>) {
+        const session: SessionData = {
+            ...data,
+            participants: [],
+            currentQuestionIndex: -1,
+            answers: new Map(),
+            gameState: 'lobby',
+            isFinalResults: false,
+            answerCounts: [],
+        };
+        this.sessions.set(roomId, session);
+        console.log(`[GameSession] Room ${roomId} created with settings:`, data.settings);
     }
-  }
 
-  static startGame(code: number): void {
-    const session = GameSessionManager.waitLobby.get(code);
-    if (session) {
-      GameSessionManager.currentGamePlay.set(code, session);
-      GameSessionManager.waitLobby.delete(code);
+    public getSession(roomId: number): SessionData | undefined {
+        return this.sessions.get(roomId);
     }
-  }
 
-  static getSession(code: number): SessionData | undefined {
-    return GameSessionManager.waitLobby.get(code) || GameSessionManager.currentGamePlay.get(code);
-  }
+    public removeSession(roomId: number) {
+        const room = this.getSession(roomId);
+        if (room) {
+            if (room.questionTimer) clearTimeout(room.questionTimer);
+            if (room.autoNextTimer) clearTimeout(room.autoNextTimer);
+            this.sessions.delete(roomId);
+            console.log(`[GameSession] Room ${roomId} removed.`);
+        }
+    }
+
+    public findSessionBySocketId(socketId: string): { roomId: number, session: SessionData } | undefined {
+        for (const [roomId, session] of this.sessions.entries()) {
+            if (session.participants.some(p => p.socket_id === socketId)) {
+                return { roomId, session };
+            }
+        }
+        return undefined;
+    }
 }
 
+export const GameSessionManager = new Manager();

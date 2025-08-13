@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
+import axios from 'axios';
 
 import { 
   PlusCircle, 
@@ -71,19 +71,42 @@ const Dashboard: React.FC = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  
+
+    const [stats, setStats] = useState<QuizStats>({
+    totalQuizzes: 0,
+    totalStudents: 0,
+    completedQuizzes: 0,
+    averageScore: 0
+  });
+
+  // useEffect hook to fetch data when the component mounts
   useEffect(() => {
     setIsLoaded(true);
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+
+    // Function to fetch dashboard statistics from the backend
+    const fetchStats = async () => {
+      try {
+        // API call to the new /stats endpoint
+        const response = await axios.get('http://localhost:3000/api/quizz/stats');
+        // Update the state with the fetched data
+        setStats(response.data);
+      } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+      }
+    };
+
+    fetchStats();
+    
+    // Cleanup function to clear the interval
     return () => clearInterval(timer);
   }, []);
-
-  const stats: QuizStats = {
-    totalQuizzes: 24,
-    totalStudents: 156,
-    completedQuizzes: 89,
-    averageScore: 78.5
-  };
+  
+  // useEffect(() => {
+  //   setIsLoaded(true);
+  //   const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+  //   return () => clearInterval(timer);
+  // }, []);
 
   const recentQuizzes: RecentQuiz[] = [
     {
@@ -216,7 +239,7 @@ const Dashboard: React.FC = () => {
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
+      )} 
 
       {/* Sidebar */}
       <div className={`fixed lg:static inset-y-0 left-0 z-50 w-80 bg-white/80 backdrop-blur-xl border-r border-gray-200/50 flex flex-col shadow-2xl transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
@@ -404,7 +427,7 @@ const Dashboard: React.FC = () => {
                 border: 'border-blue-200'
               },
               { 
-                title: 'Active Students', 
+                title: 'Users', 
                 value: stats.totalStudents, 
                 icon: Users, 
                 change: '+8%',
@@ -665,7 +688,7 @@ const Dashboard: React.FC = () => {
                     <Sparkles className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold">🎉 Quiz of the Week</h3>
+                    <h3 className="text-2xl font-bold"> Quiz of the Week</h3>
                     <p className="text-violet-100">Most popular among students</p>
                   </div>
                 </div>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuizFun API Tester</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 5px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+        .endpoint { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .method { font-weight: bold; color: #1976d2; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>QuizFun API Tester</h1>
+        <p>Server running on: <strong>http://localhost:3001</strong></p>
+        
+        <div class="endpoint">
+            <h3>📋 API Information</h3>
+            <button onclick="testEndpoint('/api/docs/info', 'GET')">Test API Info</button>
+        </div>
+
+        <div class="endpoint">
+            <h3>👥 User Endpoints</h3>
+            <button onclick="testEndpoint('/api/user?page=1&limit=5', 'GET')">Get Users (Page 1, Limit 5)</button>
+            <button onclick="testEndpoint('/api/user?page=1&limit=10&search=test', 'GET')">Search Users</button>
+            <button onclick="testEndpoint('/api/user/by-role/player?page=1&limit=5', 'GET')">Get Players</button>
+        </div>
+
+        <div class="endpoint">
+            <h3>📝 Quiz Endpoints</h3>
+            <button onclick="testEndpoint('/api/quizz?page=1&limit=5', 'GET')">Get Quizzes (Page 1, Limit 5)</button>
+            <button onclick="testEndpoint('/api/quizz?page=1&limit=10&search=math', 'GET')">Search Quizzes</button>
+            <button onclick="testEndpoint('/api/quizz?sortBy=title&sortOrder=asc', 'GET')">Sort by Title (ASC)</button>
+            <button onclick="testEndpoint('/api/quizz?visibility=public&page=1&limit=5', 'GET')">Public Quizzes Only</button>
+        </div>
+
+        <div class="endpoint">
+            <h3>🔗 External Links</h3>
+            <a href="http://localhost:3001/api-docs" target="_blank">
+                <button>Open Swagger Documentation</button>
+            </a>
+            <a href="http://localhost:3001/api/docs/info" target="_blank">
+                <button>Open API Info</button>
+            </a>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const baseUrl = 'http://localhost:3001';
+        
+        async function testEndpoint(endpoint, method = 'GET') {
+            const resultsDiv = document.getElementById('results');
+            const url = baseUrl + endpoint;
+            
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.createElement('div');
+                resultDiv.className = response.ok ? 'result success' : 'result error';
+                resultDiv.innerHTML = `
+                    <h4>${method} ${endpoint}</h4>
+                    <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                    <p><strong>Response:</strong></p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+                resultsDiv.appendChild(resultDiv);
+                resultsDiv.scrollTop = resultsDiv.scrollHeight;
+                
+            } catch (error) {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h4>${method} ${endpoint}</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+                resultsDiv.appendChild(resultDiv);
+            }
+        }
+        
+        // Test API info on page load
+        window.onload = () => {
+            testEndpoint('/api/docs/info', 'GET');
+        };
+    </script>
+</body>
+</html>
