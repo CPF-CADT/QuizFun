@@ -1,8 +1,8 @@
 import express from 'express'
 import {register,login,updateUserInfo,sendVerificationCode,verifyEmail,refreshToken,logout,getAllUsers,getUsersByRole} from '../controller/user.controller'
 import { authenticateToken, isEmailVerified } from '../middleware/authenicate.middleware';
-import { validationBody } from '../middleware/validation.middleware';
-import { userlogin, userRegister } from '../config/CheckValidation';
+// import { validationBody } from '../middleware/validation.middleware';
+// import { userlogin, userRegister } from '../config/CheckValidation';
 
 
 export const userRouter = express.Router();
@@ -13,7 +13,7 @@ userRouter.get('/by-role/:role', authenticateToken, getUsersByRole); // GET user
 
 // Authentication routes
 userRouter.post('/register',register);
-userRouter.post('/login',isEmailVerified, login,validationBody);
+userRouter.post('/login',isEmailVerified, login);
 userRouter.put('/:id',authenticateToken, updateUserInfo)
 userRouter.post('/request-otp',sendVerificationCode);
 userRouter.post('/verify-otp',verifyEmail);
