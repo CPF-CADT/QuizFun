@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login"; 
 import Homepage from "./pages/Homepage"; // Importing Homepage component
@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import Explore from "./pages/Explore"; // Importing Explore component
 import CreateQuiz from "./pages/CreateQuiz";
 import Game from './test/Quizz'
+import ImageUploader from "./components/imageUploader";
 function App() {
   return (
     <Router>
@@ -22,6 +23,7 @@ function App() {
         <Route path="/explore" element={<Explore />} /> 
         <Route path="/create-quiz" element={<CreateQuiz />} />
         <Route path="/game" element={<Game />}  />
+        <Route path="/test" element={<ImageUploader />}  />
       </Routes>
     </Router>
   );

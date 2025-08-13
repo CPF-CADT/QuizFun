@@ -1,8 +1,8 @@
 import express from 'express'
 import {register,login,updateUserInfo,sendVerificationCode,verifyEmail,refreshToken,logout,getAllUsers,getUsersByRole} from '../controller/user.controller'
 import { authenticateToken, isEmailVerified } from '../middleware/authenicate.middleware';
-// import { validationBody } from '../middleware/validation.middleware';
-// import { userlogin, userRegister } from '../config/CheckValidation';
+import { validationBody } from '../middleware/validation.middleware';
+import { userlogin, userRegister } from '../config/CheckValidation';
 
 
 export const userRouter = express.Router();
@@ -12,8 +12,8 @@ userRouter.get('/', authenticateToken, getAllUsers); // GET all users with pagin
 userRouter.get('/by-role/:role', authenticateToken, getUsersByRole); // GET users by role with pagination
 
 // Authentication routes
-userRouter.post('/register',register);
-userRouter.post('/login',isEmailVerified, login);
+userRouter.post('/register',validationBody(userRegister),register);
+userRouter.post('/login',validationBody(userlogin),isEmailVerified, login);
 userRouter.put('/:id',authenticateToken, updateUserInfo)
 userRouter.post('/request-otp',sendVerificationCode);
 userRouter.post('/verify-otp',verifyEmail);

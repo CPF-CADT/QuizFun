@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { apiService } from "../service/api";
 
 // Defines the shape of the object returned by the hook for better type safety.
-interface UseImageUploadReturn {
+export interface UseImageUploadReturn {
   isUploading: boolean;
   uploadedImageUrl: string;
   selectedFile: File | null;
