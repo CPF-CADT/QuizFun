@@ -18,7 +18,7 @@ export function useImageUpload(): UseImageUploadReturn {
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  
   const handleSelectFileClick = (): void => {
     fileInputRef.current?.click();
   };
