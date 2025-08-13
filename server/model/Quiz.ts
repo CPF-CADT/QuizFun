@@ -30,13 +30,13 @@ export interface IQuiz extends Document {
 
 
 
-const OptionSchema = new Schema<IOption>({
+export const OptionSchema = new Schema<IOption>({
     text: { type: String, required: true },
     isCorrect: { type: Boolean, required: true },
 
 });
 
-const QuestionSchema = new Schema<IQuestion>({
+export const QuestionSchema = new Schema<IQuestion>({
     questionText: { type: String, required: true },
     imageUrl: {type:String,required:false},
     point: { type: Number, required: true, min: 0 },

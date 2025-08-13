@@ -1,16 +1,25 @@
 import { Types } from "mongoose";
 import { QuizModel, IQuestion, IQuiz, IOption, } from "../model/Quiz";
+import { UserModel } from "../model/User";
+import { GameSessionModel } from "../model/GameSession";
 export class QuizzRepositories {
 
-	static async getAllQuizzes(page: number, limit: number) {
+	static async getAllQuizzes(page: number, limit: number,sortBy: string = 'createdAt',sortOrder: string = 'desc',searchQuery?:string) {
         const skip = (page - 1) * limit;
+		   const filter: any = { visibility: 'public' };
+    if (searchQuery) {
+        filter.title = { $regex: searchQuery, $options: 'i' }; 
+    }
+const sort: any = {};
+    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
 
         const quizzes = await QuizModel.find({visibility:'public'})
             .skip(skip)
             .limit(limit)
-            .sort({ createdAt: -1 }); 
+            .sort(sort); 
 
-        const total = await QuizModel.countDocuments();
+        const total = await QuizModel.countDocuments(filter);
 
         return {
             quizzes,
@@ -19,7 +28,12 @@ export class QuizzRepositories {
             totalPages: Math.ceil(total / limit)
         };
     }
-
+	static async getQuizz(qId: string) {
+		if (!Types.ObjectId.isValid(qId)) {
+			throw new Error("Invalid quiz ID");
+		}
+		return QuizModel.findById(qId).lean();
+	}
 	static async createQuizz(quizz: IQuiz): Promise<IQuiz | null> {
 		return QuizModel.create(quizz);
 	}
@@ -117,4 +131,24 @@ export class QuizzRepositories {
 
 		return result.deletedCount !== undefined && result.deletedCount > 0;
 	}
+
+	static async getDashboardStats() {
+        const totalQuizzes = await QuizModel.countDocuments();
+        const totalStudents = await UserModel.countDocuments({ role: 'player' });
+        const completedQuizzes = await GameSessionModel.countDocuments({ status: 'completed' });
+
+        const avgScoreAggregation = await GameSessionModel.aggregate([
+            { $unwind: "$results" },
+            { $group: { _id: null, avgScore: { $avg: "$results.finalScore" } } }
+        ]);
+
+        const averageScore = avgScoreAggregation.length > 0 ? avgScoreAggregation[0].avgScore : 0;
+
+        return {
+            totalQuizzes,
+            totalStudents,
+            completedQuizzes,
+            averageScore: parseFloat(averageScore.toFixed(2))
+        };
+    }
 }

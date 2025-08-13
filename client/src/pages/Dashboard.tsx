@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
+import axios from 'axios';
 
 import { 
   PlusCircle, 
@@ -71,19 +71,42 @@ const Dashboard: React.FC = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  
+
+    const [stats, setStats] = useState<QuizStats>({
+    totalQuizzes: 0,
+    totalStudents: 0,
+    completedQuizzes: 0,
+    averageScore: 0
+  });
+
+  // useEffect hook to fetch data when the component mounts
   useEffect(() => {
     setIsLoaded(true);
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+
+    // Function to fetch dashboard statistics from the backend
+    const fetchStats = async () => {
+      try {
+        // API call to the new /stats endpoint
+        const response = await axios.get('http://localhost:3000/api/quizz/stats');
+        // Update the state with the fetched data
+        setStats(response.data);
+      } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+      }
+    };
+
+    fetchStats();
+    
+    // Cleanup function to clear the interval
     return () => clearInterval(timer);
   }, []);
-
-  const stats: QuizStats = {
-    totalQuizzes: 24,
-    totalStudents: 156,
-    completedQuizzes: 89,
-    averageScore: 78.5
-  };
+  
+  // useEffect(() => {
+  //   setIsLoaded(true);
+  //   const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+  //   return () => clearInterval(timer);
+  // }, []);
 
   const recentQuizzes: RecentQuiz[] = [
     {
