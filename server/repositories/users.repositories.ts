@@ -1,10 +1,10 @@
 import { Types } from 'mongoose';
-import { UserModel, IUser } from '../model/User';
+import { UserModel,IUserData } from '../model/User';
 
-export type UserData = Omit<IUser, '_id' | 'createdAt' | 'updatedAt'>;
+export type UserData = Omit<IUserData, '_id' | 'createdAt' | 'updatedAt'>;
 
 export interface PaginatedUsers {
-  users: IUser[];
+  users: IUserData[];
   total: number;
   page: number;
   totalPages: number;
@@ -14,19 +14,19 @@ export interface PaginatedUsers {
 
 export class UserRepository {
 
-  static async findByEmail(email: string): Promise<IUser | null> {
+  static async findByEmail(email: string): Promise<IUserData | null> {
     return UserModel.findOne({ email: email.toLowerCase() }).select('+password').exec();
   }
 
-  static async findById(id: string): Promise<IUser | null> {
+  static async findById(id: string): Promise<IUserData | null> {
     return UserModel.findById(new Types.ObjectId(id)).exec();
   }
 
-  static async create(userData: UserData): Promise<IUser> {
+  static async create(userData: IUserData): Promise<IUserData> {
     return UserModel.create(userData);
   }
 
-  static async update(id: string, dataToUpdate: Partial<UserData>): Promise<IUser | null> {
+  static async update(id: string, dataToUpdate: Partial<UserData>): Promise<IUserData | null> {
     return UserModel.findByIdAndUpdate( new Types.ObjectId(id), { $set: dataToUpdate }, { new: true }).exec();
   }
 

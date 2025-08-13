@@ -1,6 +1,6 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
-export interface IUserData {
+export interface IUserData extends Document {
   name: string;
   email: string;
   password?: string;
@@ -9,16 +9,13 @@ export interface IUserData {
   googleId?: string;
   isVerified: boolean;
 }
-export interface IUser extends IUserData, Document {
-  _id: Types.ObjectId; 
-}
 
-const UserSchema = new Schema<IUser>({
+const UserSchema = new Schema<IUserData>({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true, trim: true, lowercase: true },
   password: { type: String, required: false, select: false },
   role: { type: String, enum: ['player', 'admin'], default: 'player' },
-  profileUrl: { type: String },
+  profileUrl: { type: String,required: false },
   googleId: { type: String, unique: true, sparse: true },
   isVerified: { 
     type: Boolean,
@@ -29,4 +26,4 @@ const UserSchema = new Schema<IUser>({
   collection: 'users' 
  });
 
-export const UserModel = model<IUser>('User', UserSchema);
+export const UserModel = model<IUserData>('User', UserSchema);

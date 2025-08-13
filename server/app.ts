@@ -17,17 +17,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from public directory
-app.use('/public', express.static(path.join(__dirname, 'public')));
+// // Serve static files from public directory
+// app.use('/public', express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
     res.redirect('/api-docs/');
 });
 
 // Test page route
-app.get('/test', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'api-tester.html'));
-});
+// app.get('/test', (req, res) => {
+//     res.sendFile(path.join(__dirname, 'public', 'api-tester.html'));
+// });
 
 // API Routes
 app.use('/api/user', userRouter);
@@ -37,11 +37,11 @@ app.use('/api/service',serviceRouter)
 app.use('/api/games',gameRouter)
 
 // Swagger Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-    explorer: true,
-    customCss: '.swagger-ui .topbar { display: none }',
-    customSiteTitle: 'QuizFun API Documentation'
-}));
+// app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+//     explorer: true,
+//     customCss: '.swagger-ui .topbar { display: none }',
+//     customSiteTitle: 'QuizFun API Documentation'
+// }));
 
 app.use(errorHandler)
 // runSeed();   
