@@ -248,7 +248,9 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
               <div>
+                <a href='/'>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">Fun Quize</h1>
+                </a>
                 <p className="text-gray-500 text-sm">Educational Platform</p>
               </div>
             </div>
