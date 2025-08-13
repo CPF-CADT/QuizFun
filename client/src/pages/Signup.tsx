@@ -20,7 +20,7 @@ const Signup: React.FC = () => {
 
   const handleSignup = () => {
     console.log('Signing up with:', formData);
-    // Add signup logic here
+
   };
 
   const isFormValid =
