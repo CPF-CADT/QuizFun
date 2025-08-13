@@ -2,7 +2,7 @@ import { useState } from "react";
 
 const Signup = () => {
   const [email, setEmail] = useState<string>("");
-
+  
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-purple-600 px-4">
       {/* Title on Purple Background */}
