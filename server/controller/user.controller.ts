@@ -5,7 +5,7 @@ import { JWT } from '../service/JWT';
 import { generateRandomNumber, getExpiryDate } from '../service/generateRandomNumber';
 import { sentEmail } from '../service/transporter';
 import { VerificationCodeRepository } from '../repositories/verification.repositories';
-import { IUser, UserModel } from '../model/User';
+import { IUserData, UserModel } from '../model/User';
 import jwt from "jsonwebtoken";
 /**
  * @swagger
@@ -253,7 +253,7 @@ export async function getUsersByRole(req: Request, res: Response): Promise<void>
 
 export async function register(req: Request, res: Response): Promise<void> {
     const { name, email, password, profile_url, role } = req.body;
-
+    console.log(name,email,password,profile_url,role)
     if (!name || !email || !password) {
         res.status(400).json({ error: 'Missing required user information' });
         return;
@@ -267,13 +267,14 @@ export async function register(req: Request, res: Response): Promise<void> {
 
 
 
-    const createdUser = await UserRepository.create({name,
+    const createdUser = await UserRepository.create({
+        name,
         email,
         password: Encryption.hashPassword(password),
         profileUrl: profile_url || 'http://default.url/image.png',
         role: role || 'player',
         isVerified: false,
-    } as IUser);
+    } as IUserData);
 
     // --- Automatically send verification email ---
     const code = generateRandomNumber(6);
@@ -629,14 +630,14 @@ export async function verifyEmail(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const verificationToken = await VerificationCodeRepository.find(user._id.toString(), code);
+  const verificationToken = await VerificationCodeRepository.find(user.id.toString(), code);
 
   if (!verificationToken) {
     res.status(400).json({ message: "Invalid or expired verification code." });
     return;
   }
 
-  await UserRepository.update(user._id.toString(), { isVerified: true });
+  await UserRepository.update(user.id.toString(), { isVerified: true });
   await VerificationCodeRepository.delete(verificationToken.id);
 
   const tokens = JWT.createTokens({
