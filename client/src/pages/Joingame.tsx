@@ -124,7 +124,7 @@ const Joingame: React.FC = () => {
             </button>
 
             {/* Additional Info */}
-            <div className="mt-6 text-center">
+            {/* <div className="mt-6 text-center">
               <p className="text-white/70 text-sm mb-2">
                 Don't have a game PIN?
               </p>
@@ -134,7 +134,7 @@ const Joingame: React.FC = () => {
               >
                 Create your own quiz
               </button>
-            </div>
+            </div> */}
           </div>
 
           {/* Tips Card */}

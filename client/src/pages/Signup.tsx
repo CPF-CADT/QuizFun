@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { AiOutlineEyeInvisible, AiOutlineEye } from "react-icons/ai";
 import { FaUser, FaLock, FaArrowLeft, FaGamepad, FaStar, FaEnvelope } from "react-icons/fa";
-
+import { authApi } from "../service/api"; 
+import { setToken } from "../service/auth"; // to store token
 const Signup: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    username: '',
+    name: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -18,13 +19,35 @@ const Signup: React.FC = () => {
     });
   };
 
-  const handleSignup = () => {
-    console.log('Signing up with:', formData);
+const handleSignup = async () => {
+  if (formData.password !== formData.confirmPassword) {
+    alert("Passwords do not match");
+    return;
+  }
 
-  };
+  try {
+    const res = await authApi.signUp({
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+      // optionally: profile_url or role if you have those fields in your form
+    });
+
+    if (res.data?.message) {
+      alert(res.data.message); // "Registration successful..."
+      window.location.href = "/login";
+    }
+  } catch (err: any) {
+    console.error("Backend error response:", err.response?.data);
+    alert(err.response?.data?.error || "Something went wrong");
+  }
+};
+
+
+
 
   const isFormValid =
-    formData.username.length > 0 &&
+    formData.name.length > 0 &&
     formData.email.includes("@") &&
     formData.password.length >= 6 &&
     formData.password === formData.confirmPassword;
@@ -83,8 +106,8 @@ const Signup: React.FC = () => {
               <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                name="username"
-                value={formData.username}
+                name="name"
+                value={formData.name}
                 onChange={handleInputChange}
                 className="w-full pl-10 pr-4 py-3 bg-white/90 border border-white/30 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-green-400/50 transition-all"
                 placeholder="Enter your username"
