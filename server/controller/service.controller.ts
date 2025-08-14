@@ -1,6 +1,7 @@
 
 import { Request, Response } from 'express';
 import { uploadImage } from '../service/FileUpload';
+import { FileUploadModel } from '../model/FileUpload';
 import fs from 'fs';
 /**
  * @swagger
@@ -59,13 +60,24 @@ export const handleImageUpload = async (req: MulterRequest, res: Response) => {
       return res.status(400).json({ error: 'No image file provided.' });
     }
     const imageBuffer = req.file.buffer;
-
+    const category = req.body?.category || 'N/A';
     const uploadResult = await uploadImage(imageBuffer);
 
     console.log('Image uploaded successfully to Cloudinary.');
+     const fileDocument = new FileUploadModel({
+      title: req.file.originalname, 
+      type: req.file.mimetype,
+      category:category,
+      url: uploadResult.secure_url,
+    });
+
+    await fileDocument.save();
+    console.log('Image info saved to MongoDB.');
     res.status(200).json({
       message: 'Image uploaded successfully!',
       url: uploadResult.secure_url,
+      type: req.file.mimetype,
+      category:category,
       public_id: uploadResult.public_id,
     });
   } catch (error) {
