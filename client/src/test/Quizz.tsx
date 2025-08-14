@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuizGame, type GameState, type GameSettings } from '../hook/useQuizGame';
 
-const generateGuestId = () => `guest_${Math.random().toString(36).substring(2, 10)}`;
+const generateGuestId = () => `${Math.random().toString(36).substring(2, 10)}`;
 
 // --- Sub-Components for Different Game Views ---
 
@@ -285,7 +285,7 @@ const Game: React.FC = () => {
         e.preventDefault();
         if (hostName && quizId && userId) {
             setIsConnecting(true);
-            createRoom({ quizId, hostName, userId, settings });
+            createRoom({ quizId, hostName, userId:'689af06c343819ffad96c1a6', settings });
         }
     };
 

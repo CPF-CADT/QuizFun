@@ -13,7 +13,7 @@ export interface GameSettings {
 
 export interface Participant {
     socket_id: string;
-    user_id?: string; // Optional to support guests
+    user_id?: string;
     user_name: string;
     isOnline: boolean;
     score: number;
@@ -34,7 +34,7 @@ export interface SessionData {
     participants: Participant[];
     questions?: IQuestion[];
     currentQuestionIndex: number;
-    answers: Map<string, PlayerAnswer[]>; // Keyed by user_id or socket_id
+    answers: Map<string, PlayerAnswer[]>;
     questionTimer?: NodeJS.Timeout;
     autoNextTimer?: NodeJS.Timeout;
     gameState: GameState;
