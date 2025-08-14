@@ -279,7 +279,7 @@ const Dashboard: React.FC = () => {
           </div>
           
           {/* Create Button */}
-          <button className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-xl shadow-violet-500/25 hover:shadow-2xl hover:shadow-violet-500/40 transform hover:scale-105 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+          {/* <button className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-xl shadow-violet-500/25 hover:shadow-2xl hover:shadow-violet-500/40 transform hover:scale-105 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
           <a href='/create-quiz'>
             <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -skew-x-12 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
             <div className="relative flex items-center justify-center">
@@ -288,7 +288,7 @@ const Dashboard: React.FC = () => {
               <Sparkles className="w-4 h-4 ml-2 opacity-80" />
             </div>
             </a>
-          </button>
+          </button> */}
         </div>
 
         {/* Navigation */}
@@ -364,21 +364,11 @@ const Dashboard: React.FC = () => {
                   <span className="bg-gradient-to-r from-gray-900 via-violet-900 to-purple-900 bg-clip-text text-transparent">
                     {getGreeting()}
                   </span>
-                  <span className="ml-3">✨</span>
                 </h1>
                 <p className="text-gray-600 text-lg lg:text-xl">Ready to inspire minds today?</p>
               </div>
               
               <div className="flex items-center space-x-4">
-                {/* Search Bar */}
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input 
-                    type="text" 
-                    placeholder="Search quizzes, students..." 
-                    className="bg-white/80 backdrop-blur-xl border border-gray-200/50 rounded-2xl pl-12 pr-6 py-4 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-300 transition-all duration-300 w-64 lg:w-80 shadow-sm hover:shadow-md"
-                  />
-                </div>
                 
                 <button className="hidden lg:flex p-4 bg-white/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 hover:bg-white hover:shadow-lg transition-all duration-300 text-gray-600 hover:text-violet-600 relative">
                   <Bell className="w-5 h-5" />
@@ -389,6 +379,7 @@ const Dashboard: React.FC = () => {
 
             {/* Quick Actions */}
             <div className="flex flex-wrap gap-4">
+              <a href="create-quiz">
               <button className="group px-6 lg:px-8 py-4 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white rounded-2xl font-semibold shadow-xl shadow-violet-500/25 hover:shadow-2xl hover:shadow-violet-500/40 transform hover:scale-105 hover:-translate-y-1 transition-all duration-300">
                 <div className="flex items-center">
                   <PlusCircle className="w-5 h-5 mr-2" />
@@ -396,6 +387,7 @@ const Dashboard: React.FC = () => {
                   <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
                 </div>
               </button>
+              </a>
               
               <button className="px-6 lg:px-8 py-4 bg-white/80 backdrop-blur-xl border border-gray-200/50 text-gray-700 rounded-2xl font-semibold hover:border-violet-300 hover:text-violet-700 hover:shadow-lg hover:bg-white transform hover:scale-105 transition-all duration-300">
                 <div className="flex items-center">
@@ -580,100 +572,40 @@ const Dashboard: React.FC = () => {
 
             {/* Activity Feed */}
             <div className="xl:col-span-1">
-              <div className="bg-white/80 backdrop-blur-xl rounded-2xl lg:rounded-3xl border border-gray-200/50 p-6 shadow-xl">
-                <div className="flex items-center mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center mr-3">
-                    <Calendar className="w-5 h-5 text-white" />
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-900">Live Activity</h2>
-                </div>
-                
-                <div className="space-y-4">
-                  {recentActivity.map((activity, index) => (
-                    <div
-                      key={activity.id}
-                      className="flex items-start space-x-4 p-4 bg-gradient-to-r from-gray-50/80 to-white/80 rounded-2xl border border-gray-100/50 hover:border-violet-200/50 hover:shadow-md transition-all duration-300 group"
+            <div className="mt-6 bg-white/90 backdrop-blur-xl rounded-2xl border border-gray-200/50 p-6 shadow-xl hover:shadow-2xl transition-shadow duration-300">
+              <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
+                <Globe className="w-5 h-5 mr-2 text-blue-500" />
+                Today's Overview
+              </h3>
+
+              <div className="space-y-5">
+                {[
+                  { label: "Quizzes Taken", value: "23", color: "bg-emerald-400", },
+                  { label: "New Students", value: "5", color: "bg-blue-400",},
+                  { label: "Avg. Score", value: "84%", color: "bg-purple-400"},
+                  { label: "Total Points", value: "2,847", color: "bg-amber-400", },
+                ].map((stat, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-3 bg-white/60 rounded-xl hover:bg-white/90 transition-colors duration-200"
+                  >
+                    <div className="flex items-center">
+                      <span className="text-lg mr-3"></span>
+                      <span className="text-gray-700 text-sm font-medium">{stat.label}</span>
+                    </div>
+                    <span
+                      className={`text-gray-900 font-bold text-sm px-3 py-1 rounded-lg ${stat.color} text-white`}
                     >
-                      <div className="flex-shrink-0">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                          activity.type === 'quiz_completed' ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' :
-                          activity.type === 'quiz_created' ? 'bg-gradient-to-r from-blue-400 to-blue-500' :
-                          'bg-gradient-to-r from-purple-400 to-purple-500'
-                        } text-white shadow-lg`}>
-                          {activity.type === 'quiz_completed' && <Award className="w-4 h-4" />}
-                          {activity.type === 'quiz_created' && <PlusCircle className="w-4 h-4" />}
-                          {activity.type === 'student_joined' && <Users className="w-4 h-4" />}
-                        </div>
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center mb-1">
-                          <p className="text-gray-900 text-sm font-semibold mr-2">{activity.user}</p>
-                          {activity.score && (
-                            <div className={`px-2 py-0.5 rounded-lg text-xs font-bold text-white ${
-                              activity.score >= 90 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' : 
-                              activity.score >= 80 ? 'bg-gradient-to-r from-blue-400 to-blue-500' : 
-                              activity.score >= 70 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 
-                              'bg-gradient-to-r from-red-400 to-red-500'
-                            }`}>
-                              {activity.score}%
-                            </div>
-                          )}
-                        </div>
-                        <p className="text-gray-600 text-sm mb-1">{activity.message}</p>
-                        <p className="text-gray-400 text-xs font-medium">{activity.timestamp}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-gray-100">
-                  <button className="w-full p-3 bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-100 rounded-2xl text-violet-700 hover:text-violet-800 hover:from-violet-100 hover:to-purple-100 transition-all duration-300 font-semibold text-sm flex items-center justify-center group">
-                    <Activity className="w-4 h-4 mr-2" />
-                    View All Activity
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Quick Stats */}
-              <div className="mt-6 bg-white/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 p-6 shadow-xl">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                  <Globe className="w-5 h-5 mr-2 text-blue-500" />
-                  Today's Overview
-                </h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-emerald-400 rounded-full mr-3"></div>
-                      <span className="text-gray-600 text-sm">Quizzes Taken</span>
-                    </div>
-                    <span className="text-gray-900 font-bold text-sm">23</span>
+                      {stat.value}
+                    </span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-blue-400 rounded-full mr-3"></div>
-                      <span className="text-gray-600 text-sm">New Students</span>
-                    </div>
-                    <span className="text-gray-900 font-bold text-sm">5</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-purple-400 rounded-full mr-3"></div>
-                      <span className="text-gray-600 text-sm">Avg. Score</span>
-                    </div>
-                    <span className="text-gray-900 font-bold text-sm">84%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-amber-400 rounded-full mr-3"></div>
-                      <span className="text-gray-600 text-sm">Total Points</span>
-                    </div>
-                    <span className="text-gray-900 font-bold text-sm">2,847</span>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
+            
+
+          </div>
+          
           </div>
 
           {/* Bottom Section - Featured Quiz */}
