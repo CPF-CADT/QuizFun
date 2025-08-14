@@ -1,7 +1,7 @@
 import { Types } from 'mongoose';
 import { GameSessionModel, IGameSession } from '../model/GameSession';
 import { GameHistoryModel } from '../model/GameHistory';
-import { GameSessionManager, SessionData } from '../config/data/GameSession';
+import { GameSessionManager } from '../config/data/GameSession';
 
 interface AnswerAttemptData {
     selectedOptionId: Types.ObjectId;
@@ -19,12 +19,12 @@ interface GameHistoryCreationData {
     isUltimatelyCorrect: boolean;
     finalScoreGained: number;
 }
+
 export class GameRepository {
 
     static async createGameSession(roomId: number): Promise<IGameSession | null> {
         const session = GameSessionManager.getSession(roomId);
         if (!session) {
-            console.error('[GameRepository] In-memory session not found for room:', roomId);
             return null;
         }
 
@@ -43,13 +43,11 @@ export class GameRepository {
     static async saveRoundHistory(roomId: number, scoresGained: Map<string, number>): Promise<void> {
         const session = GameSessionManager.getSession(roomId);
         if (!session || !session.dbId || !session.questions) {
-            console.error(`[GameRepository] Cannot save history, invalid session data for room ${roomId}.`);
             return;
         }
 
         const currentQuestion = session.questions[session.currentQuestionIndex];
         if (!currentQuestion?._id) {
-            console.error(`[GameRepository] Current question or its ID is missing for room ${roomId}.`);
             return;
         }
 
@@ -94,9 +92,8 @@ export class GameRepository {
         if (historyDocsToCreate.length > 0) {
             try {
                 await GameHistoryModel.insertMany(historyDocsToCreate, { ordered: false });
-                console.log(`[GameRepository] Successfully saved ${historyDocsToCreate.length} history records for room ${roomId}.`);
             } catch (error) {
-                console.error(`[GameRepository] Error batch inserting history for room ${roomId}:`, error);
+                console.error(`Error batch inserting history for room ${roomId}:`, error);
             }
         }
     }
@@ -104,7 +101,6 @@ export class GameRepository {
     static async finalizeGameSession(roomId: number): Promise<void> {
         const session = GameSessionManager.getSession(roomId);
         if (!session || !session.dbId) {
-            console.error(`[GameRepository] Cannot finalize, invalid session data for room ${roomId}.`);
             return;
         }
 
@@ -112,7 +108,7 @@ export class GameRepository {
             .filter(p => p.role === 'player')
             .sort((a, b) => b.score - a.score)
             .map((p, index) => ({
-                userId: Types.ObjectId.isValid(p.user_id as string) ? new Types.ObjectId(p.user_id as string) : null,
+                userId: new Types.ObjectId(p.user_id as string),
                 nickname: p.user_name,
                 finalScore: p.score,
                 finalRank: index + 1,
@@ -124,9 +120,8 @@ export class GameRepository {
                 endedAt: new Date(),
                 results: finalResults,
             });
-            console.log(`[GameRepository] Successfully finalized game session for room ${roomId}.`);
         } catch (error) {
-            console.error(`[GameRepository] Error finalizing game session for room ${roomId}:`, error);
+            console.error(`Error finalizing game session for room ${roomId}:`, error);
         }
     }
 
@@ -138,34 +133,55 @@ export class GameRepository {
             GameSessionModel.countDocuments()
         ]);
 
-        return {
-            total,
-            limit,
-            totalPages: Math.ceil(total / limit),
-            currentPage: page,
-            data
-        };
+        return { total, limit, totalPages: Math.ceil(total / limit), currentPage: page, data };
     }
 
     static async fetchUserGameHistory(userId: string) {
+        if (!Types.ObjectId.isValid(userId)) return [];
         return GameHistoryModel.aggregate([
-            {
-                $match: { userId: new Types.ObjectId(userId) },
-            },
-            {
-                $lookup: {
-                    from: 'gamesessions',
-                    localField: 'gameSessionId',
-                    foreignField: '_id',
-                    as: 'gameSession',
-                },
-            },
-            {
-                $unwind: '$gameSession'
-            },
-            {
-                $sort: { 'gameSession.startedAt': -1, 'createdAt': 1 }
-            }
+            { $match: { userId: new Types.ObjectId(userId) } },
+            { $lookup: { from: 'gamesessions', localField: 'gameSessionId', foreignField: '_id', as: 'gameSession' } },
+            { $unwind: '$gameSession' },
+            { $sort: { 'gameSession.startedAt': -1 } }
         ]);
+    }
+
+    static async findSessionById(sessionId: string): Promise<IGameSession | null> {
+        if (!Types.ObjectId.isValid(sessionId)) return null;
+        return GameSessionModel.findById(sessionId).lean();
+    }
+
+    static async fetchHistoryForSession(sessionId: string) {
+        if (!Types.ObjectId.isValid(sessionId)) return [];
+        return GameHistoryModel.find({ gameSessionId: new Types.ObjectId(sessionId) })
+            .populate('userId', 'name email')
+            .lean();
+    }
+    
+    static async fetchUserPerformanceOnQuiz(userId: string, quizId: string) {
+        if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(quizId)) return [];
+
+        return GameHistoryModel.aggregate([
+            { $match: { userId: new Types.ObjectId(userId), quizId: new Types.ObjectId(quizId) } },
+            { $lookup: { from: 'gamesessions', localField: 'gameSessionId', foreignField: '_id', as: 'gameSession' } },
+            { $unwind: '$gameSession' },
+            { $sort: { 'gameSession.startedAt': -1 } }
+        ]);
+    }
+
+    static async addFeedback(sessionId: string, userId: string, rating: number, comment: string) {
+        if (!Types.ObjectId.isValid(sessionId) || !Types.ObjectId.isValid(userId)) {
+            return null;
+        }
+
+        const feedback = {
+            rating: Types.Decimal128.fromString(rating.toString()),
+            comment: comment,
+        };
+
+        return GameSessionModel.updateOne(
+            { _id: new Types.ObjectId(sessionId), 'results.userId': new Types.ObjectId(userId) },
+            { $push: { 'results.$.feedback': feedback } }
+        );
     }
 }
