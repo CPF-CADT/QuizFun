@@ -2,7 +2,11 @@ import express from 'express'
 import {addQuestionForQuizz,createQuizz, deleteOption, deleteQuestion, getAllQuizzes, getQuizzById, getQuizzByUser, updateOption, updateQuestion,deleteQuizz, getDashboardStats} from '../controller/quizz.controller'
 import { validationBody } from '../middleware/validation.middleware';
 import { quizzCreate } from '../config/CheckValidation';
+import multer from 'multer';
+import { handleImageUpload } from '../controller/service.controller';
 export const quizzRouter = express.Router();
+const storage = multer.memoryStorage(); 
+const upload = multer({ storage });
 quizzRouter.get('/', getAllQuizzes);
 quizzRouter.get('/stats', getDashboardStats); 
 quizzRouter.get('/:quizzId', getQuizzById);
@@ -16,3 +20,4 @@ quizzRouter.put('/:quizzId/question/:questionId/option/:optionId', updateOption)
 quizzRouter.delete('/:quizzId/question/:questionId', deleteQuestion);
 quizzRouter.delete('/:quizzId/question/:questionId/option/:optionId', deleteOption);
 quizzRouter.delete('/:quizzId', deleteQuizz);
+quizzRouter.post('/',upload.single('image'),handleImageUpload('quizz_Image'));
