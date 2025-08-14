@@ -152,24 +152,6 @@ const swaggerDefinition = {
   security: [
     { bearerAuth: [] }
   ],
-  tags: [
-    {
-      name: 'User',
-      description: 'User management and authentication operations'
-    },
-    {
-      name: 'Quiz',
-      description: 'Quiz creation, management, and gameplay operations'
-    },
-    {
-      name: 'Game',
-      description: 'Real-time game session management'
-    },
-    {
-      name: 'Service',
-      description: 'Utility and service endpoints'
-    }
-  ]
 };
 
 const options = {

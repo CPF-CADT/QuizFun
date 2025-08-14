@@ -8,9 +8,8 @@ import { quizzRouter } from './routes/quizz.route';
 import { errorHandler } from './middleware/errHandle.middleware';
 import { serviceRouter } from './routes/service.route';
 import { docsRouter } from './routes/docs.route';
-// import { createRandomGameHistory,createRandomGameSession,createRandomQuiz,createRandomUserData,createRandomVerificationCode } from './faker/seed';
 import { runSeed } from './config/seed'; 
-import gameRouter from './routes/game.route';
+import {gameRouter} from './routes/game.route';
 
 const app = express();
 
@@ -37,7 +36,7 @@ app.use('/api/user', userRouter);
 app.use('/api/quizz', quizzRouter);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/service',serviceRouter)
-app.use('/api/games',gameRouter)
+app.use('/api/session',gameRouter)
 
 // Swagger Documentation
 // app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {

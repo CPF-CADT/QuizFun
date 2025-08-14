@@ -9,10 +9,8 @@ const Joingame: React.FC = () => {
   const handleJoinGame = () => {
     if (gamePin && playerName) {
       setIsLoading(true);
-      // Simulate API call
       setTimeout(() => {
         setIsLoading(false);
-        // Handle join game logic here
         console.log('Joining game with pin:', gamePin, 'and name:', playerName);
       }, 2000);
     }
@@ -73,7 +71,7 @@ const Joingame: React.FC = () => {
                 type="text"
                 value={gamePin}
                 onChange={(e) => setGamePin(e.target.value.replace(/\D/g, '').slice(0, 7))}
-                placeholder="Enter 6-7 digit PIN"
+                placeholder="Enter 6 digit PIN"
                 className="w-full px-4 py-4 rounded-xl text-gray-800 text-center text-2xl font-bold tracking-wider bg-white/95 backdrop-blur-sm outline-none focus:ring-4 focus:ring-yellow-400 focus:bg-white transition-all placeholder-gray-400"
                 maxLength={7}
               />

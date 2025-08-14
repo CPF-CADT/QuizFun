@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login"; 
 import Homepage from "./pages/Homepage"; // Importing Homepage component
@@ -18,7 +18,7 @@ function App() {
         {/* Routes for signup and login */}
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/enter-pin" element={<Joingame />} /> {/* ✅ new route */}
+        <Route path="/join" element={<Joingame />} /> {/* ✅ new route */}
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/explore" element={<Explore />} /> 
         <Route path="/create-quiz" element={<CreateQuiz />} />

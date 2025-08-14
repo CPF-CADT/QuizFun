@@ -1,12 +1,16 @@
-export default function ImageUploader({
-  isUploading,
-  uploadedImageUrl,
-  selectedFile,
-  fileInputRef,
-  onSelectFileClick,
-  onFileSelect,
-  onUpload,
-}) {
+import { useImageUpload } from "../hook/useImageUpload"; 
+
+export default function ImageUploader() {
+  const {
+    isUploading,
+    uploadedImageUrl,
+    selectedFile,
+    fileInputRef,
+    handleSelectFileClick,
+    handleFileSelect,
+    handleUpload,
+  } = useImageUpload();
+
   const imagePreviewUrl = selectedFile
     ? URL.createObjectURL(selectedFile)
     : uploadedImageUrl;
@@ -30,7 +34,7 @@ export default function ImageUploader({
           type="file"
           accept="image/*"
           ref={fileInputRef}
-          onChange={onFileSelect}
+          onChange={handleFileSelect}
           className="hidden"
           disabled={isUploading}
         />
@@ -38,7 +42,7 @@ export default function ImageUploader({
         <div className="flex flex-col gap-2">
           <button
             type="button"
-            onClick={onSelectFileClick}
+            onClick={handleSelectFileClick}
             disabled={isUploading}
             className="px-4 py-2 text-sm text-purple-700 bg-purple-100 rounded-md hover:bg-purple-200 disabled:opacity-50"
           >
@@ -48,7 +52,7 @@ export default function ImageUploader({
           {selectedFile && (
             <button
               type="button"
-              onClick={onUpload}
+              onClick={handleUpload}
               disabled={isUploading}
               className="px-4 py-2 text-sm text-green-700 bg-green-100 rounded-md hover:bg-green-200 disabled:opacity-50"
             >

@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { IQuiz, IQuestion, IOption } from '../model/Quiz';
 import { QuizzRepositories } from '../repositories/quizz.repositories';
+import { FileUploadModel } from '../model/FileUpload';
+import { uploadImage } from '../service/FileUpload';
 
 /**
  * @swagger
@@ -708,3 +710,15 @@ export async function getDashboardStats(req: Request, res: Response) {
         res.status(500).json({ message: 'Error fetching dashboard stats', error });
     }
 }
+// interface MulterRequest extends Request {
+//   file?: Express.Multer.File; 
+// }
+// export const uploadQuizImage= async(req:MulterRequest,res:Response)=>{
+//     console.log('backend received the image ');
+//     try {
+//         if(!req.file)return res.status(400).json({message:'no file have been input'})
+//             const imageBuffer:
+//     } catch (error) {
+        
+//     }
+// }

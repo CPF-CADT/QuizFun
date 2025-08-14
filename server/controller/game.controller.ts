@@ -2,191 +2,477 @@ import { Request, Response } from 'express';
 import { GameRepository } from '../repositories/game.repositories';
 
 export class GameController {
-  /**
-   * @swagger
-   * /games:
-   *   post:
-   *     summary: Host a new game session
-   *     tags: [Game]
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           example:
-   *             quizId: "64f9a7a5cba7a0c8e0f97b21"
-   *             hostId: "64f9a7a5cba7a0c8e0f97b22"
-   *             joinCode: "ABC123"
-   *     responses:
-   *       201:
-   *         description: Game created successfully
-   */
-  static async hostNewGame(req: Request, res: Response) {
-    try {
-      const game = await GameRepository.hostNewGame(req.body);
-      res.status(201).json(game);
-    } catch (err) {
-      res.status(500).json({ error: (err as Error).message });
-    }
-  }
 
-  /**
-   * @swagger
-   * /games/{gameId}/players:
-   *   post:
-   *     summary: Add a player to a game
-   *     tags: [Game]
-   *     parameters:
-   *       - in: path
-   *         name: gameId
-   *         required: true
-   *         schema:
-   *           type: string
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           example:
-   *             userId: "64f9a7a5cba7a0c8e0f97b25"
-   *             nickname: "Player 1"
-   *             finalScore: 50
-   *             finalRank: 1
-   *     responses:
-   *       200:
-   *         description: Player added successfully
-   */
-  static async addPlayer(req: Request, res: Response) {
-    try {
-      const { gameId } = req.params;
-      const success = await GameRepository.addPlayerAndResultInGame(gameId, req.body);
-      if (success) {
-        res.json({ message: 'Player added successfully' });
-      } else {
-        res.status(404).json({ error: 'Game not found' });
-      }
-    } catch (err) {
-      res.status(500).json({ error: (err as Error).message });
-    }
-  }
-
-  /**
+/**
  * @swagger
- * /api/games:
+ * tags:
+ *   - name: Game Sessions
+ *     description: Endpoints for creating, retrieving, and managing game sessions.
+ *   - name: Analytics & History
+ *     description: Endpoints for fetching detailed game history and user performance data.
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Error:
+ *       type: object
+ *       properties:
+ *         message:
+ *           type: string
+ *           description: A message describing the error.
+ *           example: "Internal Server Error."
+ *
+ *     FeedbackRequest:
+ *       type: object
+ *       required:
+ *         - userId
+ *         - rating
+ *       properties:
+ *         userId:
+ *           type: string
+ *           pattern: "^[a-fA-F0-9]{24}$"
+ *           description: The ID of the user submitting the feedback.
+ *         rating:
+ *           type: number
+ *           format: float
+ *           description: A numerical rating (e.g., 1-5).
+ *           example: 4.5
+ *         comment:
+ *           type: string
+ *           description: An optional text comment.
+ *           example: "This was a really fun quiz!"
+ *
+ *     AnswerAttempt:
+ *       type: object
+ *       properties:
+ *         selectedOptionId:
+ *           type: string
+ *           pattern: "^[a-fA-F0-9]{24}$"
+ *         isCorrect:
+ *           type: boolean
+ *         answerTimeMs:
+ *           type: integer
+ *
+ *     GameHistory:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *           pattern: "^[a-fA-F0-9]{24}$"
+ *         gameSessionId:
+ *           type: string
+ *           pattern: "^[a-fA-F0-9]{24}$"
+ *         quizId:
+ *           type: string
+ *           pattern: "^[a-fA-F0-9]{24}$"
+ *         questionId:
+ *           type: string
+ *           pattern: "^[a-fA-F0-9]{24}$"
+ *         userId:
+ *           type: string
+ *           pattern: "^[a-fA-F0-9]{24}$"
+ *         guestNickname:
+ *           type: string
+ *         attempts:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/AnswerAttempt'
+ *         isUltimatelyCorrect:
+ *           type: boolean
+ *         finalScoreGained:
+ *           type: integer
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *
+ *     Feedback:
+ *       type: object
+ *       properties:
+ *         rating:
+ *           type: string
+ *           description: Stored as Decimal128, represented as a string in JSON.
+ *           example: "4.5"
+ *         comment:
+ *           type: string
+ *
+ *     GameResult:
+ *       type: object
+ *       properties:
+ *         userId:
+ *           type: string
+ *           pattern: "^[a-fA-F0-9]{24}$"
+ *         nickname:
+ *           type: string
+ *         finalScore:
+ *           type: integer
+ *         finalRank:
+ *           type: integer
+ *         feedback:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Feedback'
+ *
+ *     GameSession:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *           pattern: "^[a-fA-F0-9]{24}$"
+ *         quizId:
+ *           type: string
+ *           pattern: "^[a-fA-F0-9]{24}$"
+ *         hostId:
+ *           type: string
+ *           pattern: "^[a-fA-F0-9]{24}$"
+ *         joinCode:
+ *           type: integer
+ *         status:
+ *           type: string
+ *           enum: [waiting, in_progress, completed, cancelled]
+ *         results:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/GameResult'
+ *         startedAt:
+ *           type: string
+ *           format: date-time
+ *         endedAt:
+ *           type: string
+ *           format: date-time
+ *
+ *     PaginatedSessions:
+ *       type: object
+ *       properties:
+ *         total:
+ *           type: integer
+ *         limit:
+ *           type: integer
+ *         totalPages:
+ *           type: integer
+ *         currentPage:
+ *           type: integer
+ *         data:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/GameSession'
+ */
+
+/**
+ * @swagger
+ * /api/session:
  *   get:
- *     summary: Get paginated list of game sessions
- *     tags: [Game]
+ *     tags:
+ *       - Game Sessions
+ *     summary: Get Paginated Game Sessions
+ *     description: Retrieves a list of all past game sessions, suitable for an admin dashboard or public lobby history.
  *     parameters:
- *       - in: query
- *         name: page
+ *       - name: page
+ *         in: query
  *         schema:
  *           type: integer
- *           example: 1
- *         description: Page number (default is 1)
- *       - in: query
- *         name: limit
+ *           default: 1
+ *         description: The page number to retrieve.
+ *       - name: limit
+ *         in: query
  *         schema:
  *           type: integer
- *           example: 10
- *         description: Number of items per page (default is 10)
+ *           default: 10
+ *         description: The number of sessions per page.
  *     responses:
  *       200:
- *         description: List of game sessions with pagination info
+ *         description: A paginated list of game sessions.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedSessions'
+ *       500:
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
+  static async getSessions(req: Request, res: Response): Promise<Response> {
+      try {
+          const page = parseInt(req.query.page as string) || 1;
+          const limit = parseInt(req.query.limit as string) || 10;
+          const sessions = await GameRepository.fetchGameSessions(page, limit);
+          return res.status(200).json(sessions);
+      } catch (error) {
+          return res.status(500).json({ message: 'Server error retrieving game sessions.' });
+      }
+  }
+
+
+/**
+ * @swagger
+ * /api/session/{id}:
+ *   get:
+ *     tags:
+ *       - Game Sessions
+ *     summary: Get Single Session Details
+ *     description: Retrieves the full details of a single game session, including final results and participants.
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: "^[a-fA-F0-9]{24}$"
+ *         description: The MongoDB ObjectId of the game session.
+ *     responses:
+ *       200:
+ *         description: Successful response with game session details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/GameSession'
+ *       404:
+ *         description: Game session not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
+
+  static async getSessionDetails(req: Request, res: Response): Promise<Response> {
+      try {
+          const { id } = req.params;
+          const session = await GameRepository.findSessionById(id);
+          if (!session) {
+              return res.status(404).json({ message: 'Game session not found.' });
+          }
+          return res.status(200).json(session);
+      } catch (error) {
+          return res.status(500).json({ message: 'Server error retrieving session details.' });
+      }
+  }
+
+/**
+ * @swagger
+ * /api/session/{id}/history:
+ *   get:
+ *     tags:
+ *       - Analytics & History
+ *     summary: Get Full Session History
+ *     description: Retrieves the detailed, turn-by-turn history for a specific game session, including every answer attempt by every player.
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: "^[a-fA-F0-9]{24}$"
+ *         description: The MongoDB ObjectId of the game session.
+ *     responses:
+ *       200:
+ *         description: An array of game history records for the session.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/GameHistory'
+ *       500:
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
+  static async getSessionHistory(req: Request, res: Response): Promise<Response> {
+      try {
+          const { id } = req.params;
+          const history = await GameRepository.fetchHistoryForSession(id);
+          return res.status(200).json(history);
+      } catch (error) {
+          return res.status(500).json({ message: 'Server error retrieving session history.' });
+      }
+  }
+
+/**
+ * @swagger
+ * /api/session/{sessionId}/feedback:
+ *   post:
+ *     tags:
+ *       - Game Sessions
+ *     summary: Add Feedback to a Session
+ *     description: Allows a player to submit feedback (a rating and a comment) for a game they participated in.
+ *     parameters:
+ *       - name: sessionId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: "^[a-fA-F0-9]{24}$"
+ *         description: The MongoDB ObjectId of the game session.
+ *     requestBody:
+ *       required: true
+ *       description: Feedback object.
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/FeedbackRequest'
+ *     responses:
+ *       200:
+ *         description: Feedback submitted successfully.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
  *                 message:
  *                   type: string
- *                   example: Game sessions fetched successfully
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/GameSession'
- *                 total:
- *                   type: integer
- *                   example: 42
- *                 totalPages:
- *                   type: integer
- *                   example: 5
- *                 currentPage:
- *                   type: integer
- *                   example: 1
+ *                   example: "Feedback added successfully."
+ *       400:
+ *         description: Bad Request - Missing required fields.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: The specified user was not found in this game session.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       500:
- *         description: Server error
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-  static async getAllGames(req: Request, res: Response) {
-    try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
 
-      
-      
-      // Call repository
-      const result = await GameRepository.fetchGameSession(page, limit);
-
-      res.status(200).json({
-        success: true,
-        message: "Game sessions fetched successfully",
-        ...result // contains data, total, totalPages, currentPage
-      });
-    } catch (err) {
-      res.status(500).json({ error: (err as Error).message });
-    }
+  static async getUserHistory(req: Request, res: Response): Promise<Response> {
+      try {
+          const { userId } = req.params;
+          const history = await GameRepository.fetchUserGameHistory(userId);
+          return res.status(200).json(history);
+      } catch (error) {
+          return res.status(500).json({ message: 'Server error retrieving user history.' });
+      }
   }
 
-  /**
-   * @swagger
-   * /api/games/games-history:
-   *   get:
-   *     summary: Get all games with history
-   *     tags: [Game]
-   *     responses:
-   *       200:
-   *         description: List of games with history
-   */
-  static async getGamesWithHistory(req: Request, res: Response) {
-    try {
-      const data = await GameRepository.fetchGameSessionWithHistory();
-      res.json(data);
-    } catch (err) {
-      res.status(500).json({ error: (err as Error).message });
-    }
+/**
+ * @swagger
+ * /api/user/{userId}/history:
+ *   get:
+ *     tags:
+ *       - Analytics & History
+ *     summary: Get User's Lifetime History
+ *     description: Retrieves the complete playing history for a specific user across all games they have ever played.
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: "^[a-fA-F0-9]{24}$"
+ *         description: The MongoDB ObjectId of the user.
+ *     responses:
+ *       200:
+ *         description: An array of the user's game history records.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/GameHistory'
+ *       500:
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
+  static async getUserPerformanceOnQuiz(req: Request, res: Response): Promise<Response> {
+      try {
+          const { userId, quizId } = req.params;
+          const performance = await GameRepository.fetchUserPerformanceOnQuiz(userId, quizId);
+          return res.status(200).json(performance);
+      } catch (error) {
+          return res.status(500).json({ message: 'Server error retrieving user performance.' });
+      }
   }
 
-  /**
-   * @swagger
-   * /users/{userId}/game-history:
-   *   get:
-   *     summary: Get game history for a user
-   *     tags: [Game]
-   */
-  static async getUserGameHistory(req: Request, res: Response) {
-    try {
-      const { userId } = req.params;
-      const data = await GameRepository.fetchUserGameHistory(userId);
-      res.json(data);
-    } catch (err) {
-      res.status(500).json({ error: (err as Error).message });
-    }
-  }
+/**
+ * @swagger
+ * /api/user/{userId}/performance/{quizId}:
+ *   get:
+ *     tags:
+ *       - Analytics & History
+ *     summary: Get User Performance on a Quiz
+ *     description: Retrieves a user's performance history for all games played using one specific quiz.
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: "^[a-fA-F0-9]{24}$"
+ *         description: The MongoDB ObjectId of the user.
+ *       - name: quizId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: "^[a-fA-F0-9]{24}$"
+ *         description: The MongoDB ObjectId of the quiz.
+ *     responses:
+ *       200:
+ *         description: An array of the user's history records for the specified quiz.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/GameHistory'
+ *       500:
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 
-  /**
-   * @swagger
-   * /users/{userId}/join-history:
-   *   get:
-   *     summary: Get join history for a user
-   *     tags: [Game]
-   */
-  static async getUserJoinHistory(req: Request, res: Response) {
-    try {
-      const { userId } = req.params;
-      const data = await GameRepository.fetchUserJoinHistory(userId);
-      res.json(data);
-    } catch (err) {
-      res.status(500).json({ error: (err as Error).message });
-    }
+
+  static async addFeedbackToSession(req: Request, res: Response): Promise<Response> {
+      try {
+          const { sessionId } = req.params;
+          const { userId, rating, comment } = req.body;
+
+          if (!userId || !rating) {
+              return res.status(400).json({ message: 'User ID and rating are required.' });
+          }
+
+          const result = await GameRepository.addFeedback(sessionId, userId, rating, comment);
+
+          if (!result || result.modifiedCount === 0) {
+              return res.status(404).json({ message: 'Could not find the specified user in this game session to add feedback.' });
+          }
+
+          return res.status(200).json({ message: 'Feedback added successfully.' });
+      } catch (error) {
+          return res.status(500).json({ message: 'Server error adding feedback.' });
+      }
   }
 }
+
+
+
+
+
+
