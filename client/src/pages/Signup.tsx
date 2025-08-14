@@ -35,7 +35,7 @@ const handleSignup = async () => {
 
     if (res.data?.message) {
       alert(res.data.message); // "Registration successful..."
-      window.location.href = "/login";
+      window.location.href = "/VerifyCode";
     }
   } catch (err: any) {
     console.error("Backend error response:", err.response?.data);
