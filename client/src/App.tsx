@@ -7,7 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import Explore from "./pages/Explore"; // Importing Explore component
 import CreateQuiz from "./pages/CreateQuiz";
 import Game from './test/Quizz';
-import VerifyPage from "./pages/VerifyPage";
+import VerifyCode from "./pages/VerifyCode";
 function App() {
   return (
     <Router>
@@ -22,8 +22,9 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/explore" element={<Explore />} /> 
         <Route path="/create-quiz" element={<CreateQuiz />} />
-        <Route path="/verify-page" element={<VerifyPage/>}/>
         <Route path="/game" element={<Game />}  />
+        <Route path="/verify" element={<VerifyCode />}  />
+
       </Routes>
     </Router>
   );
