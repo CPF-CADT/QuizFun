@@ -1,11 +1,28 @@
 import { Types } from 'mongoose';
-import { GameSessionModel, IGameSession, IGameSessionParticipant } from '../model/GameSession';
-import { GameHistoryModel, IGameHistory } from '../model/GameHistory';
-import { GameSessionManager, SessionData } from '../config/data/GameSession'; 
+import { GameSessionModel, IGameSession } from '../model/GameSession';
+import { GameHistoryModel } from '../model/GameHistory';
+import { GameSessionManager, SessionData } from '../config/data/GameSession';
+
+interface AnswerAttemptData {
+    selectedOptionId: Types.ObjectId;
+    isCorrect: boolean;
+    answerTimeMs: number;
+}
+
+interface GameHistoryCreationData {
+    gameSessionId: Types.ObjectId;
+    quizId: Types.ObjectId;
+    questionId: Types.ObjectId;
+    userId?: Types.ObjectId;
+    guestNickname?: string;
+    attempts: AnswerAttemptData[];
+    isUltimatelyCorrect: boolean;
+    finalScoreGained: number;
+}
 export class GameRepository {
 
-    static async createGameSession(roomId: number, joinCode: string): Promise<IGameSession | null> {
-        const session = GameSessionManager.getSession(roomId) as SessionData;
+    static async createGameSession(roomId: number): Promise<IGameSession | null> {
+        const session = GameSessionManager.getSession(roomId);
         if (!session) {
             console.error('[GameRepository] In-memory session not found for room:', roomId);
             return null;
@@ -14,54 +31,58 @@ export class GameRepository {
         const newGameSession = await GameSessionModel.create({
             quizId: session.quizId,
             hostId: session.hostId,
-            joinCode: joinCode,
+            joinCode: roomId,
             status: 'in_progress',
             startedAt: new Date(),
         });
 
-        session.dbId = newGameSession._id as Types.ObjectId;  
+        session.dbId = newGameSession._id;
         return newGameSession;
     }
 
-        static async saveRoundHistory(roomId: number, questionDurationSec: number): Promise<void> {
+    static async saveRoundHistory(roomId: number, scoresGained: Map<string, number>): Promise<void> {
         const session = GameSessionManager.getSession(roomId);
-
         if (!session || !session.dbId || !session.questions) {
-            console.error(`[GameRepository] Cannot save history, invalid session for room ${roomId}.`);
+            console.error(`[GameRepository] Cannot save history, invalid session data for room ${roomId}.`);
             return;
         }
 
-        const currentQuestionIndex = session.currentQuestionIndex;
-        const currentQuestion = session.questions[currentQuestionIndex];
-        if (!currentQuestion?._id) return;
+        const currentQuestion = session.questions[session.currentQuestionIndex];
+        if (!currentQuestion?._id) {
+            console.error(`[GameRepository] Current question or its ID is missing for room ${roomId}.`);
+            return;
+        }
 
-        const historyDocsToCreate = [];
+        const correctAnswerIndex = currentQuestion.options.findIndex(opt => opt.isCorrect);
+        const historyDocsToCreate: GameHistoryCreationData[] = [];
 
         for (const participant of session.participants) {
-            const playerAnswers = session.answers.get(participant.socket_id);
-            const answer = playerAnswers?.at(-1);
+            if (participant.role === 'host' || !participant.user_id) continue;
 
-            if (!answer) continue;
+            const playerAnswers = session.answers.get(participant.user_id);
+            if (!playerAnswers || playerAnswers.length === 0) continue;
 
-            if (!currentQuestion.options[answer.optionIndex]?._id) {
-                console.error("Critical error: Option ID is missing.");
-                continue;
-            }
+            const attempts: AnswerAttemptData[] = playerAnswers.map(answer => {
+                const selectedOption = currentQuestion.options[answer.optionIndex];
+                return {
+                    selectedOptionId: selectedOption._id as Types.ObjectId,
+                    isCorrect: answer.optionIndex === correctAnswerIndex,
+                    answerTimeMs: (currentQuestion.timeLimit - answer.remainingTime) * 1000,
+                };
+            });
+            
+            const lastAttempt = attempts.at(-1)!;
 
-            const timeTakenMs = (questionDurationSec - answer.remainingTime) * 1000;
-            const scoreGained = answer.isCorrect ? 500 + Math.round(answer.remainingTime * 25) : 0;
-
-            const historyDoc: any = {
+            const historyDoc: GameHistoryCreationData = {
                 gameSessionId: session.dbId,
-                quizId: new Types.ObjectId(session.quizId), // Make sure session.quizId is valid
+                quizId: new Types.ObjectId(session.quizId),
                 questionId: currentQuestion._id,
-                selectedOptionId: currentQuestion.options[answer.optionIndex]._id,
-                isCorrect: answer.isCorrect,
-                scoreGained,
-                answerTimeMs: Math.max(0, timeTakenMs),
+                attempts: attempts,
+                isUltimatelyCorrect: lastAttempt.isCorrect,
+                finalScoreGained: scoresGained.get(participant.user_id) || 0,
             };
 
-            if (participant.user_id) {
+            if (Types.ObjectId.isValid(participant.user_id)) {
                 historyDoc.userId = new Types.ObjectId(participant.user_id);
             } else {
                 historyDoc.guestNickname = participant.user_name;
@@ -72,7 +93,8 @@ export class GameRepository {
 
         if (historyDocsToCreate.length > 0) {
             try {
-                await GameHistoryModel.insertMany(historyDocsToCreate);
+                await GameHistoryModel.insertMany(historyDocsToCreate, { ordered: false });
+                console.log(`[GameRepository] Successfully saved ${historyDocsToCreate.length} history records for room ${roomId}.`);
             } catch (error) {
                 console.error(`[GameRepository] Error batch inserting history for room ${roomId}:`, error);
             }
@@ -80,30 +102,39 @@ export class GameRepository {
     }
 
     static async finalizeGameSession(roomId: number): Promise<void> {
-        const session = GameSessionManager.getSession(roomId) as SessionData;
-        if (!session || !session.dbId) return;
+        const session = GameSessionManager.getSession(roomId);
+        if (!session || !session.dbId) {
+            console.error(`[GameRepository] Cannot finalize, invalid session data for room ${roomId}.`);
+            return;
+        }
 
         const finalResults = session.participants
-            .sort((a, b) => b.score - a.score) // Ensure ranks are correct
+            .filter(p => p.role === 'player')
+            .sort((a, b) => b.score - a.score)
             .map((p, index) => ({
-                userId: p.user_id ? new Types.ObjectId(p.user_id) : undefined,
+                userId: Types.ObjectId.isValid(p.user_id as string) ? new Types.ObjectId(p.user_id as string) : null,
                 nickname: p.user_name,
                 finalScore: p.score,
                 finalRank: index + 1,
             }));
 
-        await GameSessionModel.findByIdAndUpdate(session.dbId, {
-            status: 'completed',
-            endedAt: new Date(),
-            results: finalResults,
-        });
+        try {
+            await GameSessionModel.findByIdAndUpdate(session.dbId, {
+                status: 'completed',
+                endedAt: new Date(),
+                results: finalResults,
+            });
+            console.log(`[GameRepository] Successfully finalized game session for room ${roomId}.`);
+        } catch (error) {
+            console.error(`[GameRepository] Error finalizing game session for room ${roomId}:`, error);
+        }
     }
 
     static async fetchGameSessions(page: number, limit: number) {
         const skip = (page - 1) * limit;
 
         const [data, total] = await Promise.all([
-            GameSessionModel.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
+            GameSessionModel.find().sort({ startedAt: -1 }).skip(skip).limit(limit).lean(),
             GameSessionModel.countDocuments()
         ]);
 
@@ -124,13 +155,16 @@ export class GameRepository {
             {
                 $lookup: {
                     from: 'gamesessions',
-                    localField: 'gameSessionId', 
+                    localField: 'gameSessionId',
                     foreignField: '_id',
                     as: 'gameSession',
                 },
             },
             {
-                $unwind: '$gameSession' 
+                $unwind: '$gameSession'
+            },
+            {
+                $sort: { 'gameSession.startedAt': -1, 'createdAt': 1 }
             }
         ]);
     }

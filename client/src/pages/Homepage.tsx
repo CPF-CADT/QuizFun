@@ -74,7 +74,7 @@ const Homepage: React.FC = () => {
             </button>
             </a>
             <button className="group bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold px-8 py-4 rounded-xl hover:from-cyan-600 hover:to-blue-700 transition-all transform hover:scale-110 shadow-2xl border border-cyan-400"
-            onClick={()=> (window.location.href = "/enter-pin")}>
+            onClick={()=> (window.location.href = "/join")}>
               <FaGamepad className="inline mr-2 group-hover:rotate-12 transition-transform" /> Enter Code
             </button>
           </div>

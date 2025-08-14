@@ -16,7 +16,7 @@ export interface IGameSession extends Document {
   _id: Types.ObjectId;
   quizId: Types.ObjectId;
   hostId: Types.ObjectId;
-  joinCode: string;
+  joinCode: number;
   status: 'waiting' | 'in_progress' | 'completed';
   results?: IGameSessionParticipant[];
   startedAt?: Date;
@@ -37,7 +37,7 @@ const GameSessionParticipantSchema = new Schema<IGameSessionParticipant>({
 const GameSessionSchema = new Schema<IGameSession>({
   quizId: { type: Schema.Types.ObjectId, ref: 'Quiz', required: true },
   hostId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  joinCode: { type: String, required: true, unique: true },
+  joinCode: { type: Number, required: true },
   status: {
     type: String,
     enum: ['waiting', 'in_progress', 'completed'],

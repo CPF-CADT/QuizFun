@@ -21,25 +21,79 @@ export default function socketSetup(server: http.Server) {
     io.on("connection", (socket: Socket) => {
         console.log(`[Connection] User connected with socket ID: ${socket.id}`);
         
+        // Handle auto-rejoin on connection
         const { roomId, userId } = socket.handshake.query;
         if (roomId && userId && typeof roomId === 'string' && typeof userId === 'string') {
-             const room = GameSessionManager.getSession(parseInt(roomId, 10));
-             if (room && room.participants.some(p => p.user_id === userId)) {
-                handleRejoinGame(socket, io, { roomId: parseInt(roomId, 10), userId });
-             }
+            const room = GameSessionManager.getSession(parseInt(roomId, 10));
+            if (room && room.participants.some(p => p.user_id === userId)) {
+                // Using a self-invoking async function to handle the promise safely
+                (async () => {
+                    try {
+                        await handleRejoinGame(socket, io, { roomId: parseInt(roomId, 10), userId });
+                    } catch (err) {
+                        console.error("[Socket] Error in auto-rejoin:", err);
+                    }
+                })();
+            }
         }
 
         // --- Lobby Events ---
-        socket.on("create-room", (data) => handleCreateRoom(socket, io, data));
-        socket.on("join-room", (data) => handleJoinRoom(socket, io, data));
-        socket.on("start-game", (roomId) => startGame(socket, io, roomId));
+        socket.on("create-room", async (data) => {
+            try {
+                await handleCreateRoom(socket, io, data);
+            } catch (err) {
+                console.error("[Socket] Error in create-room:", err);
+            }
+        });
+
+        socket.on("join-room", async (data) => {
+            try {
+                await handleJoinRoom(socket, io, data);
+            } catch (err) {
+                console.error("[Socket] Error in join-room:", err);
+            }
+        });
+
+        socket.on("start-game", async (roomId) => {
+            try {
+                await startGame(socket, io, roomId);
+            } catch (err) {
+                console.error("[Socket] Error in start-game:", err);
+            }
+        });
 
         // --- Game Events ---
-        socket.on("submit-answer", (data) => handleSubmitAnswer(socket, io, data));
-        socket.on("request-next-question", (roomId) => handleRequestNextQuestion(socket, io, roomId));
-        socket.on("play-again", (roomId) => handlePlayAgain(socket, io, roomId));
-        
+        socket.on("submit-answer", async (data) => {
+            try {
+                await handleSubmitAnswer(socket, io, data);
+            } catch (err) {
+                console.error("[Socket] Error in submit-answer:", err);
+            }
+        });
+
+        socket.on("request-next-question", async (roomId) => {
+            try {
+                await handleRequestNextQuestion(socket, io, roomId);
+            } catch (err) {
+                console.error("[Socket] Error in request-next-question:", err);
+            }
+        });
+
+        socket.on("play-again", async (roomId) => {
+            try {
+                await handlePlayAgain(socket, io, roomId);
+            } catch (err) {
+                console.error("[Socket] Error in play-again:", err);
+            }
+        });
+
         // --- Disconnect Event ---
-        socket.on("disconnect", () => handleDisconnect(socket, io));
+        socket.on("disconnect", async () => {
+            try {
+                await handleDisconnect(socket, io);
+            } catch (err) {
+                console.error("[Socket] Error in disconnect:", err);
+            }
+        });
     });
 }
