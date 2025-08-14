@@ -1,5 +1,5 @@
 import { Server } from "socket.io";
-import { GameSessionManager, PlayerAnswer } from "../../config/data/GameSession";
+import { GameSessionManager } from "../../config/data/GameSession";
 import { IQuestion } from "../../model/Quiz";
 import { nextQuestion } from "./handlers";
 import { calculatePoint } from "../../service/calculation";
@@ -34,23 +34,23 @@ export function endRound(io: Server, roomId: number) {
 
     // Calculate scores
     room.participants.forEach(p => {
-        if (p.role !== 'player') return;
+        if (p.role !== 'player' || !p.user_id) return;  // ✅ ensure user_id exists
 
         const playerAnswers = room.answers.get(p.user_id);
         if (!playerAnswers || playerAnswers.length === 0) return;
 
-        const lastAnswer = playerAnswers.at(-1)!; 
+        const lastAnswer = playerAnswers.at(-1)!;
         if (lastAnswer.optionIndex === correctAnswerIndex) {
-            p.score += calculatePoint(currentQuestion.point,currentQuestion.timeLimit,lastAnswer.remainingTime);
+            p.score += calculatePoint(currentQuestion.point, currentQuestion.timeLimit, lastAnswer.remainingTime);
             lastAnswer.isCorrect = true;
         } else {
             lastAnswer.isCorrect = false;
         }
     });
 
-
     room.gameState = 'results';
-    console.log(room.answers)
+    console.log(room.answers);
+
     // If auto-next is enabled, set a timer to advance automatically
     if (room.settings.autoNext) {
         room.autoNextTimer = setTimeout(() => {
@@ -98,13 +98,16 @@ export function broadcastGameState(io: Server, roomId: number, errorMessage?: st
 
             if (room.gameState === 'results' || room.gameState === 'end') {
                 sanitizedQuestion.correctAnswerIndex = currentQuestion.options.findIndex(opt => opt.isCorrect);
-                const playerAns = room.answers.get(p.user_id);
-                const playerAnswerIndex = playerAns?.at(-1)?.optionIndex
-                if (playerAnswerIndex !== undefined) {
-                    sanitizedQuestion.yourAnswer = {
-                        optionIndex: playerAnswerIndex,
-                        wasCorrect: playerAnswerIndex === sanitizedQuestion.correctAnswerIndex,
-                    };
+
+                if (p.user_id) {   // ✅ ensure user_id exists
+                    const playerAns = room.answers.get(p.user_id);
+                    const playerAnswerIndex = playerAns?.at(-1)?.optionIndex;
+                    if (playerAnswerIndex !== undefined) {
+                        sanitizedQuestion.yourAnswer = {
+                            optionIndex: playerAnswerIndex,
+                            wasCorrect: playerAnswerIndex === sanitizedQuestion.correctAnswerIndex,
+                        };
+                    }
                 }
             }
             questionPayload = sanitizedQuestion;
