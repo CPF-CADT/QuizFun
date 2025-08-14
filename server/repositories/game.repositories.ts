@@ -65,7 +65,7 @@ export class GameRepository {
                 return {
                     selectedOptionId: selectedOption._id as Types.ObjectId,
                     isCorrect: answer.optionIndex === correctAnswerIndex,
-                    answerTimeMs: (currentQuestion.timeLimit - answer.remainingTime) * 1000,
+                    answerTimeMs: Math.round((currentQuestion.timeLimit - answer.remainingTime) * 1000),
                 };
             });
             
