@@ -279,16 +279,7 @@ const Dashboard: React.FC = () => {
           </div>
           
           {/* Create Button */}
-          <button className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-xl shadow-violet-500/25 hover:shadow-2xl hover:shadow-violet-500/40 transform hover:scale-105 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-          <a href='/create-quiz'>
-            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -skew-x-12 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-            <div className="relative flex items-center justify-center">
-              <Zap className="w-5 h-5 mr-2" />
-              Create New Quiz
-              <Sparkles className="w-4 h-4 ml-2 opacity-80" />
-            </div>
-            </a>
-          </button>
+          
         </div>
 
         {/* Navigation */}
@@ -348,7 +339,7 @@ const Dashboard: React.FC = () => {
           <button onClick={() => setSidebarOpen(true)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
             <Menu className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">QuizMaster</h1>
+          <h1 className="text-lg font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">Fun Quiz</h1>
           <button className="p-2 hover:bg-gray-100 rounded-xl transition-colors relative">
             <Bell className="w-5 h-5" />
             <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
@@ -364,21 +355,12 @@ const Dashboard: React.FC = () => {
                   <span className="bg-gradient-to-r from-gray-900 via-violet-900 to-purple-900 bg-clip-text text-transparent">
                     {getGreeting()}
                   </span>
-                  <span className="ml-3">✨</span>
                 </h1>
                 <p className="text-gray-600 text-lg lg:text-xl">Ready to inspire minds today?</p>
               </div>
               
               <div className="flex items-center space-x-4">
-                {/* Search Bar */}
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input 
-                    type="text" 
-                    placeholder="Search quizzes, students..." 
-                    className="bg-white/80 backdrop-blur-xl border border-gray-200/50 rounded-2xl pl-12 pr-6 py-4 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-300 transition-all duration-300 w-64 lg:w-80 shadow-sm hover:shadow-md"
-                  />
-                </div>
+                
                 
                 <button className="hidden lg:flex p-4 bg-white/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 hover:bg-white hover:shadow-lg transition-all duration-300 text-gray-600 hover:text-violet-600 relative">
                   <Bell className="w-5 h-5" />
@@ -390,11 +372,13 @@ const Dashboard: React.FC = () => {
             {/* Quick Actions */}
             <div className="flex flex-wrap gap-4">
               <button className="group px-6 lg:px-8 py-4 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white rounded-2xl font-semibold shadow-xl shadow-violet-500/25 hover:shadow-2xl hover:shadow-violet-500/40 transform hover:scale-105 hover:-translate-y-1 transition-all duration-300">
+              <a href='/create-quiz'>
                 <div className="flex items-center">
                   <PlusCircle className="w-5 h-5 mr-2" />
                   Create Quiz
                   <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
                 </div>
+                </a>
               </button>
               
               <button className="px-6 lg:px-8 py-4 bg-white/80 backdrop-blur-xl border border-gray-200/50 text-gray-700 rounded-2xl font-semibold hover:border-violet-300 hover:text-violet-700 hover:shadow-lg hover:bg-white transform hover:scale-105 transition-all duration-300">
@@ -580,61 +564,6 @@ const Dashboard: React.FC = () => {
 
             {/* Activity Feed */}
             <div className="xl:col-span-1">
-              <div className="bg-white/80 backdrop-blur-xl rounded-2xl lg:rounded-3xl border border-gray-200/50 p-6 shadow-xl">
-                <div className="flex items-center mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center mr-3">
-                    <Calendar className="w-5 h-5 text-white" />
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-900">Live Activity</h2>
-                </div>
-                
-                <div className="space-y-4">
-                  {recentActivity.map((activity, index) => (
-                    <div
-                      key={activity.id}
-                      className="flex items-start space-x-4 p-4 bg-gradient-to-r from-gray-50/80 to-white/80 rounded-2xl border border-gray-100/50 hover:border-violet-200/50 hover:shadow-md transition-all duration-300 group"
-                    >
-                      <div className="flex-shrink-0">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                          activity.type === 'quiz_completed' ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' :
-                          activity.type === 'quiz_created' ? 'bg-gradient-to-r from-blue-400 to-blue-500' :
-                          'bg-gradient-to-r from-purple-400 to-purple-500'
-                        } text-white shadow-lg`}>
-                          {activity.type === 'quiz_completed' && <Award className="w-4 h-4" />}
-                          {activity.type === 'quiz_created' && <PlusCircle className="w-4 h-4" />}
-                          {activity.type === 'student_joined' && <Users className="w-4 h-4" />}
-                        </div>
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center mb-1">
-                          <p className="text-gray-900 text-sm font-semibold mr-2">{activity.user}</p>
-                          {activity.score && (
-                            <div className={`px-2 py-0.5 rounded-lg text-xs font-bold text-white ${
-                              activity.score >= 90 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' : 
-                              activity.score >= 80 ? 'bg-gradient-to-r from-blue-400 to-blue-500' : 
-                              activity.score >= 70 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 
-                              'bg-gradient-to-r from-red-400 to-red-500'
-                            }`}>
-                              {activity.score}%
-                            </div>
-                          )}
-                        </div>
-                        <p className="text-gray-600 text-sm mb-1">{activity.message}</p>
-                        <p className="text-gray-400 text-xs font-medium">{activity.timestamp}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-gray-100">
-                  <button className="w-full p-3 bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-100 rounded-2xl text-violet-700 hover:text-violet-800 hover:from-violet-100 hover:to-purple-100 transition-all duration-300 font-semibold text-sm flex items-center justify-center group">
-                    <Activity className="w-4 h-4 mr-2" />
-                    View All Activity
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
-                  </button>
-                </div>
-              </div>
 
               {/* Quick Stats */}
               <div className="mt-6 bg-white/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 p-6 shadow-xl">
