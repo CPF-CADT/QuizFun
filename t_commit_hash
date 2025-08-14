@@ -1,0 +1,561 @@
+[33mcommit 68ee48e5786e3b0eb0754401c34acef910cab83e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: lida-sokha <sokhalida1234@gmail.com>
+Date:   Thu Aug 14 15:06:05 2025 +0700
+
+    done
+
+[33mcommit be30e79a4bf34223d8825365aeb5e8f40900cc5e[m
+Merge: 4d017d2 0e34d84
+Author: lida-sokha <sokhalida1234@gmail.com>
+Date:   Thu Aug 14 15:06:01 2025 +0700
+
+    Merge branh 'lida'
+
+[33mcommit 0e34d845a0c84098da51edbb59d0e9be5945d306[m[33m ([m[1;31morigin/lida[m[33m, [m[1;32mlida[m[33m)[m
+Author: lida-sokha <sokhalida1234@gmail.com>
+Date:   Thu Aug 14 14:56:18 2025 +0700
+
+    done
+
+[33mcommit 2338e6ca68da3af012abc15070a1d12579442c23[m
+Author: lida-sokha <sokhalida1234@gmail.com>
+Date:   Thu Aug 14 14:56:14 2025 +0700
+
+    sign up
+
+[33mcommit 4d017d24b026f2c6761162b348f6c5928b0152a9[m
+Merge: e967f23 27ee12d
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Thu Aug 14 14:37:05 2025 +0700
+
+    Merge pull request #31 from CPF-CADT/chanpanha
+    
+    complete route for game plan
+
+[33mcommit 27ee12da1cc25b1ccf3177774fd3cddb20be3953[m[33m ([m[1;31morigin/chanpanha[m[33m)[m
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Thu Aug 14 14:36:40 2025 +0700
+
+    complete route for game plan
+
+[33mcommit e967f2362471c405f36fdfce1be3ecbcad8e5022[m
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Thu Aug 14 13:34:35 2025 +0700
+
+    Delete package-lock.json
+
+[33mcommit a075a59011e33b626e7621ca1c8a84a8b229b5a0[m
+Merge: 0f33078 619d6ff
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Thu Aug 14 13:30:45 2025 +0700
+
+    Merge pull request #29 from CPF-CADT/chanpanha
+    
+    Chanpanha
+
+[33mcommit 619d6ff40ded79c838638be1836c529356eebf13[m
+Merge: 13ebda4 0f33078
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Thu Aug 14 13:29:59 2025 +0700
+
+    Merge branch 'main' into chanpanha
+
+[33mcommit 0f3307807ff323e67140314bf219e9e7c4a0e7e1[m
+Merge: 0186e86 7e4fec6
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Thu Aug 14 13:28:20 2025 +0700
+
+    Merge pull request #30 from CPF-CADT/nak
+    
+    update by adding database connectivity with game play
+
+[33mcommit 7e4fec6aa76c7b2fec5dc1bacd364fb7ca007349[m[33m ([m[1;31morigin/nak[m[33m)[m
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Thu Aug 14 13:27:54 2025 +0700
+
+    update by adding database connectivity with game play
+
+[33mcommit 13ebda4cfbdae3867339f7e3f1b536ccba60cf21[m
+Author: Chanpanha <chanpanhacheng@gmail.com>
+Date:   Thu Aug 14 09:56:10 2025 +0700
+
+    done fixing upload image in quizz and user
+
+[33mcommit b35beab62b25b6633a6455cfbb4b910c4a0a4e33[m
+Author: Chanpanha <chanpanhacheng@gmail.com>
+Date:   Thu Aug 14 09:16:25 2025 +0700
+
+    fixing upload file both front and back
+
+[33mcommit c37d1b54a5b37f63614a754926b81ed758740b8c[m
+Author: Chanpanha <chanpanhacheng@gmail.com>
+Date:   Thu Aug 14 09:13:47 2025 +0700
+
+    Merge branch 'main' of https://github.com/CPF-CADT/QuizFun into chanpanha
+
+[33mcommit 0186e865dbc9b5cb0859199887fc85248d28f033[m
+Merge: d0a2cb1 807e9a0
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Wed Aug 13 18:36:14 2025 +0700
+
+    Merge pull request #28 from CPF-CADT/sour
+    
+    update game history schema
+
+[33mcommit 807e9a0e40cc4a7fb76e872c12cbe425ad9b9f37[m[33m ([m[1;31morigin/sour[m[33m)[m
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Wed Aug 13 18:35:23 2025 +0700
+
+    update game history schema
+
+[33mcommit d0a2cb1060374bc62a3074e135ef145f7035e662[m
+Merge: 6bbce6a 9205f58
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Wed Aug 13 15:54:30 2025 +0700
+
+    Merge pull request #27 from CPF-CADT/sour
+    
+    nak
+
+[33mcommit 9205f58ee37336f9c5e66771475879080238f65f[m
+Merge: af9c54b 2fdc4a2
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Wed Aug 13 15:53:50 2025 +0700
+
+    Merge branch 'sour' of https://github.com/CPF-CADT/QuizFun into sour
+
+[33mcommit af9c54ba07423e66f293dc4a1cb4a86f08cd19f2[m
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Wed Aug 13 15:52:42 2025 +0700
+
+    update qui game play on score calculation and history data
+
+[33mcommit 6bbce6ac7d0a54eacdebefee532dba41e56e5f35[m
+Merge: 89d69a7 ef62214
+Author: lida-sokha <sokhalida1234@gmail.com>
+Date:   Wed Aug 13 14:46:39 2025 +0700
+
+    Merge pull request #26 from CPF-CADT/lida
+    
+    login
+
+[33mcommit ef6221496d501c50c9ecb5b8cf500137e22b4ade[m
+Merge: 90a91cb 89d69a7
+Author: lida-sokha <sokhalida1234@gmail.com>
+Date:   Wed Aug 13 14:46:17 2025 +0700
+
+    Merge branch 'main' into lida
+
+[33mcommit 90a91cb3f1c7c882255596680963cf19b4f1ae36[m
+Author: lida-sokha <sokhalida1234@gmail.com>
+Date:   Wed Aug 13 14:43:21 2025 +0700
+
+    login
+
+[33mcommit aac690100f0b036c8d6dc03a1d9a8cbbbaec1200[m
+Merge: b3777e5 89d69a7
+Author: Chanpanha <chanpanhacheng@gmail.com>
+Date:   Wed Aug 13 14:35:52 2025 +0700
+
+    Merge branch 'main' of https://github.com/CPF-CADT/QuizFun into chanpanha
+
+[33mcommit b3777e579cf27cb48b39ca953042b0b3cc5e103b[m
+Author: Chanpanha <chanpanhacheng@gmail.com>
+Date:   Wed Aug 13 14:34:51 2025 +0700
+
+    Add package-lock.json from root
+
+[33mcommit 35f7554bec6ee8b1d8227f1fcb7b995c66d9871d[m
+Author: Chanpanha <chanpanhacheng@gmail.com>
+Date:   Wed Aug 13 14:33:54 2025 +0700
+
+    temp
+
+[33mcommit 89d69a7de45a2eb511347ac39d98f6f1f4fe9e0c[m
+Merge: de64fec 2fdc4a2
+Author: Sry kimsour <soursour3001@gmail.com>
+Date:   Wed Aug 13 14:31:41 2025 +0700
+
+    Merge pull request #25 from CPF-CADT/sour
+    
+    swagger
+
+[33mcommit 2fdc4a23454bd97fff5a283a5ad2cc484b1558f8[m
+Author: Srykimsour <soursour3001@gmail.com>
+Date:   Wed Aug 13 14:30:35 2025 +0700
+
+    swagger
+
+[33mcommit de64fec1dbf4e4721ed57b45b9cc8e37a92dd274[m
+Merge: 866e5e9 25c9b5a
+Author: Sry kimsour <soursour3001@gmail.com>
+Date:   Wed Aug 13 14:00:14 2025 +0700
+
+    Merge pull request #24 from CPF-CADT/sour
+    
+    test
+
+[33mcommit 25c9b5a8221bed82ebec1538a4ea5e82fad08334[m
+Merge: 07c8c25 866e5e9
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Wed Aug 13 13:59:50 2025 +0700
+
+    Merge branch 'main' into sour
+
+[33mcommit 07c8c256ac6bb153de89065945aafd6aa4ebd3fe[m
+Author: Srykimsour <soursour3001@gmail.com>
+Date:   Wed Aug 13 13:56:06 2025 +0700
+
+    sign up
+
+[33mcommit 866e5e91bb6660e9888e9b0336190c7b1b7d781b[m
+Merge: 1d3d998 f18a081
+Author: lida-sokha <sokhalida1234@gmail.com>
+Date:   Wed Aug 13 13:48:55 2025 +0700
+
+    Merge pull request #23 from CPF-CADT/lida
+    
+    Lida
+
+[33mcommit 1d3d998619f342c6664f05d059d12777e6f5c225[m
+Merge: 35547c8 1fd7daa
+Author: lida-sokha <sokhalida1234@gmail.com>
+Date:   Wed Aug 13 13:46:13 2025 +0700
+
+    Merge pull request #22 from CPF-CADT/lida
+    
+    create quiz page done
+
+[33mcommit f18a0813ab5f8a42722eef0b55c84c043b5b305c[m
+Author: lida-sokha <sokhalida1234@gmail.com>
+Date:   Wed Aug 13 13:44:50 2025 +0700
+
+    themplate
+
+[33mcommit 3b2ebb2984ff940977796879305b4e7221a8d045[m
+Author: Srykimsour <soursour3001@gmail.com>
+Date:   Wed Aug 13 13:43:04 2025 +0700
+
+    test
+
+[33mcommit 35547c80f952b0945cd1d7659048255f4029e3f7[m
+Merge: 7b867d9 5131e35
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Wed Aug 13 11:12:23 2025 +0700
+
+    Merge pull request #21 from CPF-CADT/chanpanha
+    
+    update user schema
+
+[33mcommit 5131e3584271884749b970fcd03fe722976a417d[m
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Wed Aug 13 11:11:41 2025 +0700
+
+    update user schema
+
+[33mcommit 62cc920d6063351bd7a7b2705116b816a1c192ad[m
+Merge: 1fd7daa 7b867d9
+Author: lida-sokha <sokhalida1234@gmail.com>
+Date:   Wed Aug 13 09:51:57 2025 +0700
+
+    Merge branch 'main' of https://github.com/CPF-CADT/QuizFun into lida
+
+[33mcommit 7b867d91f65084704d6e3c18886fa66b25418a5b[m
+Merge: 9714cfd 36d1e72
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Tue Aug 12 23:25:56 2025 +0700
+
+    Merge pull request #20 from CPF-CADT/chanpanha
+    
+    fixing some faker bug and fixing sort in quiz
+
+[33mcommit 36d1e72ef1a7c6ed1644a7d68abac8ae314a1280[m
+Merge: e7b1ab3 9714cfd
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Tue Aug 12 23:25:11 2025 +0700
+
+    Merge branch 'main' into chanpanha
+
+[33mcommit e7b1ab396a48323be218998bf44a4ab0af292b2c[m
+Author: Chanpanha <kingpanha5@gmail.com>
+Date:   Tue Aug 12 22:44:58 2025 +0700
+
+    fixing some faker bug and fixing sort in quiz
+
+[33mcommit 9714cfdc9027f550de84aa5ba44caa46012f8486[m
+Merge: e8de409 a6aceb6
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Tue Aug 12 20:34:35 2025 +0700
+
+    Merge pull request #17 from CPF-CADT/chhunhour
+    
+    Quiz dashboard dynamic data
+
+[33mcommit a6aceb6b0d6383256f3b70dda11085d42b1196ce[m[33m ([m[1;31morigin/chhunhour[m[33m)[m
+Merge: 08af9d8 e8de409
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Tue Aug 12 20:34:02 2025 +0700
+
+    Merge branch 'main' into chhunhour
+
+[33mcommit e8de409712983e5debc0701528e0695885ffd9aa[m
+Merge: 74b6b8c 99946fd
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Tue Aug 12 20:31:09 2025 +0700
+
+    Merge pull request #19 from CPF-CADT/nak
+    
+    complete basic game paly by add feature for auto next question and pl…
+
+[33mcommit 99946fd2e6ce2ae082a812d88c471671085a17de[m
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Tue Aug 12 20:30:30 2025 +0700
+
+    complete basic game paly by add feature for auto next question and player answer lock
+
+[33mcommit 74b6b8c054dbd9214290a8e7215f0a1364b45db1[m
+Merge: f63748c 5471c99
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Tue Aug 12 15:59:32 2025 +0700
+
+    Merge pull request #18 from CPF-CADT/nak
+    
+    change map in
+
+[33mcommit 5471c991178e5afa0fd6cb49c603827ca4ae9fe2[m
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Tue Aug 12 15:58:47 2025 +0700
+
+    change map in
+
+[33mcommit 08af9d8b80ba79282028c64d2561f2643011f833[m
+Author: Chhun Hour <longchhunhour74@gmail.com>
+Date:   Tue Aug 12 15:50:02 2025 +0700
+
+    Quiz State dashboard
+
+[33mcommit 1b720a49c9fe14c3378a524cea26f47296b3d4be[m
+Author: Chhun Hour <longchhunhour74@gmail.com>
+Date:   Tue Aug 12 15:34:59 2025 +0700
+
+    Dynamic quiz state on dashboard page
+
+[33mcommit 1fd7daabec16b0046a8111e06e8fd14ffcd7af0b[m
+Author: lida-sokha <sokhalida1234@gmail.com>
+Date:   Tue Aug 12 15:23:15 2025 +0700
+
+    create quiz page done
+
+[33mcommit a6f833a423af9fda3c8617311b644d10bd6c0aff[m
+Author: Chhun Hour <longchhunhour74@gmail.com>
+Date:   Tue Aug 12 13:53:10 2025 +0700
+
+    Rest API, Pagination and Swagger
+
+[33mcommit f63748c7fffbb99069ed8254062d9347f2267ffe[m
+Merge: c57ee69 353d6f8
+Author: ChanpanhaCheng <chanpanhacheng@gmail.com>
+Date:   Tue Aug 12 13:46:50 2025 +0700
+
+    Merge pull request #15 from CPF-CADT/sothea
+    
+    update game route and repository
+
+[33mcommit 353d6f85343ac3b99d581505b7871006234cabf4[m[33m ([m[1;31morigin/sothea[m[33m)[m
+Author: sotheaWeb <sotheachhorn239@gmail.com>
+Date:   Tue Aug 12 13:45:23 2025 +0700
+
+    update game route and repository
+
+[33mcommit c57ee69c4a923cfa156ec706cf42c55db5407ee5[m
+Merge: 9b8e2f1 7dc3afb
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Tue Aug 12 10:39:56 2025 +0700
+
+    Merge pull request #14 from CPF-CADT/chanpanha
+    
+    done with checkvalidation
+
+[33mcommit 7dc3afb903d8e511c2a9561e56f0a422ae40f015[m
+Author: Chanpanha <kingpanha5@gmail.com>
+Date:   Tue Aug 12 10:38:51 2025 +0700
+
+    done with checkvalidation
+
+[33mcommit 9b8e2f188f99f6f4ff4cadc06e681f7e308d4a1b[m
+Merge: 7674ea7 5cd46f8
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Mon Aug 11 21:16:37 2025 +0700
+
+    Merge pull request #13 from CPF-CADT/nak
+    
+    complete basic host game plat ans answer
+
+[33mcommit 5cd46f8503a2c412629a61bf3a65295f88749cec[m
+Merge: d520362 7674ea7
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Mon Aug 11 21:16:20 2025 +0700
+
+    Merge branch 'main' into nak
+
+[33mcommit d520362ee65188a16eae0dd836ff0b093d7343e9[m
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Mon Aug 11 21:14:05 2025 +0700
+
+    complete basic host game plat ans answer
+
+[33mcommit 7674ea78148e26cccf6c4c00ce60c29a00f5683b[m
+Merge: 2f24b47 04522e3
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Mon Aug 11 18:32:46 2025 +0700
+
+    Merge pull request #12 from CPF-CADT/chanpanha
+    
+    not yet check out vailidate
+
+[33mcommit 2f24b471b9757430dadc171a7a63578ecc9ac8ab[m
+Merge: e1561a5 1138f07
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Mon Aug 11 18:32:10 2025 +0700
+
+    Merge pull request #10 from CPF-CADT/sothea
+    
+    Change code
+
+[33mcommit 04522e3947c050b958e55efb24e13d699ae0f52f[m
+Author: Chanpanha <kingpanha5@gmail.com>
+Date:   Mon Aug 11 16:31:52 2025 +0700
+
+    not yet check out vailidate
+
+[33mcommit 1138f073f137e650931579f54b9c43af88660b90[m
+Merge: 8ba4980 e1561a5
+Author: sotheaWeb <sotheachhorn239@gmail.com>
+Date:   Mon Aug 11 13:27:18 2025 +0700
+
+    gg
+
+[33mcommit e1561a52e33825b83ea0909fbd690f14a552df04[m
+Merge: a679d17 1f48966
+Author: lida-sokha <sokhalida1234@gmail.com>
+Date:   Mon Aug 11 13:16:03 2025 +0700
+
+    Merge pull request #11 from CPF-CADT/lida
+    
+    test
+
+[33mcommit 1f4896633f3658fc1b511c7d9c57ba9bacdf133e[m
+Author: lida-sokha <sokhalida1234@gmail.com>
+Date:   Mon Aug 11 13:14:20 2025 +0700
+
+    test
+
+[33mcommit 8ba4980a1344c861589489b70f40c290486bc141[m
+Author: unknown <sothea>
+Date:   Mon Aug 11 13:07:58 2025 +0700
+
+    Change code
+
+[33mcommit a679d17a2b428ec93fdf2a48a82c6fa422dd3f22[m
+Author: lida-sokha <sokhalida1234@gmail.com>
+Date:   Mon Aug 11 13:00:59 2025 +0700
+
+    done explore
+
+[33mcommit 1da7390d426ce8b14e0de966b40ecffa147277da[m
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Sun Aug 10 15:55:20 2025 +0700
+
+    Delete package.json
+
+[33mcommit 439e26b342bf0f21b05144edf5a5d6518f746e9f[m
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Sun Aug 10 15:55:10 2025 +0700
+
+    Delete package-lock.json
+
+[33mcommit c63f83ded6debd2f9a52038651b19f9ac7835075[m
+Merge: ca476ef d73d7e8
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Sun Aug 10 15:52:45 2025 +0700
+
+    Merge pull request #9 from CPF-CADT/nak
+    
+    Nak
+
+[33mcommit d73d7e8cce6b37cac51536498851ec3d8a9d6627[m
+Merge: 4778773 ca476ef
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Sun Aug 10 15:50:41 2025 +0700
+
+    Merge branch 'main' of https://github.com/CPF-CADT/QuizFun into nak
+
+[33mcommit 47787730a62786924e0b223ee2b106955797f56d[m
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Sun Aug 10 15:50:09 2025 +0700
+
+    complete game lobby logic in backend and provide a hook in client
+
+[33mcommit ca476ef99a9278ee5b28d2f1100472a9123de9ad[m
+Merge: 7c25303 4a3d18a
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Sun Aug 10 01:20:23 2025 +0700
+
+    Merge pull request #8 from CPF-CADT/nak
+    
+    implemtn game route for hosting and setup socket io
+
+[33mcommit 4a3d18aa4dc1596fe5bbdeba2cd737c3a285d13a[m
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Sun Aug 10 01:19:52 2025 +0700
+
+    implemtn game route for hosting and setup socket io
+
+[33mcommit 7c253039ef444a2ad10f3188d0fa91e2cef624c8[m
+Author: Chanpanha <kingpanha5@gmail.com>
+Date:   Sat Aug 9 21:03:30 2025 +0700
+
+    done only faker
+
+[33mcommit eccd0f99a831ce6f80a21620f911aeddf5528bef[m
+Author: lida-sokha <sokhalida1234@gmail.com>
+Date:   Sat Aug 9 16:45:41 2025 +0700
+
+    finish dashboard
+
+[33mcommit b8174d4960c64cf6e3f7bfb47a07b65c5ffed06c[m
+Merge: a19142b 48db139
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Sat Aug 9 11:31:06 2025 +0700
+
+    Merge pull request #7 from CPF-CADT/nak
+    
+    impove JWT authenication by add refresh token and implment logout route
+
+[33mcommit 48db139827910e59f1dbd91388538445f79880e0[m
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Sat Aug 9 11:28:46 2025 +0700
+
+    impove JWT authenication by add refresh token and implment logout route
+
+[33mcommit a19142b259fb8b7f843e66b71c2c9090968362ba[m
+Merge: 47d60de 32e294a
+Author: Phy Vathanak <vathanakphy@gmail.com>
+Date:   Fri Aug 8 23:49:03 2025 +0700
+
+    Merge pull request #6 from CPF-CADT/nak
+    
+    Nak
+
+[33mcommit 32e294afe1cef528442021008d0664fa348a2768[m
+Merge: f17b5ca 20a8dab
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Fri Aug 8 23:48:33 2025 +0700
+
+    Merge branch 'nak' of https://github.com/CPF-CADT/QuizFun into nak
+
+[33mcommit f17b5ca4ced60282a1ee7d36b099b96397eb4719[m
+Author: vathanakphy <vathanakphy@gmail.com>
+Date:   Fri Aug 8 23:48:26 2025 +0700
+
+    remove
