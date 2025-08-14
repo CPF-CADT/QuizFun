@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { AiOutlineEyeInvisible, AiOutlineEye } from "react-icons/ai";
 import { FaUser, FaLock, FaArrowLeft, FaGamepad, FaStar } from "react-icons/fa";
-
+import { authApi } from "../service/api"; // adjust path to your api file
+import { setToken } from "../service/auth"; // to store token
 const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -16,10 +17,18 @@ const Login: React.FC = () => {
     });
   };
 
-  const handleSignIn = () => {
-    console.log('Signing in with:', formData);
-    // Add your sign-in logic here
-  };
+  const handleSignIn = async () => {
+  try {
+    const res = await authApi.login(formData);
+    if (res.data?.accessToken) {
+      setToken(res.data.accessToken);
+      window.location.href = "/";
+    }
+  } catch (err: any) {
+    alert(err.response?.data?.message || "Invalid email or password");
+  }
+};
+
 
   const isFormValid = formData.email.length > 0 && formData.password.length > 0;
 
@@ -40,7 +49,7 @@ const Login: React.FC = () => {
       </div>
 
       {/* Floating emojis */}
-      <div className="absolute top-16 left-16 text-4xl opacity-60 animate-pulse">🎯</div>
+      {/* <div className="absolute top-16 left-16 text-4xl opacity-60 animate-pulse">🎯</div> */}
       <div className="absolute top-24 right-24 text-3xl opacity-60 animate-bounce">⚡</div>
       <div className="absolute bottom-32 left-12 text-4xl opacity-60 animate-pulse">🚀</div>
       <div className="absolute bottom-24 right-16 text-3xl opacity-60 animate-bounce">✨</div>

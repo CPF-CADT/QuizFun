@@ -2,13 +2,15 @@ import { Server } from "socket.io";
 import { GameSessionManager } from "../../config/data/GameSession";
 import { IQuestion } from "../../model/Quiz";
 import { nextQuestion } from "./handlers";
+import { calculatePoint } from "../../service/calculation";
+import { GameRepository } from "../../repositories/game.repositories";
 
-const RESULTS_DISPLAY_DURATION = 5000;
+const RESULTS_DISPLAY_DURATION = 5000; // 5 seconds
 
 /**
  * Ends the current question round, calculates scores, and transitions to the 'results' state.
  */
-export function endRound(io: Server, roomId: number) {
+export async function endRound(io: Server, roomId: number) {
     const room = GameSessionManager.getSession(roomId);
     if (!room || room.gameState !== 'question' || !room.questions) return;
 
@@ -22,33 +24,56 @@ export function endRound(io: Server, roomId: number) {
     const correctAnswerIndex = currentQuestion.options.findIndex(opt => opt.isCorrect);
 
     // Tally answers for statistics
-    const answerCounts = new Array(currentQuestion.options.length).fill(0);
-    for (const optionIndex of room.answers.values()) {
-        if (answerCounts[optionIndex] !== undefined) {
-            answerCounts[optionIndex]++;
+    const answerCounts = Array(currentQuestion.options.length).fill(0);
+    for (const answers of room.answers.values()) {
+        const lastAnswerIndex = answers.at(-1)?.optionIndex;
+        if (lastAnswerIndex !== undefined && lastAnswerIndex >= 0 && lastAnswerIndex < answerCounts.length) {
+            answerCounts[lastAnswerIndex]++;
         }
     }
     room.answerCounts = answerCounts;
 
-    // Calculate scores
+    // CHANGE: Prepare a map to hold the score gained by each player this round.
+    const scoresGained = new Map<string, number>();
+
+    // Calculate scores and populate the scoresGained map
     room.participants.forEach(p => {
-        if (p.role === 'player') {
-            const playerAnswer = room.answers.get(p.user_id);
-            if (playerAnswer !== undefined && playerAnswer === correctAnswerIndex) {
-                p.score += currentQuestion.point;
-            }
+        if (p.role !== 'player' || !p.user_id) return;
+
+        const playerAnswers = room.answers.get(p.user_id);
+        if (!playerAnswers || playerAnswers.length === 0) {
+            scoresGained.set(p.user_id, 0); // Player did not answer
+            return;
         }
+
+        const lastAnswer = playerAnswers.at(-1)!;
+        let scoreGainedThisRound = 0;
+
+        if (lastAnswer.optionIndex === correctAnswerIndex) {
+            scoreGainedThisRound = calculatePoint(currentQuestion.point, currentQuestion.timeLimit, lastAnswer.remainingTime);
+            p.score += scoreGainedThisRound;
+            lastAnswer.isCorrect = true;
+        } else {
+            lastAnswer.isCorrect = false;
+        }
+        
+        // CHANGE: Store the calculated score for this player in the map.
+        scoresGained.set(p.user_id, scoreGainedThisRound);
     });
 
     room.gameState = 'results';
-    
-    // If auto-next is enabled, set a timer to advance automatically
+
+    // CHANGE: Pass the newly created `scoresGained` map to the repository.
+    // This aligns with the updated repository function signature.
+    await GameRepository.saveRoundHistory(roomId, scoresGained);
+
+    // If auto-next is enabled, set a timer to advance automatically.
     if (room.settings.autoNext) {
-        room.autoNextTimer = setTimeout(() => {
-            nextQuestion(io, roomId);
+        room.autoNextTimer = setTimeout(async () => {
+            await nextQuestion(io, roomId);
         }, RESULTS_DISPLAY_DURATION);
     }
-
+    
     broadcastGameState(io, roomId);
 }
 
@@ -89,7 +114,8 @@ export function broadcastGameState(io: Server, roomId: number, errorMessage?: st
 
             if (room.gameState === 'results' || room.gameState === 'end') {
                 sanitizedQuestion.correctAnswerIndex = currentQuestion.options.findIndex(opt => opt.isCorrect);
-                const playerAnswerIndex = room.answers.get(p.user_id);
+                const playerAns = room.answers.get(p.user_id as string);
+                const playerAnswerIndex = playerAns?.at(-1)?.optionIndex;
                 if (playerAnswerIndex !== undefined) {
                     sanitizedQuestion.yourAnswer = {
                         optionIndex: playerAnswerIndex,

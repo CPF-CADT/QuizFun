@@ -1,14 +1,15 @@
 import { Server, Socket } from "socket.io";
-import { GameSessionManager, Participant, GameSettings } from "../../config/data/GameSession";
+import { GameSessionManager, Participant, GameSettings, PlayerAnswer } from "../../config/data/GameSession";
 import { generateRandomNumber } from '../../service/generateRandomNumber';
 import { QuizModel } from "../../model/Quiz";
 import { broadcastGameState, endRound } from "./shared";
+import { GameRepository } from "../../repositories/game.repositories";
 
 // =================================================================================
 // LOBBY & GAME SETUP HANDLERS
 // =================================================================================
 
-export function handleCreateRoom(socket: Socket, io: Server, data: { quizId: string, userId: string, hostName: string, settings: GameSettings }) {
+export async function handleCreateRoom(socket: Socket, io: Server, data: { quizId: string, userId: string, hostName: string, settings: GameSettings }) {
     const roomId = generateRandomNumber(6);
     GameSessionManager.addSession(roomId, {
         quizId: data.quizId,
@@ -31,7 +32,7 @@ export function handleCreateRoom(socket: Socket, io: Server, data: { quizId: str
     broadcastGameState(io, roomId);
 }
 
-export function handleJoinRoom(socket: Socket, io: Server, data: { roomId: number; username: string, userId: string }) {
+export async function handleJoinRoom(socket: Socket, io: Server, data: { roomId: number; username: string, userId: string }) {
     const { roomId, username, userId } = data;
     const room = GameSessionManager.getSession(roomId);
 
@@ -69,7 +70,8 @@ export async function startGame(socket: Socket, io: Server, roomId: number) {
             return broadcastGameState(io, roomId, "Error: This quiz has no questions.");
         }
         room.questions = quiz.questions;
-        nextQuestion(io, roomId);
+        await GameRepository.createGameSession(roomId);
+        await nextQuestion(io, roomId);
     } catch (error) {
         console.error(`[Game] Error starting game for room ${roomId}:`, error);
         broadcastGameState(io, roomId, "A server error occurred while starting the game.");
@@ -80,7 +82,7 @@ export async function startGame(socket: Socket, io: Server, roomId: number) {
 // CORE GAMEPLAY HANDLERS
 // =================================================================================
 
-export function nextQuestion(io: Server, roomId: number) {
+export async function nextQuestion(io: Server, roomId: number) {
     const room = GameSessionManager.getSession(roomId);
     if (!room || !room.questions) return;
 
@@ -93,6 +95,7 @@ export function nextQuestion(io: Server, roomId: number) {
         console.log(`[Game] Final question answered for room ${roomId}.`);
         room.gameState = 'end';
         room.isFinalResults = true;
+        await GameRepository.finalizeGameSession(roomId);
         broadcastGameState(io, roomId);
         return;
     }
@@ -102,40 +105,48 @@ export function nextQuestion(io: Server, roomId: number) {
     broadcastGameState(io, roomId);
 }
 
-export function handleSubmitAnswer(socket: Socket, io: Server, data: { roomId: number; userId: string, optionIndex: number }) {
+export async function handleSubmitAnswer(socket: Socket, io: Server, data: { roomId: number; userId: string, optionIndex: number }) {
     const { roomId, userId, optionIndex } = data;
     const room = GameSessionManager.getSession(roomId);
     const player = room?.participants.find(p => p.user_id === userId);
 
     if (!room || !player || player.role !== 'player' || room.gameState !== 'question') return;
-
-    // If answer changes are disallowed and player has already answered, do nothing.
-    if (!room.settings.allowAnswerChange && player.hasAnswered) {
+    if (!room.settings.allowAnswerChange && player.hasAnswered) return;
+    if (!room.questions) {
+        console.error(`Room ${roomId} has no questions.`);
         return;
     }
+
+    const elapsedMs = Date.now() - (room.questionStartTime ?? Date.now());
+    const timeLimitSec = room.questions[room.currentQuestionIndex]?.timeLimit ?? 0;
+    const remainingSec = Math.max(0, timeLimitSec - elapsedMs / 1000);
+
+    let userAnswer = room.answers.get(userId) || [];
     
-    room.answers.set(userId, optionIndex);
-    
+    const playerAnswer: PlayerAnswer = {
+        optionIndex: optionIndex,
+        remainingTime: remainingSec,
+        isCorrect: false,
+    };
+    userAnswer.push(playerAnswer);
+    room.answers.set(userId, userAnswer);
+
     if (!player.hasAnswered) {
         player.hasAnswered = true;
     }
     console.log(`[Game] Player ${player.user_name} in room ${roomId} submitted answer ${optionIndex}.`);
 
-    // Only broadcast state back if answer changes are allowed.
-    // Otherwise, the UI locks and we wait for the round to end.
     if (room.settings.allowAnswerChange) {
         broadcastGameState(io, roomId);
     }
 
-    // If answer changes are NOT allowed, we only end the round when all players have answered.
-    // If they ARE allowed, we wait for the timer.
     const activePlayers = room.participants.filter(p => p.role === 'player' && p.isOnline);
     if (!room.settings.allowAnswerChange && activePlayers.every(p => p.hasAnswered)) {
-        endRound(io, roomId);
+        await endRound(io, roomId);
     }
 }
 
-export function handleRequestNextQuestion(socket: Socket, io: Server, roomId: number) {
+export async function handleRequestNextQuestion(socket: Socket, io: Server, roomId: number) {
     const room = GameSessionManager.getSession(roomId);
     const host = room?.participants.find(p => p.role === 'host');
     if (room && host?.socket_id === socket.id && room.gameState === 'results') {
@@ -143,11 +154,11 @@ export function handleRequestNextQuestion(socket: Socket, io: Server, roomId: nu
             clearTimeout(room.autoNextTimer);
             room.autoNextTimer = undefined;
         }
-        nextQuestion(io, roomId);
+        await nextQuestion(io, roomId);
     }
 }
 
-export function handlePlayAgain(socket: Socket, io: Server, roomId: number) {
+export async function handlePlayAgain(socket: Socket, io: Server, roomId: number) {
     const room = GameSessionManager.getSession(roomId);
     const host = room?.participants.find(p => p.role === 'host');
 
@@ -170,7 +181,7 @@ export function handlePlayAgain(socket: Socket, io: Server, roomId: number) {
 // CONNECTION & DISCONNECTION HANDLERS
 // =================================================================================
 
-export function handleRejoinGame(socket: Socket, io: Server, data: { roomId: number, userId: string }) {
+export async function handleRejoinGame(socket: Socket, io: Server, data: { roomId: number, userId: string }) {
     const { roomId, userId } = data;
     const room = GameSessionManager.getSession(roomId);
     if (!room) return socket.emit('error-message', 'The game you tried to rejoin does not exist.');
@@ -187,7 +198,7 @@ export function handleRejoinGame(socket: Socket, io: Server, data: { roomId: num
     }
 }
 
-export function handleDisconnect(socket: Socket, io: Server) {
+export async function handleDisconnect(socket: Socket, io: Server) {
     const sessionInfo = GameSessionManager.findSessionBySocketId(socket.id);
     if (sessionInfo) {
         const { roomId, session } = sessionInfo;
@@ -203,7 +214,7 @@ export function handleDisconnect(socket: Socket, io: Server) {
             } else {
                 const activePlayers = session.participants.filter(p => p.role === 'player' && p.isOnline);
                 if (session.gameState === 'question' && !session.settings.allowAnswerChange && activePlayers.length > 0 && activePlayers.every(p => p.hasAnswered)) {
-                    endRound(io, roomId);
+                    await endRound(io, roomId);
                 } else {
                     broadcastGameState(io, roomId);
                 }

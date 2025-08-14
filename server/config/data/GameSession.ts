@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { IQuestion } from "../../model/Quiz";
 
 // --- TYPE DEFINITIONS ---
@@ -12,7 +13,7 @@ export interface GameSettings {
 
 export interface Participant {
     socket_id: string;
-    user_id: string;
+    user_id?: string;
     user_name: string;
     isOnline: boolean;
     score: number;
@@ -20,13 +21,20 @@ export interface Participant {
     hasAnswered: boolean;
 }
 
+export interface PlayerAnswer {
+    optionIndex: number;
+    remainingTime: number;
+    isCorrect: boolean;
+}
+
 export interface SessionData {
+    dbId?: Types.ObjectId;
     quizId: string;
     hostId: string;
     participants: Participant[];
     questions?: IQuestion[];
     currentQuestionIndex: number;
-    answers: Map<string, number>;
+    answers: Map<string, PlayerAnswer[]>;
     questionTimer?: NodeJS.Timeout;
     autoNextTimer?: NodeJS.Timeout;
     gameState: GameState;
@@ -42,7 +50,10 @@ export interface SessionData {
 class Manager {
     private sessions: Map<number, SessionData> = new Map();
 
-    public addSession(roomId: number, data: Pick<SessionData, 'quizId' | 'hostId' | 'settings'>) {
+    public addSession(
+        roomId: number,
+        data: Pick<SessionData, 'quizId' | 'hostId' | 'settings'>
+    ): void {
         const session: SessionData = {
             ...data,
             participants: [],
@@ -53,14 +64,14 @@ class Manager {
             answerCounts: [],
         };
         this.sessions.set(roomId, session);
-        console.log(`[GameSession] Room ${roomId} created with settings:`, data.settings);
+        console.log(`[GameSession] Room ${roomId} created.`);
     }
 
     public getSession(roomId: number): SessionData | undefined {
         return this.sessions.get(roomId);
     }
 
-    public removeSession(roomId: number) {
+    public removeSession(roomId: number): void {
         const room = this.getSession(roomId);
         if (room) {
             if (room.questionTimer) clearTimeout(room.questionTimer);
@@ -70,7 +81,9 @@ class Manager {
         }
     }
 
-    public findSessionBySocketId(socketId: string): { roomId: number, session: SessionData } | undefined {
+    public findSessionBySocketId(
+        socketId: string
+    ): { roomId: number; session: SessionData } | undefined {
         for (const [roomId, session] of this.sessions.entries()) {
             if (session.participants.some(p => p.socket_id === socketId)) {
                 return { roomId, session };

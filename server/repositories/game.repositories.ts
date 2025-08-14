@@ -1,87 +1,171 @@
-import { GameSessionModel, IGameSession, IGameSessionParticipant } from '../model/GameSession';
-import { GameHistoryModel, IGameHistory } from '../model/GameHistory';
-import mongoose from 'mongoose';
-import { log } from 'console';
+import { Types } from 'mongoose';
+import { GameSessionModel, IGameSession } from '../model/GameSession';
+import { GameHistoryModel } from '../model/GameHistory';
+import { GameSessionManager, SessionData } from '../config/data/GameSession';
 
+interface AnswerAttemptData {
+    selectedOptionId: Types.ObjectId;
+    isCorrect: boolean;
+    answerTimeMs: number;
+}
 
+interface GameHistoryCreationData {
+    gameSessionId: Types.ObjectId;
+    quizId: Types.ObjectId;
+    questionId: Types.ObjectId;
+    userId?: Types.ObjectId;
+    guestNickname?: string;
+    attempts: AnswerAttemptData[];
+    isUltimatelyCorrect: boolean;
+    finalScoreGained: number;
+}
 export class GameRepository {
-  static async hostNewGame(game: Partial<IGameSession>): Promise<IGameSession | null> {
-    return GameSessionModel.create(game);
-  }
 
-  static async addPlayerAndResultInGame(game_id: string, player: IGameSessionParticipant): Promise<boolean> {
-    const result = await GameSessionModel.updateOne(
-      { _id: game_id },
-      { $push: { players: player } }
-    );
-    return result.modifiedCount > 0;
-  }
+    static async createGameSession(roomId: number): Promise<IGameSession | null> {
+        const session = GameSessionManager.getSession(roomId);
+        if (!session) {
+            console.error('[GameRepository] In-memory session not found for room:', roomId);
+            return null;
+        }
 
-  static async addGameHistory(history: IGameHistory): Promise<IGameHistory | null> {
-    return GameHistoryModel.create(history);
-  }
+        const newGameSession = await GameSessionModel.create({
+            quizId: session.quizId,
+            hostId: session.hostId,
+            joinCode: roomId,
+            status: 'in_progress',
+            startedAt: new Date(),
+        });
 
-  static async fetchGameSession(page: number, limit: number){
-    
-    const skip = (page - 1) * limit;
-    
+        session.dbId = newGameSession._id;
+        return newGameSession;
+    }
 
-      const [data, total] = await Promise.all([
-          GameSessionModel.find().skip(skip).limit(limit),
-          GameSessionModel.countDocuments()
-      ]);
+    static async saveRoundHistory(roomId: number, scoresGained: Map<string, number>): Promise<void> {
+        const session = GameSessionManager.getSession(roomId);
+        if (!session || !session.dbId || !session.questions) {
+            console.error(`[GameRepository] Cannot save history, invalid session data for room ${roomId}.`);
+            return;
+        }
 
-    return {
-      total,
-      limit,
-      totalPages: Math.ceil(total / limit),
-      currentPage: page,
-      data
-    };
-  }
+        const currentQuestion = session.questions[session.currentQuestionIndex];
+        if (!currentQuestion?._id) {
+            console.error(`[GameRepository] Current question or its ID is missing for room ${roomId}.`);
+            return;
+        }
 
-  static async fetchGameSessionWithHistory() {
-    return GameSessionModel.aggregate([
-      {
-        $lookup: {
-          from: 'gamehistories',
-          localField: '_id',
-          foreignField: 'gameId',
-          as: 'history',
-        },
-      },
-    ]);
-  }
+        const correctAnswerIndex = currentQuestion.options.findIndex(opt => opt.isCorrect);
+        const historyDocsToCreate: GameHistoryCreationData[] = [];
 
-  static async fetchUserGameHistory(userId: string) {
-    return GameHistoryModel.aggregate([
-      {
-        $match: { userId: new mongoose.Types.ObjectId(userId) },
-      },
-      {
-        $lookup: {
-          from: 'gamesessions',
-          localField: 'gameId',
-          foreignField: '_id',
-          as: 'gameSession',
-        },
-      },
-    ]);
-  }
+        for (const participant of session.participants) {
+            if (participant.role === 'host' || !participant.user_id) continue;
 
-  static async fetchUserJoinHistory(userId: string) {
-    return GameSessionModel.aggregate([
-      {
-        $match: { 'players.userId': new mongoose.Types.ObjectId(userId) },
-      },
-      {
-        $lookup: {
-          from: 'gamehistories',
-          localField: '_id',
-          foreignField: 'gameId',
-          as: 'history',
-        },
-      },
-    ]);
-  }
+            const playerAnswers = session.answers.get(participant.user_id);
+            if (!playerAnswers || playerAnswers.length === 0) continue;
+
+            const attempts: AnswerAttemptData[] = playerAnswers.map(answer => {
+                const selectedOption = currentQuestion.options[answer.optionIndex];
+                return {
+                    selectedOptionId: selectedOption._id as Types.ObjectId,
+                    isCorrect: answer.optionIndex === correctAnswerIndex,
+                    answerTimeMs: (currentQuestion.timeLimit - answer.remainingTime) * 1000,
+                };
+            });
+            
+            const lastAttempt = attempts.at(-1)!;
+
+            const historyDoc: GameHistoryCreationData = {
+                gameSessionId: session.dbId,
+                quizId: new Types.ObjectId(session.quizId),
+                questionId: currentQuestion._id,
+                attempts: attempts,
+                isUltimatelyCorrect: lastAttempt.isCorrect,
+                finalScoreGained: scoresGained.get(participant.user_id) || 0,
+            };
+
+            if (Types.ObjectId.isValid(participant.user_id)) {
+                historyDoc.userId = new Types.ObjectId(participant.user_id);
+            } else {
+                historyDoc.guestNickname = participant.user_name;
+            }
+
+            historyDocsToCreate.push(historyDoc);
+        }
+
+        if (historyDocsToCreate.length > 0) {
+            try {
+                await GameHistoryModel.insertMany(historyDocsToCreate, { ordered: false });
+                console.log(`[GameRepository] Successfully saved ${historyDocsToCreate.length} history records for room ${roomId}.`);
+            } catch (error) {
+                console.error(`[GameRepository] Error batch inserting history for room ${roomId}:`, error);
+            }
+        }
+    }
+
+    static async finalizeGameSession(roomId: number): Promise<void> {
+        const session = GameSessionManager.getSession(roomId);
+        if (!session || !session.dbId) {
+            console.error(`[GameRepository] Cannot finalize, invalid session data for room ${roomId}.`);
+            return;
+        }
+
+        const finalResults = session.participants
+            .filter(p => p.role === 'player')
+            .sort((a, b) => b.score - a.score)
+            .map((p, index) => ({
+                userId: Types.ObjectId.isValid(p.user_id as string) ? new Types.ObjectId(p.user_id as string) : null,
+                nickname: p.user_name,
+                finalScore: p.score,
+                finalRank: index + 1,
+            }));
+
+        try {
+            await GameSessionModel.findByIdAndUpdate(session.dbId, {
+                status: 'completed',
+                endedAt: new Date(),
+                results: finalResults,
+            });
+            console.log(`[GameRepository] Successfully finalized game session for room ${roomId}.`);
+        } catch (error) {
+            console.error(`[GameRepository] Error finalizing game session for room ${roomId}:`, error);
+        }
+    }
+
+    static async fetchGameSessions(page: number, limit: number) {
+        const skip = (page - 1) * limit;
+
+        const [data, total] = await Promise.all([
+            GameSessionModel.find().sort({ startedAt: -1 }).skip(skip).limit(limit).lean(),
+            GameSessionModel.countDocuments()
+        ]);
+
+        return {
+            total,
+            limit,
+            totalPages: Math.ceil(total / limit),
+            currentPage: page,
+            data
+        };
+    }
+
+    static async fetchUserGameHistory(userId: string) {
+        return GameHistoryModel.aggregate([
+            {
+                $match: { userId: new Types.ObjectId(userId) },
+            },
+            {
+                $lookup: {
+                    from: 'gamesessions',
+                    localField: 'gameSessionId',
+                    foreignField: '_id',
+                    as: 'gameSession',
+                },
+            },
+            {
+                $unwind: '$gameSession'
+            },
+            {
+                $sort: { 'gameSession.startedAt': -1, 'createdAt': 1 }
+            }
+        ]);
+    }
 }

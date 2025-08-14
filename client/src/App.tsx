@@ -18,7 +18,7 @@ function App() {
         {/* Routes for signup and login */}
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/enter-pin" element={<Joingame />} /> {/* ✅ new route */}
+        <Route path="/join" element={<Joingame />} /> {/* ✅ new route */}
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/explore" element={<Explore />} /> 
         <Route path="/create-quiz" element={<CreateQuiz />} />
