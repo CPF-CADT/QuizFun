@@ -1,21 +1,14 @@
 
 import { Request, Response } from 'express';
 import { uploadImage } from '../service/FileUpload';
+import { FileUploadModel } from '../model/FileUpload';
 import fs from 'fs';
 /**
  * @swagger
- * tags:
- *   name: Service
- *   description: File upload to Cloudinary
- */
-
-/**
- * @swagger
- * /api/service/upload:
+ * /api/user/profile-detail:
  *   post:
- *     summary: Upload a file to Cloudinary
- *     tags: [Service]
- *     description: Uploads a single image or file to Cloudinary using simple upload (not chunked).
+ *     summary: Upload a user profile image
+ *     tags: [User]
  *     requestBody:
  *       required: true
  *       content:
@@ -26,32 +19,63 @@ import fs from 'fs';
  *               image:
  *                 type: string
  *                 format: binary
- *                 description: Image or file to upload
  *     responses:
  *       200:
- *         description: Upload successful
+ *         description: Successfully uploaded
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
+ *                 message: { type: string }
+ *                 url: { type: string }
+ *                 type: { type: string }
+ *                 category:
  *                   type: string
- *                   example: Upload complete
- *                 url:
- *                   type: string
- *                   example: https://res.cloudinary.com/demo/image/upload/sample.jpg
- *       400:
- *         description: No file uploaded
- *       500:
- *         description: Upload failed
+ *                   enum: [user_profile]
+ *                 public_id: { type: string }
  */
 
+/**
+ * @swagger
+ * /api/quizz:
+ *   post:
+ *     summary: Upload a quiz image
+ *     tags: [Quiz]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Successfully uploaded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message: { type: string }
+ *                 url: { type: string }
+ *                 type: { type: string }
+ *                 category:
+ *                   type: string
+ *                   enum: [quizz_image]
+ *                 public_id: { type: string }
+ */
+
+
+type UploadImage = 'user_ProfilePic' | 'quizz_Image';
 interface MulterRequest extends Request {
   file?: Express.Multer.File; 
 }
 
-export const handleImageUpload = async (req: MulterRequest, res: Response) => {
+export const handleImageUpload = (category: UploadImage) => { return async  (req: MulterRequest, res: Response) => {
   console.log('Controller received request to upload an image.');
 
   try {
@@ -59,17 +83,28 @@ export const handleImageUpload = async (req: MulterRequest, res: Response) => {
       return res.status(400).json({ error: 'No image file provided.' });
     }
     const imageBuffer = req.file.buffer;
-
+    
     const uploadResult = await uploadImage(imageBuffer);
 
     console.log('Image uploaded successfully to Cloudinary.');
+     const fileDocument = new FileUploadModel({
+      title: req.file.originalname, 
+      type: req.file.mimetype,
+      category,
+      url: uploadResult.secure_url,
+    });
+
+    await fileDocument.save();
+    console.log('Image info saved to MongoDB.');
     res.status(200).json({
       message: 'Image uploaded successfully!',
       url: uploadResult.secure_url,
+      type: req.file.mimetype,
+      category,
       public_id: uploadResult.public_id,
     });
   } catch (error) {
     console.error('Failed to upload image.', error);
     res.status(500).json({ error: 'Failed to upload image. Please try again later.' });
   }
-};
+}};

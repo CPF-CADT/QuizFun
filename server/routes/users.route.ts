@@ -1,23 +1,28 @@
 import express from 'express'
 import {register,login,updateUserInfo,sendVerificationCode,verifyEmail,refreshToken,logout,getAllUsers,getUsersByRole} from '../controller/user.controller'
 import { authenticateToken, isEmailVerified } from '../middleware/authenicate.middleware';
-// import { validationBody } from '../middleware/validation.middleware';
-// import { userlogin, userRegister } from '../config/CheckValidation';
+import { validationBody } from '../middleware/validation.middleware';
+import { userlogin, userRegister } from '../config/CheckValidation';
+import { handleImageUpload } from '../controller/service.controller';
+import { uploadImage } from '../service/FileUpload';
+import multer from 'multer';
 
 
 export const userRouter = express.Router();
+const storage = multer.memoryStorage(); 
+const upload = multer({ storage });
 
 // User management routes with pagination
 userRouter.get('/', authenticateToken, getAllUsers); // GET all users with pagination
 userRouter.get('/by-role/:role', authenticateToken, getUsersByRole); // GET users by role with pagination
 
 // Authentication routes
-userRouter.post('/register',register);
-userRouter.post('/login',isEmailVerified, login);
+userRouter.post('/register',validationBody(userRegister),register);
+userRouter.post('/login',validationBody(userlogin),isEmailVerified, login);
 userRouter.put('/:id',authenticateToken, updateUserInfo)
 userRouter.post('/request-otp',sendVerificationCode);
 userRouter.post('/verify-otp',verifyEmail);
 userRouter.post('/refresh-token',refreshToken);
 userRouter.post('/logout',logout);
-
+userRouter.post('/profile-detail',upload.single('image'),handleImageUpload('user_ProfilePic'));
  
