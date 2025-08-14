@@ -1,8 +1,6 @@
 import { Types } from "mongoose";
 import { IQuestion } from "../../model/Quiz";
 
-// --- TYPE DEFINITIONS ---
-
 export type ParticipantRole = 'host' | 'player';
 export type GameState = 'lobby' | 'question' | 'results' | 'end';
 
@@ -13,7 +11,7 @@ export interface GameSettings {
 
 export interface Participant {
     socket_id: string;
-    user_id?: string;
+    user_id?: string; 
     user_name: string;
     isOnline: boolean;
     score: number;
@@ -44,9 +42,42 @@ export interface SessionData {
     questionStartTime?: number;
 }
 
-/**
- * Manages all active game sessions in memory.
- */
+export interface SanitizedQuestionOption {
+    text: string;
+}
+
+export interface SanitizedQuestion {
+    questionText: string;
+    point: number;
+    timeLimit: number;
+    imageUrl?: string;
+    options: SanitizedQuestionOption[];
+}
+
+// The question structure when results are shown, including answer details.
+export interface ResultsQuestion extends SanitizedQuestion {
+    correctAnswerIndex: number;
+    yourAnswer?: {
+        optionIndex: number;
+        wasCorrect: boolean;
+    };
+}
+
+export interface GameStatePayload {
+    roomId: number;
+    gameState: GameState;
+    participants: Participant[];
+    currentQuestionIndex: number;
+    totalQuestions: number;
+    isFinalResults: boolean;
+    settings: GameSettings;
+    questionStartTime?: number;
+    answerCounts: number[];
+    error?: string;
+    question: SanitizedQuestion | ResultsQuestion | null;
+    yourUserId?: string;
+}
+
 class Manager {
     private sessions: Map<number, SessionData> = new Map();
 
