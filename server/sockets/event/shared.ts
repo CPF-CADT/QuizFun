@@ -1,5 +1,7 @@
+// src/socket/handlers/shared.ts
+
 import { Server } from "socket.io";
-import { GameSessionManager } from "../../config/data/GameSession";
+import { GameSessionManager, GameStatePayload, ResultsQuestion, SanitizedQuestion } from "../../config/data/GameSession";
 import { IQuestion } from "../../model/Quiz";
 import { nextQuestion } from "./handlers";
 import { calculatePoint } from "../../service/calculation";
@@ -7,12 +9,13 @@ import { GameRepository } from "../../repositories/game.repositories";
 
 const RESULTS_DISPLAY_DURATION = 5000; // 5 seconds
 
-/**
- * Ends the current question round, calculates scores, and transitions to the 'results' state.
- */
-export async function endRound(io: Server, roomId: number) {
+export async function endRound(io: Server, roomId: number): Promise<void> {
     const room = GameSessionManager.getSession(roomId);
-    if (!room || room.gameState !== 'question' || !room.questions) return;
+
+    if (!room || room.gameState !== 'question' || !room.questions || room.currentQuestionIndex < 0 || room.currentQuestionIndex >= room.questions.length) {
+        console.error(`[Game] endRound called in an invalid state for room ${roomId}.`);
+        return;
+    }
 
     if (room.questionTimer) {
         clearTimeout(room.questionTimer);
@@ -20,10 +23,9 @@ export async function endRound(io: Server, roomId: number) {
     }
 
     console.log(`[Game] Round over for room ${roomId}. Calculating scores.`);
-    const currentQuestion = room.questions[room.currentQuestionIndex];
+    const currentQuestion: IQuestion = room.questions[room.currentQuestionIndex];
     const correctAnswerIndex = currentQuestion.options.findIndex(opt => opt.isCorrect);
 
-    // Tally answers for statistics
     const answerCounts = Array(currentQuestion.options.length).fill(0);
     for (const answers of room.answers.values()) {
         const lastAnswerIndex = answers.at(-1)?.optionIndex;
@@ -33,41 +35,33 @@ export async function endRound(io: Server, roomId: number) {
     }
     room.answerCounts = answerCounts;
 
-    // CHANGE: Prepare a map to hold the score gained by each player this round.
     const scoresGained = new Map<string, number>();
 
-    // Calculate scores and populate the scoresGained map
     room.participants.forEach(p => {
         if (p.role !== 'player' || !p.user_id) return;
 
         const playerAnswers = room.answers.get(p.user_id);
-        if (!playerAnswers || playerAnswers.length === 0) {
-            scoresGained.set(p.user_id, 0); // Player did not answer
+        const lastAnswer = playerAnswers?.at(-1); 
+
+        if (!lastAnswer) {
+            scoresGained.set(p.user_id, 0); 
             return;
         }
 
-        const lastAnswer = playerAnswers.at(-1)!;
         let scoreGainedThisRound = 0;
-
         if (lastAnswer.optionIndex === correctAnswerIndex) {
             scoreGainedThisRound = calculatePoint(currentQuestion.point, currentQuestion.timeLimit, lastAnswer.remainingTime);
             p.score += scoreGainedThisRound;
-            lastAnswer.isCorrect = true;
+            lastAnswer.isCorrect = true; // Set correctness here
         } else {
             lastAnswer.isCorrect = false;
         }
-        
-        // CHANGE: Store the calculated score for this player in the map.
         scoresGained.set(p.user_id, scoreGainedThisRound);
     });
 
     room.gameState = 'results';
-
-    // CHANGE: Pass the newly created `scoresGained` map to the repository.
-    // This aligns with the updated repository function signature.
     await GameRepository.saveRoundHistory(roomId, scoresGained);
 
-    // If auto-next is enabled, set a timer to advance automatically.
     if (room.settings.autoNext) {
         room.autoNextTimer = setTimeout(async () => {
             await nextQuestion(io, roomId);
@@ -77,34 +71,20 @@ export async function endRound(io: Server, roomId: number) {
     broadcastGameState(io, roomId);
 }
 
-/**
- * Broadcasts a tailored game state to every participant in the room.
- */
-export function broadcastGameState(io: Server, roomId: number, errorMessage?: string) {
+export function broadcastGameState(io: Server, roomId: number, errorMessage?: string): void {
     const room = GameSessionManager.getSession(roomId);
     if (!room) return;
 
-    const baseState = {
-        roomId: roomId,
-        gameState: room.gameState,
-        participants: room.participants,
-        currentQuestionIndex: room.currentQuestionIndex,
-        totalQuestions: room.questions?.length || 0,
-        isFinalResults: room.isFinalResults,
-        settings: room.settings,
-        questionStartTime: room.questionStartTime,
-        answerCounts: room.answerCounts,
-        error: errorMessage,
-    };
-
-    const currentQuestion = (room.questions && room.currentQuestionIndex >= 0)
+    const totalQuestions = room.questions?.length ?? 0;
+    const currentQuestion = (room.questions && room.currentQuestionIndex >= 0 && room.currentQuestionIndex < room.questions.length)
         ? room.questions[room.currentQuestionIndex]
         : null;
 
     room.participants.forEach(p => {
-        let questionPayload: IQuestion | object | null = null;
+        let questionPayload: SanitizedQuestion | ResultsQuestion | null = null;
+
         if (currentQuestion) {
-            const sanitizedQuestion: any = {
+            const baseQuestionPayload: SanitizedQuestion = {
                 questionText: currentQuestion.questionText,
                 point: currentQuestion.point,
                 timeLimit: currentQuestion.timeLimit,
@@ -113,27 +93,49 @@ export function broadcastGameState(io: Server, roomId: number, errorMessage?: st
             };
 
             if (room.gameState === 'results' || room.gameState === 'end') {
-                sanitizedQuestion.correctAnswerIndex = currentQuestion.options.findIndex(opt => opt.isCorrect);
-                const playerAns = room.answers.get(p.user_id as string);
-                const playerAnswerIndex = playerAns?.at(-1)?.optionIndex;
-                if (playerAnswerIndex !== undefined) {
-                    sanitizedQuestion.yourAnswer = {
-                        optionIndex: playerAnswerIndex,
-                        wasCorrect: playerAnswerIndex === sanitizedQuestion.correctAnswerIndex,
-                    };
+                const resultsPayload: ResultsQuestion = {
+                    ...baseQuestionPayload,
+                    correctAnswerIndex: currentQuestion.options.findIndex(opt => opt.isCorrect),
+                };
+
+                if (p.user_id) {
+                    const playerAnswers = room.answers.get(p.user_id);
+                    const lastAnswer = playerAnswers?.at(-1);
+
+                    if (lastAnswer !== undefined) {
+                        resultsPayload.yourAnswer = {
+                            optionIndex: lastAnswer.optionIndex,
+                            wasCorrect: lastAnswer.isCorrect, 
+                        };
+                    }
                 }
+                questionPayload = resultsPayload;
+            } else {
+                questionPayload = baseQuestionPayload;
             }
-            questionPayload = sanitizedQuestion;
         }
 
-        const stateToSend = { ...baseState, question: questionPayload, yourUserId: p.user_id };
+        const stateToSend: GameStatePayload = {
+            roomId,
+            gameState: room.gameState,
+            participants: room.participants,
+            currentQuestionIndex: room.currentQuestionIndex,
+            totalQuestions,
+            isFinalResults: room.isFinalResults,
+            settings: room.settings,
+            questionStartTime: room.questionStartTime,
+            answerCounts: room.answerCounts,
+            error: errorMessage,
+            question: questionPayload,
+            yourUserId: p.user_id,
+        };
+
         io.to(p.socket_id).emit('game-update', stateToSend);
     });
 
     if (room.gameState === 'question' && !room.questionTimer && currentQuestion) {
         room.questionStartTime = Date.now();
         room.questionTimer = setTimeout(() => endRound(io, roomId), currentQuestion.timeLimit * 1000);
-        // We need to broadcast again immediately to send the startTime
         broadcastGameState(io, roomId);
     }
 }
