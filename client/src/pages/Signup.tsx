@@ -2,8 +2,10 @@ import React, { useState } from "react";
 import { AiOutlineEyeInvisible, AiOutlineEye } from "react-icons/ai";
 import { FaUser, FaLock, FaArrowLeft, FaGamepad, FaStar, FaEnvelope } from "react-icons/fa";
 import { authApi } from "../service/api"; 
-import { setToken } from "../service/auth"; // to store token
+import { useNavigate } from "react-router-dom";
+
 const Signup: React.FC = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -13,38 +15,31 @@ const Signup: React.FC = () => {
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-const handleSignup = async () => {
-  if (formData.password !== formData.confirmPassword) {
-    alert("Passwords do not match");
-    return;
-  }
-
-  try {
-    const res = await authApi.signUp({
-      name: formData.name,
-      email: formData.email,
-      password: formData.password,
-      // optionally: profile_url or role if you have those fields in your form
-    });
-
-    if (res.data?.message) {
-      alert(res.data.message); // "Registration successful..."
-      window.location.href = "/login";
+  const handleSignup = async () => {
+    if (formData.password !== formData.confirmPassword) {
+      alert("Passwords do not match");
+      return;
     }
-  } catch (err: any) {
-    console.error("Backend error response:", err.response?.data);
-    alert(err.response?.data?.error || "Something went wrong");
-  }
-};
 
+    try {
+      const res = await authApi.signUp({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      });
 
-
+      if (res.data?.message) {
+        alert(res.data.message);
+        navigate("/verifycode", { state: { email: formData.email } });
+      }
+    } catch (err: any) {
+      console.error("Backend error response:", err.response?.data);
+      alert(err.response?.data?.error || "Something went wrong");
+    }
+  };
 
   const isFormValid =
     formData.name.length > 0 &&
@@ -52,15 +47,12 @@ const handleSignup = async () => {
     formData.password.length >= 6 &&
     formData.password === formData.confirmPassword;
 
-  
   return (
     <div
-      className="min-h-screen flex items-center justify-center relative overflow-hidden"
-      style={{
-        background: 'linear-gradient(135deg, #A24FF6 0%, #667eea 50%, #764ba2 100%)'
-      }}
+      className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
+      style={{ background: 'linear-gradient(135deg, #A24FF6 0%, #667eea 50%, #764ba2 100%)' }}
     >
-      {/* Animated background elements */}
+      {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 left-10 w-20 h-20 bg-yellow-300 rounded-full opacity-20 animate-bounce"></div>
         <div className="absolute top-40 right-20 w-16 h-16 bg-pink-300 rounded-full opacity-20 animate-pulse"></div>
@@ -77,16 +69,16 @@ const handleSignup = async () => {
 
       {/* Back to Home */}
       <button
-        onClick={() => window.location.href = '/'}
+        onClick={() => navigate('/')}
         className="absolute top-6 left-6 flex items-center space-x-2 text-white hover:text-yellow-300 transition-colors z-20"
       >
         <FaArrowLeft />
         <span className="hidden sm:inline">Back to Home</span>
       </button>
 
-      {/* Main Signup Card */}
+      {/* Signup Card */}
       <div className="bg-white/15 backdrop-blur-md w-full max-w-md mx-4 p-8 rounded-2xl shadow-2xl border border-white/20 relative z-10 mt-20 mb-20">
-        {/* Logo and Title */}
+        {/* Logo & Title */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-400 to-blue-500 rounded-full mb-4 animate-pulse">
             <FaGamepad className="text-2xl text-white" />
@@ -94,13 +86,12 @@ const handleSignup = async () => {
           <h1 className="text-3xl font-bold text-white mb-2">Create Your Account</h1>
           <p className="text-white/80">Join Fun Quiz and start your adventure</p>
         </div>
-        {/* Signup Form */}
+
+        {/* Form */}
         <div className="space-y-6">
           {/* Username */}
           <div>
-            <label className="block mb-2 text-sm font-semibold text-white/90">
-              Username
-            </label>
+            <label className="block mb-2 text-sm font-semibold text-white/90">Username</label>
             <div className="relative">
               <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
@@ -116,9 +107,7 @@ const handleSignup = async () => {
 
           {/* Email */}
           <div>
-            <label className="block mb-2 text-sm font-semibold text-white/90">
-              Email Address
-            </label>
+            <label className="block mb-2 text-sm font-semibold text-white/90">Email Address</label>
             <div className="relative">
               <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
@@ -134,9 +123,7 @@ const handleSignup = async () => {
 
           {/* Password */}
           <div>
-            <label className="block mb-2 text-sm font-semibold text-white/90">
-              Password
-            </label>
+            <label className="block mb-2 text-sm font-semibold text-white/90">Password</label>
             <div className="relative">
               <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
@@ -159,9 +146,7 @@ const handleSignup = async () => {
 
           {/* Confirm Password */}
           <div>
-            <label className="block mb-2 text-sm font-semibold text-white/90">
-              Confirm Password
-            </label>
+            <label className="block mb-2 text-sm font-semibold text-white/90">Confirm Password</label>
             <div className="relative">
               <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
@@ -174,6 +159,7 @@ const handleSignup = async () => {
               />
             </div>
           </div>
+
           {/* Signup Button */}
           <button
             onClick={handleSignup}
@@ -216,7 +202,7 @@ const handleSignup = async () => {
           <p className="text-white/80">
             Already have an account?{" "}
             <button
-              onClick={() => window.location.href = '/login'}
+              onClick={() => navigate('/login')}
               className="text-yellow-300 hover:text-yellow-200 font-semibold"
             >
               Sign In
