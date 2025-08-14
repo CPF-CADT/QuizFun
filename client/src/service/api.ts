@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getToken, setToken, clearClientAuthData } from '../service/auth';
+import { data } from 'react-router-dom';
 
 export const apiClient = axios.create({
   baseURL: 'http://localhost:3000/api/',
@@ -101,7 +102,7 @@ export const authApi = {
   logout: async () => {
     return apiClient.post('/user/logout');
   },
-  signUp: async() =>{
-    return apiClient.post('/user/')
+  signUp: async(data: object) =>{
+    return apiClient.post('/user/register', data)
   }
 };
