@@ -12,5 +12,5 @@ const httpServer = http.createServer(app);
 socketSetup(httpServer);
 
 httpServer.listen(process.env.PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
+    console.log(`Server running at http://localhost:${process.env.PORT}`);
 });

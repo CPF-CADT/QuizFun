@@ -763,3 +763,151 @@ export async function logout(req: Request, res: Response): Promise<void> {
     res.clearCookie("refreshToken", cookieOptions);
     res.status(200).json({ message: "Logout successful" });
 }
+
+/**
+ * @swagger
+ * /api/user/verify-password-reset-code:
+ *   post:
+ *     summary: Verify a password reset code sent to the user's email
+ *     tags: [User]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - code
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: "user@example.com"
+ *               code:
+ *                 type: string
+ *                 example: "123456"
+ *     responses:
+ *       200:
+ *         description: Code verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Code verified"
+ *                 resetToken:
+ *                   type: string
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *       400:
+ *         description: Invalid email or code
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid email or code."
+ */
+export async function verifyPasswordResetCode(req: Request, res: Response) {
+  const { email, code } = req.body;
+  const user = await UserRepository.findByEmail(email);
+  if (!user) return res.status(400).json({ message: "Invalid email or code." });
+
+  const verification = await VerificationCodeRepository.find(user.id.toString(), code);
+  if (!verification) return res.status(400).json({ message: "Invalid or expired code." });
+
+  await VerificationCodeRepository.delete(verification.id);
+
+  const resetToken = jwt.sign(
+    { id: user.id, type: "password_reset" },
+    process.env.JWT_SECRET_RESET_PASSWORD!,
+    { expiresIn: "10m" }
+  );
+
+  res.status(200).json({ message: "Code verified", resetToken });
+}
+
+/**
+ * @swagger
+ * /api/user/reset-password:
+ *   post:
+ *     summary: Reset user password using a valid reset token
+ *     tags: [User]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - resetToken
+ *               - newPassword
+ *               - confirmPassword
+ *             properties:
+ *               resetToken:
+ *                 type: string
+ *                 example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *               newPassword:
+ *                 type: string
+ *                 example: "NewSecurePassword123!"
+ *               confirmPassword:
+ *                 type: string
+ *                 example: "NewSecurePassword123!"
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Password reset successfully"
+ *       400:
+ *         description: Invalid or expired reset token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid or expired token"
+ *       401:
+ *         description: Password and confirm password do not match
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Password and confirm password must be the same."
+ */
+export async function resetPassword(req: Request, res: Response) {
+  const { resetToken, newPassword, confirmPassword } = req.body;
+
+  if (newPassword !== confirmPassword) {
+    res.status(401).json({ message: "Password and confirm password must be the same." });
+    return;
+  }
+
+  try {
+    const payload = jwt.verify(resetToken, process.env.JWT_SECRET_RESET_PASSWORD!) as { id: string; type: string };
+    if (payload.type !== "password_reset") {
+      res.status(400).json({ message: "Invalid token type" });
+      return;
+    }
+
+    const hashedPassword = Encryption.hashPassword(newPassword);
+    await UserRepository.update(payload.id, { password: hashedPassword });
+
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (err) {
+    res.status(400).json({ message: "Invalid or expired token" });
+  }
+}
