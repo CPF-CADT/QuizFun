@@ -103,5 +103,9 @@ export const authApi = {
   },
   signUp: async (data: object) => {
   return apiClient.post('/user/register', data);
-}
+  },
+  verifyEmail: async (data: { email: string; code: string }) => {
+    // Calls your backend verifyEmail endpoint
+    return apiClient.post('/user/verify-email', data);
+  },
 };

@@ -304,7 +304,7 @@ const Explore: React.FC = () => {
                       <span className="text-sm font-medium text-gray-700">{quiz.category}</span>
                     </div>
                     <div className={`px-3 py-1 rounded-full text-xs font-semibold border ${difficultyConfig[quiz.difficulty].bg} ${difficultyConfig[quiz.difficulty].text} ${difficultyConfig[quiz.difficulty].border}`}>
-                      {difficultyConfig[quiz.difficulty].icon} {quiz.difficulty}
+                       {quiz.difficulty}
                     </div>
                   </div>
 
