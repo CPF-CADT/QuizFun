@@ -469,8 +469,134 @@ export class GameController {
           return res.status(500).json({ message: 'Server error adding feedback.' });
       }
   }
-}
+  /**
+ * @swagger
+ * components:
+ *   schemas:
+ *     ResultsPayload:
+ *       type: object
+ *       properties:
+ *         viewType:
+ *           type: string
+ *           enum:
+ *             - host
+ *             - player
+ *             - guest
+ *           description: Role of the requesting user in the game session.
+ *         results:
+ *           type: array
+ *           description: List of game result entries.
+ *           items:
+ *             type: object
+ *             properties:
+ *               participantId:
+ *                 type: string
+ *                 description: Unique identifier of the participant.
+ *               name:
+ *                 type: string
+ *                 description: Name of the participant.
+ *               score:
+ *                 type: number
+ *                 description: Total score achieved.
+ *               correctAnswers:
+ *                 type: number
+ *                 description: Number of correct answers.
+ *               totalQuestions:
+ *                 type: number
+ *                 description: Total number of questions asked.
+ *               percentage:
+ *                 type: number
+ *                 description: Score percentage.
+ *               averageTime:
+ *                 type: number
+ *                 description: Average time per question in seconds.
+ *               detailedAnswers:
+ *                 type: array
+ *                 description: List of detailed answers.
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     question:
+ *                       type: string
+ *                       description: Question text.
+ *                     answer:
+ *                       type: string
+ *                       description: Answer given by the participant.
+ *                     correct:
+ *                       type: boolean
+ *                       description: Whether the answer was correct.
+ */
+  
+  /**
+     * @swagger
+     * /api/session/{sessionId}/results:
+     *   get:
+     *     tags:
+     *       - Game Sessions
+     *     summary: Get Final Aggregated Game Results by Role
+     *     description: >
+     *       Retrieves the final, aggregated results for a completed game session.
+     *       - A **Host** receives a summary of all participants.
+     *       - A **Player** receives their own detailed results.
+     *       - A **Guest** receives their own detailed results.
+     *       This endpoint should be called when a user clicks "View Results" after the game ends.
+     *     parameters:
+     *       - name: sessionId
+     *         in: path
+     *         required: true
+     *         schema:
+     *           type: string
+     *           pattern: "^[a-fA-F0-9]{24}$"
+     *         description: The MongoDB ObjectId of the game session.
+     *       - name: userId
+     *         in: query
+     *         schema:
+     *           type: string
+     *           pattern: "^[a-fA-F0-9]{24}$"
+     *         description: The ID of the authenticated user (player or host).
+     *       - name: guestName
+     *         in: query
+     *         schema:
+     *           type: string
+     *         description: The name of the guest player.
+     *     responses:
+     *       '200':
+     *         description: Successfully retrieved game results, tailored to the user's role.
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/ResultsPayload'
+     *       '400':
+     *         description: Bad Request - Missing identifier.
+     *       '404':
+     *         description: Game session not found.
+     *       '500':
+     *         description: Internal Server Error.
+     */
+    static async getSessionResults(req: Request, res: Response): Promise<Response> {
+        try {
+            const { sessionId } = req.params;
+            const { userId, guestName } = req.query as { userId?: string; guestName?: string };
 
+            if (!userId && !guestName) {
+                return res.status(400).json({ message: 'A userId or guestName query parameter is required.' });
+            }
+
+            // The repository will handle the logic of determining the role and fetching data
+            const resultsPayload = await GameRepository.fetchFinalResults(sessionId, { userId, guestName });
+
+            if (!resultsPayload) {
+                return res.status(404).json({ message: 'Results for this game session could not be found.' });
+            }
+
+            return res.status(200).json(resultsPayload);
+        } catch (error) {
+            console.error("Error fetching session results:", error);
+            return res.status(500).json({ message: 'Server error retrieving session results.' });
+        }
+    }
+
+}
 
 
 

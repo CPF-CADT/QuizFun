@@ -26,7 +26,7 @@ export interface PlayerAnswer {
 }
 
 export interface SessionData {
-    dbId?: Types.ObjectId;
+    sessionId: string;
     quizId: string;
     hostId: string;
     participants: Participant[];
@@ -64,6 +64,7 @@ export interface ResultsQuestion extends SanitizedQuestion {
 }
 
 export interface GameStatePayload {
+    sessionId: string;
     roomId: number;
     gameState: GameState;
     participants: Participant[];
@@ -83,7 +84,7 @@ class Manager {
 
     public addSession(
         roomId: number,
-        data: Pick<SessionData, 'quizId' | 'hostId' | 'settings'>
+        data: Pick<SessionData, 'quizId' | 'hostId' | 'settings' | 'sessionId'>
     ): void {
         const session: SessionData = {
             ...data,
@@ -95,8 +96,9 @@ class Manager {
             answerCounts: [],
         };
         this.sessions.set(roomId, session);
-        console.log(`[GameSession] Room ${roomId} created.`);
+        console.log(`[GameSession] In-memory session created for room ${roomId} (SessionID: ${data.sessionId}).`);
     }
+
 
     public getSession(roomId: number): SessionData | undefined {
         return this.sessions.get(roomId);

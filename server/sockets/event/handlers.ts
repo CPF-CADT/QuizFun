@@ -1,9 +1,12 @@
+// FILE: src/socket/handlers/handlers.ts
+
 import { Server, Socket } from "socket.io";
 import { GameSessionManager, Participant, GameSettings, PlayerAnswer } from "../../config/data/GameSession";
-import { generateRandomNumber } from '../../service/generateRandomNumber';
-import { QuizModel } from "../../model/Quiz";
-import { broadcastGameState, endRound } from "./shared";
+import { broadcastGameState, endRound, nextQuestion } from "./shared"; 
 import { GameRepository } from "../../repositories/game.repositories";
+import { QuizModel } from "../../model/Quiz";
+import { generateRandomNumber } from "../../service/generateRandomNumber";
+import { GameSessionModel } from "../../model/GameSession";
 
 interface CreateRoomData { quizId: string; userId: string; hostName: string; settings: GameSettings; }
 interface JoinRoomData { roomId: number; username: string; userId: string; }
@@ -11,8 +14,30 @@ interface RejoinGameData { roomId: number; userId: string; }
 interface SubmitAnswerData { roomId: number; userId: string; optionIndex: number; }
 
 export async function handleCreateRoom(socket: Socket, io: Server, data: CreateRoomData): Promise<void> {
-    const roomId = generateRandomNumber(6);
+    const roomId = generateRandomNumber(6); // This is the numeric joinCode
+
+    let uniqueSessionId: string;
+    try {
+        // Step 1: Create the document in MongoDB first to get a unique _id.
+        const newGameSession = new GameSessionModel({
+            quizId: data.quizId,
+            hostId: data.userId,
+            joinCode: roomId,
+            status: 'waiting',
+        });
+        await newGameSession.save();
+        uniqueSessionId = newGameSession._id.toString();
+        console.log(`[DB] Created GameSession ${uniqueSessionId} for room ${roomId}.`);
+
+    } catch (error) {
+        console.error(`[DB] CRITICAL: Failed to create GameSession for room ${roomId}:`, error);
+        socket.emit("error-message", "A database error prevented the room from being created.");
+        return;
+    }
+
+    // Step 2: Add the session to the in-memory manager, including the new unique ID.
     GameSessionManager.addSession(roomId, {
+        sessionId: uniqueSessionId,
         quizId: data.quizId,
         hostId: data.userId,
         settings: data.settings,
@@ -37,8 +62,11 @@ export async function handleCreateRoom(socket: Socket, io: Server, data: CreateR
     };
     room.participants.push(hostParticipant);
     socket.join(roomId.toString());
+
+    // Step 3: Broadcast the initial state, which will now include the unique sessionId.
     broadcastGameState(io, roomId);
 }
+
 
 export async function handleJoinRoom(socket: Socket, io: Server, data: JoinRoomData): Promise<void> {
     const { roomId, username, userId } = data;
@@ -75,12 +103,16 @@ export async function handleJoinRoom(socket: Socket, io: Server, data: JoinRoomD
     broadcastGameState(io, roomId);
 }
 
+
 export async function startGame(socket: Socket, io: Server, roomId: number): Promise<void> {
     const room = GameSessionManager.getSession(roomId);
     const host = room?.participants.find(p => p.role === 'host');
 
     if (!room || !host || host.socket_id !== socket.id) return;
-    if (room.participants.filter(p => p.role === 'player' && p.isOnline).length === 0) return;
+    if (room.participants.filter(p => p.role === 'player' && p.isOnline).length === 0) {
+        socket.emit('error-message', "Cannot start the game with no players.");
+        return;
+    };
 
     try {
         const quiz = await QuizModel.findById(room.quizId).lean();
@@ -89,7 +121,9 @@ export async function startGame(socket: Socket, io: Server, roomId: number): Pro
             return;
         }
         room.questions = quiz.questions;
-        await GameRepository.createGameSession(roomId);
+        
+        await GameRepository.updateSessionStatus(room.sessionId, 'in_progress');
+        
         await nextQuestion(io, roomId);
     } catch (error) {
         console.error(`[Game] Error starting game for room ${roomId}:`, error);
@@ -97,28 +131,6 @@ export async function startGame(socket: Socket, io: Server, roomId: number): Pro
     }
 }
 
-export async function nextQuestion(io: Server, roomId: number): Promise<void> {
-    const room = GameSessionManager.getSession(roomId);
-    if (!room || !room.questions) return;
-
-    room.currentQuestionIndex++;
-    room.answers.clear();
-    room.answerCounts = [];
-    room.participants.forEach(p => p.hasAnswered = false);
-
-    if (room.currentQuestionIndex >= room.questions.length) {
-        console.log(`[Game] Final question answered for room ${roomId}.`);
-        room.gameState = 'end';
-        room.isFinalResults = true;
-        await GameRepository.finalizeGameSession(roomId);
-        broadcastGameState(io, roomId);
-        return;
-    }
-
-    room.gameState = 'question';
-    console.log(`[Game] Sending question ${room.currentQuestionIndex + 1} to room ${roomId}.`);
-    broadcastGameState(io, roomId);
-}
 
 export async function handleSubmitAnswer(socket: Socket, io: Server, data: SubmitAnswerData): Promise<void> {
     const { roomId, userId, optionIndex } = data;
