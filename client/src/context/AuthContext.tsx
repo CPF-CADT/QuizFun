@@ -53,7 +53,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (storedUser) {
         setUser(storedUser);
       } else {
-        // If we have a valid session but no user data, the user should be logged out.
         await logoutUser();
       }
     } catch (error) {

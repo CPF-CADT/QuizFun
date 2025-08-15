@@ -1,13 +1,52 @@
-// src/socket/handlers/shared.ts
 
+// FILE: src/socket/handlers/shared.ts
 import { Server } from "socket.io";
 import { GameSessionManager, GameStatePayload, ResultsQuestion, SanitizedQuestion } from "../../config/data/GameSession";
 import { IQuestion } from "../../model/Quiz";
-import { nextQuestion } from "./handlers";
 import { calculatePoint } from "../../service/calculation";
 import { GameRepository } from "../../repositories/game.repositories";
 
 const RESULTS_DISPLAY_DURATION = 5000; // 5 seconds
+
+/**
+ * **FIXED LOGIC**
+ * The nextQuestion function is now in this shared file to avoid circular dependencies.
+ * It correctly sets the game state and timer *before* broadcasting.
+ */
+export async function nextQuestion(io: Server, roomId: number): Promise<void> {
+    const room = GameSessionManager.getSession(roomId);
+    if (!room || !room.questions) return;
+
+    // Reset state for the new round
+    room.currentQuestionIndex++;
+    room.answers.clear();
+    room.answerCounts = [];
+    room.participants.forEach(p => p.hasAnswered = false);
+
+    // Check if the game has ended
+    if (room.currentQuestionIndex >= room.questions.length) {
+        console.log(`[Game] Final question answered for room ${roomId}.`);
+        room.gameState = 'end';
+        room.isFinalResults = true;
+        await GameRepository.finalizeGameSession(roomId);
+        broadcastGameState(io, roomId);
+        return;
+    }
+
+    // Set the game state to 'question'
+    room.gameState = 'question';
+    const currentQuestion = room.questions[room.currentQuestionIndex];
+
+    // Set the start time and the round timer before broadcasting the state.
+    room.questionStartTime = Date.now();
+    if (room.questionTimer) clearTimeout(room.questionTimer); // Clear any residual timer
+    room.questionTimer = setTimeout(() => endRound(io, roomId), currentQuestion.timeLimit * 1000);
+
+    console.log(`[Game] Sending question ${room.currentQuestionIndex + 1} to room ${roomId}.`);
+    
+    // Broadcast the complete and correct state once.
+    broadcastGameState(io, roomId);
+}
 
 export async function endRound(io: Server, roomId: number): Promise<void> {
     const room = GameSessionManager.getSession(roomId);
@@ -52,7 +91,7 @@ export async function endRound(io: Server, roomId: number): Promise<void> {
         if (lastAnswer.optionIndex === correctAnswerIndex) {
             scoreGainedThisRound = calculatePoint(currentQuestion.point, currentQuestion.timeLimit, lastAnswer.remainingTime);
             p.score += scoreGainedThisRound;
-            lastAnswer.isCorrect = true; // Set correctness here
+            lastAnswer.isCorrect = true; 
         } else {
             lastAnswer.isCorrect = false;
         }
@@ -60,7 +99,18 @@ export async function endRound(io: Server, roomId: number): Promise<void> {
     });
 
     room.gameState = 'results';
-    await GameRepository.saveRoundHistory(roomId, scoresGained);
+    try {
+        console.log(`[Game] Attempting to save history for room ${roomId}...`);
+        await GameRepository.saveRoundHistory(roomId, scoresGained);
+        console.log(`[Game] Successfully saved history for room ${roomId}.`);
+    } catch (error) {
+        console.error(`[CRITICAL] Failed to save round history for room ${roomId}:`, error);
+        const host = room.participants.find(p => p.role === 'host');
+        if (host) {
+            io.to(host.socket_id).emit('error-message', 'A critical error occurred while saving game history.');
+        }
+    }
+    room.answers.clear();
 
     if (room.settings.autoNext) {
         room.autoNextTimer = setTimeout(async () => {
@@ -70,6 +120,7 @@ export async function endRound(io: Server, roomId: number): Promise<void> {
     
     broadcastGameState(io, roomId);
 }
+
 
 export function broadcastGameState(io: Server, roomId: number, errorMessage?: string): void {
     const room = GameSessionManager.getSession(roomId);
@@ -81,6 +132,8 @@ export function broadcastGameState(io: Server, roomId: number, errorMessage?: st
         : null;
 
     room.participants.forEach(p => {
+        if (!p.isOnline) return;
+
         let questionPayload: SanitizedQuestion | ResultsQuestion | null = null;
 
         if (currentQuestion) {
@@ -116,6 +169,7 @@ export function broadcastGameState(io: Server, roomId: number, errorMessage?: st
         }
 
         const stateToSend: GameStatePayload = {
+            sessionId: room.sessionId, 
             roomId,
             gameState: room.gameState,
             participants: room.participants,
@@ -132,10 +186,10 @@ export function broadcastGameState(io: Server, roomId: number, errorMessage?: st
 
         io.to(p.socket_id).emit('game-update', stateToSend);
     });
-
-    if (room.gameState === 'question' && !room.questionTimer && currentQuestion) {
-        room.questionStartTime = Date.now();
-        room.questionTimer = setTimeout(() => endRound(io, roomId), currentQuestion.timeLimit * 1000);
-        broadcastGameState(io, roomId);
-    }
 }
+
+
+
+
+
+
