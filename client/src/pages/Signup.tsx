@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { AiOutlineEyeInvisible, AiOutlineEye } from "react-icons/ai";
 import { FaUser, FaLock, FaArrowLeft, FaGamepad, FaStar, FaEnvelope } from "react-icons/fa";
 import { authApi } from "../service/api"; 
-import { setToken } from "../service/auth"; // to store token
 const Signup: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({

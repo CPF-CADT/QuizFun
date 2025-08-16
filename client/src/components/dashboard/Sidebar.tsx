@@ -1,10 +1,9 @@
-// src/components/Sidebar.tsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Activity, BookOpen, Users, BarChart3, Settings, Compass, X, Zap, Sparkles, Star
+  Activity, BookOpen, Users, BarChart3, Settings, Compass, X, Star
 } from 'lucide-react';
-
+import { useAuth } from '../../context/AuthContext';
 interface SidebarProps {
   activeSection: string;
   setActiveSection: (section: string) => void;
@@ -24,6 +23,7 @@ const sidebarItems = [
 
 const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection, sidebarOpen, setSidebarOpen, currentTime }) => {
   const navigate = useNavigate();
+  const { user } = useAuth(); // Get the authenticated user from the context
 
   return (
     <>
@@ -40,7 +40,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection, side
             <div className="flex items-center">
               <div>
                 <a href='/'>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">Fun Quize</h1>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">Fun Quiz</h1>
                 </a>
                 <p className="text-gray-500 text-sm">Educational Platform</p>
               </div>
@@ -53,8 +53,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection, side
           <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl p-4 mb-6 border border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <div>
-                <p className="text-gray-900 font-semibold">Mr. Nak</p>
-                <p className="text-gray-500 text-sm">Lead Educator</p>
+                {/* Display the user's name from the auth context */}
+                <p className="text-gray-900 font-semibold">{user?.name || 'Guest User'}</p>
+                <p className="text-gray-500 text-sm">Player</p>
               </div>
               <div className="text-right">
                 <p className="text-gray-600 text-xs font-medium">{currentTime.toLocaleDateString()}</p>
@@ -64,8 +65,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection, side
             <div className="flex items-center space-x-2 text-xs">
               <div className="w-2 h-2 bg-green-400 rounded-full"></div>
               <span className="text-gray-600">Online</span>
-              <span className="text-gray-400">•</span>
-              <span className="text-gray-500">156 active students</span>
             </div>
           </div>
         </div>

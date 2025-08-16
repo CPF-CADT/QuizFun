@@ -1,4 +1,5 @@
 import express from 'express';
+import cookieParser from 'cookie-parser'; 
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './service/swaggerConfig';
@@ -16,6 +17,7 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
+app.use(cookieParser());
 
 app.get('/', (req, res) => {
     res.redirect('/api-docs/');

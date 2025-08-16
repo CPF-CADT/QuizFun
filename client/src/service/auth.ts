@@ -1,16 +1,16 @@
-// src/service/authService.ts
 interface User {
   id: string;
   name: string;
   email: string;
+  role: string; 
 }
 
-export function setToken(token: string): void {
-  localStorage.setItem('token', token);
+export function setAccessToken(token: string): void {
+  localStorage.setItem('accessToken', token);
 }
 
-export function getToken(): string | null {
-  return localStorage.getItem('token');
+export function getAccessToken(): string | null {
+  return localStorage.getItem('accessToken');
 }
 
 export function setStoredUser(user: User): void {
@@ -29,6 +29,6 @@ export function getStoredUser(): User | null {
 }
 
 export function clearClientAuthData(): void {
-  localStorage.removeItem('token');
+  localStorage.removeItem('accessToken');
   localStorage.removeItem('user');
 }
