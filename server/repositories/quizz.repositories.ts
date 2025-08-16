@@ -19,7 +19,7 @@ export class QuizzRepositories {
 		}
 
 		// Filter by tag if provided
-		 if (tags && tags.length > 0) {
+		if (tags && tags.length > 0) {
 			filter.tags = { $in: tags };
 		}
 
@@ -155,7 +155,7 @@ export class QuizzRepositories {
 	static async cloneQuizz(quizId: string, userId: string): Promise<IQuiz | null> {
 		const quizz = await QuizModel.findById(quizId).lean();
 		if (!quizz) return null;
-		if(quizz.visibility==='private'){
+		if (quizz.visibility === 'private') {
 			return null;
 		}
 		const { _id, createdAt, updatedAt, ...quizData } = quizz;
@@ -165,7 +165,7 @@ export class QuizzRepositories {
 			forkBy: new Types.ObjectId(userId),
 		});
 
-		return clonedQuiz.toObject(); 
+		return clonedQuiz.toObject();
 	}
 
 	static async getDashboardStats() {

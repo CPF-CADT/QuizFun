@@ -295,4 +295,95 @@ export class GameRepository {
 
         return { viewType, results: finalResults };
     }
+
+    static async getLeaderboardForQuiz(quizId: string) {
+		if (!Types.ObjectId.isValid(quizId)) {
+			throw new Error("Invalid quiz ID");
+		}
+
+		const leaderboard = await GameSessionModel.aggregate([
+			// Stage 1: Filter for completed game sessions for the specific quiz.
+			{
+				$match: {
+					quizId: new Types.ObjectId(quizId),
+					status: 'completed'
+				}
+			},
+			// Stage 2: Deconstruct the results array to process each player's result.
+			{
+				$unwind: "$results"
+			},
+			// Stage 3: Group by player to find their highest score.
+			// We group by userId for registered users and nickname for guests.
+			{
+				$group: {
+					_id: {
+						userId: "$results.userId",
+						nickname: "$results.nickname"
+					},
+					maxScore: { $max: "$results.finalScore" },
+					// Keep the userId for the lookup stage
+					userId: { $first: "$results.userId" }
+				}
+			},
+			// Stage 4: Sort by the highest score in descending order.
+			{
+				$sort: {
+					maxScore: -1
+				}
+			},
+			// Stage 5: Limit to the top 20 players.
+			{
+				$limit: 20
+			},
+			// Stage 6: Populate user details for registered players.
+			{
+				$lookup: {
+					from: 'users', // The name of the users collection
+					localField: 'userId',
+					foreignField: '_id',
+					as: 'userDetails'
+				}
+			},
+			// Stage 7: Shape the final output.
+			{
+				$project: {
+					_id: 0,
+					score: "$maxScore",
+					// Conditionally choose the name from the userDetails or the guest nickname
+					name: {
+						$ifNull: [{ $arrayElemAt: ["$userDetails.name", 0] }, "$_id.nickname"]
+					},
+					profileUrl: {
+						$ifNull: [{ $arrayElemAt: ["$userDetails.profileUrl", 0] }, null]
+					}
+				}
+			},
+			// Stage 8: Add a rank to the final output
+			{
+				$group: {
+					_id: null,
+					players: { $push: "$$ROOT" }
+				}
+			},
+			{
+				$unwind: {
+					path: "$players",
+					includeArrayIndex: "players.rank"
+				}
+			},
+			{
+				$replaceRoot: {
+					newRoot: "$players"
+				}
+			},
+			{
+				$addFields: {
+					"rank": { $add: ["$rank", 1] }
+				}
+			}
+		]);
+
+		return leaderboard;
+	}
 }
