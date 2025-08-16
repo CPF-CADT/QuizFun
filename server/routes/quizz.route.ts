@@ -1,5 +1,5 @@
 import express from 'express'
-import {addQuestionForQuizz,createQuizz, deleteOption, deleteQuestion, getAllQuizzes, getQuizzById, getQuizzByUser, updateOption, updateQuestion,deleteQuizz, getDashboardStats, cloneQuizz} from '../controller/quizz.controller'
+import {addQuestionForQuizz,createQuizz, deleteOption, deleteQuestion, getAllQuizzes, getQuizzById, getQuizzByUser, updateOption, updateQuestion,deleteQuizz, getDashboardStats, cloneQuizz, getQuizLeaderboard} from '../controller/quizz.controller'
 import { validationBody } from '../middleware/validation.middleware';
 import { quizzCreate } from '../config/CheckValidation';
 import multer from 'multer';
@@ -12,7 +12,7 @@ const upload = multer({ storage });
 quizzRouter.get('/', getAllQuizzes);
 quizzRouter.get('/stats', getDashboardStats);
 quizzRouter.get('/user/:userId', getQuizzByUser);
-
+quizzRouter.get('/:quizzId/leaderboard', getQuizLeaderboard);
 // ---- Single Quiz ----
 quizzRouter.get('/:quizzId', getQuizzById);
 quizzRouter.post('/:quizzId/clone', authenticateToken,cloneQuizz);

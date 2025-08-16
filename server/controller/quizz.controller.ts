@@ -3,6 +3,7 @@ import { IQuiz, IQuestion, IOption } from '../model/Quiz';
 import { QuizzRepositories } from '../repositories/quizz.repositories';
 import { FileUploadModel } from '../model/FileUpload';
 import { uploadImage } from '../service/FileUpload';
+import { GameRepository } from '../repositories/game.repositories';
 
 /**
  * @swagger
@@ -470,7 +471,60 @@ export async function cloneQuizz(req: Request, res: Response) {
     }
 }
 
+/**
+ * @swagger
+ * /api/quizz/{quizzId}/leaderboard:
+ *   get:
+ *     summary: Get the leaderboard for a specific quiz
+ *     tags: [Quiz]
+ *     parameters:
+ *       - in: path
+ *         name: quizzId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The quiz ID
+ *     responses:
+ *       200:
+ *         description: Leaderboard data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   rank:
+ *                     type: integer
+ *                   name:
+ *                     type: string
+ *                   score:
+ *                     type: integer
+ *                   profileUrl:
+ *                     type: string
+ *       404:
+ *         description: Quiz not found or no completed games
+ *       500:
+ *         description: Internal server error
+ */
 
+export async function getQuizLeaderboard(req: Request, res: Response) {
+    try {
+        const { quizzId } = req.params;
+        const leaderboard = await GameRepository.getLeaderboardForQuiz(quizzId);
+
+        if (!leaderboard || leaderboard.length === 0) {
+            return res.status(404).json({ message: 'No leaderboard data found for this quiz.' });
+        }
+
+        res.status(200).json(leaderboard);
+    } catch (error) {
+        res.status(500).json({
+            message: 'Failed to fetch quiz leaderboard',
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+}
 
 /**
  * @swagger
