@@ -253,7 +253,6 @@ export async function getUsersByRole(req: Request, res: Response): Promise<void>
 
 export async function register(req: Request, res: Response): Promise<void> {
     const { name, email, password, profile_url, role } = req.body;
-    console.log(name,email,password,profile_url,role)
     if (!name || !email || !password) {
         res.status(400).json({ error: 'Missing required user information' });
         return;
