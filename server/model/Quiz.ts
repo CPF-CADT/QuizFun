@@ -25,6 +25,10 @@ export interface IQuiz extends Document {
     visibility: 'public' | 'private';
     questions: IQuestion[];
     templateImgUrl?: string;
+    tags?:string[],
+    forkBy?: Types.ObjectId,
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 
@@ -71,6 +75,8 @@ const QuizSchema = new Schema<IQuiz>({
         validate: [(questions: IQuestion[]) => questions.length > 0, 'A quiz must have at least one question.']
     },
     templateImgUrl: { type: String },
+    tags: { type: [String], index: true },
+    forkBy: { type: Schema.Types.ObjectId, ref: 'User', index: true },
 }, { 
     timestamps: true,
 

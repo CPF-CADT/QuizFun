@@ -6,7 +6,7 @@ import { UserRepository } from '../repositories/users.repositories';
 type Role = 'admin' | 'user' | 'guest';
 
 interface UserPayload extends JwtPayload {
-  id: number;
+  id: string;
   phone_number: string;
   name: string;
   profile_img_path: string;

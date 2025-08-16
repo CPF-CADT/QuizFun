@@ -1,23 +1,29 @@
 import express from 'express'
-import {addQuestionForQuizz,createQuizz, deleteOption, deleteQuestion, getAllQuizzes, getQuizzById, getQuizzByUser, updateOption, updateQuestion,deleteQuizz, getDashboardStats} from '../controller/quizz.controller'
+import {addQuestionForQuizz,createQuizz, deleteOption, deleteQuestion, getAllQuizzes, getQuizzById, getQuizzByUser, updateOption, updateQuestion,deleteQuizz, getDashboardStats, cloneQuizz} from '../controller/quizz.controller'
 import { validationBody } from '../middleware/validation.middleware';
 import { quizzCreate } from '../config/CheckValidation';
 import multer from 'multer';
 import { handleImageUpload } from '../controller/service.controller';
+import { authenticateToken } from '../middleware/authenicate.middleware';
 export const quizzRouter = express.Router();
 const storage = multer.memoryStorage(); 
 const upload = multer({ storage });
+// ---- Public ----
 quizzRouter.get('/', getAllQuizzes);
-quizzRouter.get('/stats', getDashboardStats); 
-quizzRouter.get('/:quizzId', getQuizzById);
+quizzRouter.get('/stats', getDashboardStats);
 quizzRouter.get('/user/:userId', getQuizzByUser);
-quizzRouter.post('/',validationBody(quizzCreate),createQuizz);
-quizzRouter.post('/question',addQuestionForQuizz);
-quizzRouter.post('/', createQuizz);
+
+// ---- Single Quiz ----
+quizzRouter.get('/:quizzId', getQuizzById);
+quizzRouter.post('/:quizzId/clone', authenticateToken,cloneQuizz);
+
+quizzRouter.post('/',upload.single('image'),handleImageUpload('quizz_Image'),validationBody(quizzCreate),createQuizz);
+
+// ---- Questions ----
 quizzRouter.post('/question', addQuestionForQuizz);
 quizzRouter.put('/:quizzId/question/:questionId', updateQuestion);
 quizzRouter.put('/:quizzId/question/:questionId/option/:optionId', updateOption);
 quizzRouter.delete('/:quizzId/question/:questionId', deleteQuestion);
 quizzRouter.delete('/:quizzId/question/:questionId/option/:optionId', deleteOption);
+
 quizzRouter.delete('/:quizzId', deleteQuizz);
-quizzRouter.post('/',upload.single('image'),handleImageUpload('quizz_Image'));
