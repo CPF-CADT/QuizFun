@@ -344,7 +344,6 @@ export async function register(req: Request, res: Response): Promise<void> {
  *         description: Internal server error
  */
 
-
 export async function login(req: Request, res: Response): Promise<void> {
     const { email, password } = req.body;
 
@@ -369,17 +368,19 @@ export async function login(req: Request, res: Response): Promise<void> {
 
     res.cookie("refreshToken", tokens.refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", 
+        secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000, 
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    const { password: _, ...userResponse } = user; 
+    const userObject = user.toObject();
+
+    const { password: _, ...userResponse } = userObject;
 
     res.status(200).json({
         message: "Login successful",
         accessToken: tokens.accessToken,
-        user: userResponse,
+        user: userResponse, 
     });
 }
 
@@ -909,4 +910,95 @@ export async function resetPassword(req: Request, res: Response) {
   } catch (err) {
     res.status(400).json({ message: "Invalid or expired token" });
   }
+}
+
+/**
+ * @swagger
+ * /api/user/profile:
+ *   get:
+ *     summary: Get the authenticated user's profile
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved user profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                   example: "64f1b6e5c8d1f9d8a7b12345"
+ *                 email:
+ *                   type: string
+ *                   example: "user@example.com"
+ *                 username:
+ *                   type: string
+ *                   example: "john_doe"
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                   example: "2023-08-31T12:34:56.789Z"
+ *                 updatedAt:
+ *                   type: string
+ *                   format: date-time
+ *                   example: "2023-09-01T14:20:00.123Z"
+ *       401:
+ *         description: Unauthorized - No user ID found in token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized: No user ID found in token"
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not found"
+ *       500:
+ *         description: Server error while fetching profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Server error while fetching profile"
+ *                 error:
+ *                   type: string
+ *                   example: "Detailed error message"
+ */
+
+
+export async function getProfile(req: Request, res: Response): Promise<void> {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            res.status(401).json({ message: "Unauthorized: No user ID found in token" });
+            return;
+        }
+        const user = await UserRepository.findById(userId);
+        if (!user) {
+            res.status(404).json({ message: "User not found" });
+            return;
+        }
+        const userObject = user.toObject();
+        const { password, ...userResponse } = userObject;
+
+        res.status(200).json(userResponse);
+
+    } catch (error) {
+        res.status(500).json({ message: "Server error while fetching profile", error: (error as Error).message });
+    }
 }

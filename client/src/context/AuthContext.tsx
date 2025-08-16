@@ -1,18 +1,19 @@
-// src/contexts/authContext.ts
+// src/context/authContext.tsx
+import { useState, useEffect, useContext, createContext, type ReactNode } from 'react';
+import { authApi } from '../service/api';
+import { 
+  setAccessToken, 
+  setStoredUser, 
+  getStoredUser, 
+  clearClientAuthData 
+} from '../service/auth';
 
-import { createContext, useState, useContext, useEffect, useCallback, type ReactNode } from 'react';
-import { setToken, setStoredUser, getStoredUser, clearClientAuthData } from '../service/auth';
-import { authApi, apiClient } from '../service/api';
-
+// --- Type Definitions ---
 interface User {
   id: string;
   name: string;
   email: string;
-}
-
-interface LoginResponseData {
-  accessToken: string;
-  user: User;
+  role: string;
 }
 
 interface AuthContextType {
@@ -29,57 +30,56 @@ interface AuthProviderProps {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Apply the correct props type to the function signature
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const logoutUser = useCallback(async () => {
-    try {
-      await authApi.logout();
-    } catch (error) {
-      console.error("Logout failed on server:", error);
-    } finally {
-      clearClientAuthData();
-      setUser(null);
-    }
+  useEffect(() => {
+    const verifyAuth = async () => {
+      const storedUser = getStoredUser();
+      
+      if (!storedUser || !localStorage.getItem('accessToken')) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        await authApi.getProfile(); 
+        
+        setUser(storedUser);
+      } catch (error) {
+        console.error("Session verification failed:", error);
+        clearClientAuthData();
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    verifyAuth();
   }, []);
 
-  const verifyAuth = useCallback(async () => {
-    try {
-      const { data } = await apiClient.post<{ accessToken: string }>('/user/refresh-token');
-      setToken(data.accessToken);
-      const storedUser = getStoredUser();
-      if (storedUser) {
-        setUser(storedUser);
-      } else {
-        await logoutUser();
-      }
-    } catch (error) {
-      setUser(null);
-      clearClientAuthData();
-    } finally {
-      setIsLoading(false);
-    }
-  }, [logoutUser]);
-
-  useEffect(() => {
-    verifyAuth();
-  }, [verifyAuth]);
-
   const login = async (credentials: object) => {
+    // The API call will throw an error on failure, which will be caught by the Login component.
     const { data } = await authApi.login(credentials);
-    const { accessToken, user: userData }: LoginResponseData = data;
+    const { accessToken, user: userData } = data;
     
-    setToken(accessToken);
+    // On success, store the access token and user data, and update the state.
+    setAccessToken(accessToken);
     setStoredUser(userData);
     setUser(userData);
   };
 
   const logout = async () => {
-    await logoutUser();
-    // Redirect after state is cleared
-    window.location.href = '/login';
+    try {
+        await authApi.logout();
+    } catch (error) {
+        console.error("Logout API call failed", error);
+    } finally {
+        // Always clear client-side data and update state.
+        clearClientAuthData();
+        setUser(null);
+    }
   };
 
   const value: AuthContextType = {
@@ -92,7 +92,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   return (
     <AuthContext.Provider value={value}>
-      {!isLoading && children}
+      {/* Don't render the rest of the app until the initial authentication check is complete. */}
+      {!isLoading ? children : <div className="flex items-center justify-center h-screen bg-gray-900 text-white">Loading...</div>}
     </AuthContext.Provider>
   );
 }

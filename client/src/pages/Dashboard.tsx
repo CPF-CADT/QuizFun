@@ -4,7 +4,7 @@ import axios from 'axios';
 
 // Import Types
 // Import Types
-import type { QuizStats, RecentQuiz, RecentActivity } from '../types';
+import type { QuizStats, RecentQuiz } from '../types';
 
 // Import Components
 import Sidebar from '../components/dashboard/Sidebar';
