@@ -17,7 +17,8 @@ quizzRouter.get('/:quizzId/leaderboard', getQuizLeaderboard);
 quizzRouter.get('/:quizzId', getQuizzById);
 quizzRouter.post('/:quizzId/clone', authenticateToken,cloneQuizz);
 
-quizzRouter.post('/',upload.single('image'),handleImageUpload('quizz_Image'),validationBody(quizzCreate),createQuizz);
+// quizzRouter.post('/',upload.single('image'),handleImageUpload('quizz_Image'),validationBody(quizzCreate),createQuizz);
+quizzRouter.post('/',authenticateToken,createQuizz);
 
 // ---- Questions ----
 quizzRouter.post('/question', addQuestionForQuizz);

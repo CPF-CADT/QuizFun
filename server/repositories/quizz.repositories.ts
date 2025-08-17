@@ -64,7 +64,7 @@ export class QuizzRepositories {
 
 	static async addQuestion(quizId: string, question: IQuestion): Promise<boolean> {
 		const result = await QuizModel.updateOne(
-			{ $match: { _id: new Types.ObjectId(quizId) } },
+			{ _id: new Types.ObjectId(quizId) },
 			{ $push: { questions: question } }
 		);
 		return result.modifiedCount > 0;

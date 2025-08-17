@@ -15,6 +15,7 @@
   "dependencies": {
     "@faker-js/faker": "^9.9.0",
     "axios": "^1.10.0",
+    "bcrypt": "^6.0.0",
     "cloudinary": "^2.7.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -44,6 +45,7 @@
   "devDependencies": {
     "@babel/preset-typescript": "^7.27.1",
     "@jest-mock/express": "^3.0.0",
+    "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.18",
     "@types/express": "^5.0.3",

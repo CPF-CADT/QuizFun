@@ -48,7 +48,6 @@ export const QuestionSchema = new Schema<IQuestion>({
     options: {
         type: [OptionSchema],
         required: true,
-        // Suggestion 2: Add validation to ensure at least one option is marked as correct.
         validate: [
             {
                 validator: (options: IOption[]) => options.length >= 2,
@@ -70,9 +69,6 @@ const QuizSchema = new Schema<IQuiz>({
     visibility: { type: String, enum: ['public', 'private'], default: 'private' },
     questions: { 
         type: [QuestionSchema], 
-        required: true,
-
-        validate: [(questions: IQuestion[]) => questions.length > 0, 'A quiz must have at least one question.']
     },
     templateImgUrl: { type: String },
     tags: { type: [String], index: true },

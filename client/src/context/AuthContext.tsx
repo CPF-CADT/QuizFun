@@ -1,12 +1,7 @@
 // src/context/authContext.tsx
-import { useState, useEffect, useContext, createContext, type ReactNode } from 'react';
-import { authApi } from '../service/api';
-import { 
-  setAccessToken, 
-  setStoredUser, 
-  getStoredUser, 
-  clearClientAuthData 
-} from '../service/auth';
+import { useState, useEffect, useContext, createContext, useMemo, useRef, type ReactNode } from 'react';
+import { authApi, setupAuthInterceptors } from '../service/api';
+import { setStoredUser, clearClientAuthData } from '../service/auth';
 
 // --- Type Definitions ---
 interface User {
@@ -32,67 +27,64 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  const accessTokenRef = useRef(accessToken);
   useEffect(() => {
+    accessTokenRef.current = accessToken;
+  }, [accessToken]);
+
+  const handleLogout = () => {
+    authApi.logout().catch(error => console.error("Logout API call failed", error));
+    
+    setAccessToken(null);
+    setUser(null);
+    clearClientAuthData();
+  };
+  
+  useEffect(() => {
+    const cleanupInterceptors = setupAuthInterceptors(setAccessToken, handleLogout, accessTokenRef);
+
     const verifyAuth = async () => {
-      const storedUser = getStoredUser();
-      
-      if (!storedUser || !localStorage.getItem('accessToken')) {
-        setIsLoading(false);
-        return;
-      }
-      
       try {
-        await authApi.getProfile(); 
+        const { data } = await authApi.refreshToken();
+        setAccessToken(data.accessToken);
         
-        setUser(storedUser);
+        const userResponse = await authApi.getProfile();
+        setUser(userResponse.data);
+        setStoredUser(userResponse.data); 
       } catch (error) {
-        console.error("Session verification failed:", error);
-        clearClientAuthData();
-        setUser(null);
+        console.log("No active session found.");
+        handleLogout();
       } finally {
         setIsLoading(false);
       }
     };
 
     verifyAuth();
+    return cleanupInterceptors;
   }, []);
 
-  const login = async (credentials: object) => {
-    // The API call will throw an error on failure, which will be caught by the Login component.
+  const handleLogin = async (credentials: object) => {
     const { data } = await authApi.login(credentials);
-    const { accessToken, user: userData } = data;
+    const { accessToken: newAccessToken, user: userData } = data;
     
-    // On success, store the access token and user data, and update the state.
-    setAccessToken(accessToken);
-    setStoredUser(userData);
+    setAccessToken(newAccessToken);
     setUser(userData);
+    setStoredUser(userData);
   };
 
-  const logout = async () => {
-    try {
-        await authApi.logout();
-    } catch (error) {
-        console.error("Logout API call failed", error);
-    } finally {
-        // Always clear client-side data and update state.
-        clearClientAuthData();
-        setUser(null);
-    }
-  };
-
-  const value: AuthContextType = {
+  const value = useMemo(() => ({
     user,
-    login,
-    logout,
-    isAuthenticated: !!user,
+    login: handleLogin,
+    logout: handleLogout,
+    isAuthenticated: !!accessToken && !!user,
     isLoading,
-  };
+  }), [user, accessToken, isLoading]);
 
   return (
     <AuthContext.Provider value={value}>
-      {/* Don't render the rest of the app until the initial authentication check is complete. */}
       {!isLoading ? children : <div className="flex items-center justify-center h-screen bg-gray-900 text-white">Loading...</div>}
     </AuthContext.Provider>
   );
