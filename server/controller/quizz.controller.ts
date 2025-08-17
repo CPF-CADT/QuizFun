@@ -4,6 +4,7 @@ import { QuizzRepositories } from '../repositories/quizz.repositories';
 import { FileUploadModel } from '../model/FileUpload';
 import { uploadImage } from '../service/FileUpload';
 import { GameRepository } from '../repositories/game.repositories';
+import { Types } from 'mongoose';
 
 /**
  * @swagger
@@ -368,9 +369,6 @@ export async function getQuizzByUser(req: Request, res: Response) {
  *               description:
  *                 type: string
  *                 example: "A quiz on basic arithmetic"
- *               creatorId:
- *                 type: string
- *                 example: "64d8f9d3f1234a5678b90123"
  *               visibility:
  *                 type: string
  *                 enum: [public, private]
@@ -408,11 +406,12 @@ export async function getQuizzByUser(req: Request, res: Response) {
  */
 
 export async function createQuizz(req: Request, res: Response) {
-    const { title, description, creatorId, visibility, templateImgUrl } = req.body;
+    const { title, description, visibility, templateImgUrl } = req.body;
+    const userId = new Types.ObjectId (req.user?.id);
     const quizz = await QuizzRepositories.createQuizz({
         title,
         description,
-        creatorId,
+        creatorId:userId,
         visibility,
         templateImgUrl,
     } as IQuiz);
