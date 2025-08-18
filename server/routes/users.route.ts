@@ -1,5 +1,5 @@
 import express from 'express'
-import {register,login,updateUserInfo,sendVerificationCode,verifyEmail,refreshToken,logout,getAllUsers,getUsersByRole, getProfile} from '../controller/user.controller'
+import {register,login,updateUserInfo,sendVerificationCode,verifyCode,refreshToken,logout,getAllUsers,getUsersByRole, getProfile} from '../controller/user.controller'
 import { authenticateToken, isEmailVerified } from '../middleware/authenicate.middleware';
 import { validationBody } from '../middleware/validation.middleware';
 import { userlogin, userRegister } from '../config/CheckValidation';
@@ -21,7 +21,7 @@ userRouter.post('/register',validationBody(userRegister),register);
 userRouter.post('/login',validationBody(userlogin),isEmailVerified, login);
 userRouter.put('/:id',authenticateToken, updateUserInfo)
 userRouter.post('/request-otp',sendVerificationCode);
-userRouter.post('/verify-otp',verifyEmail);
+userRouter.post('/verify-otp',verifyCode);
 userRouter.post('/refresh-token',refreshToken);
 userRouter.post('/logout',logout);
 userRouter.post('/profile-detail',upload.single('image'),handleImageUpload('user_ProfilePic'));

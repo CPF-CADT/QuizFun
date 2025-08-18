@@ -1,40 +1,75 @@
-import React, { useState, type ChangeEvent } from "react";
+// src/pages/VerifyCode.tsx
+import React, { useState, type ChangeEvent, useEffect } from "react";
 import { FaArrowLeft, FaGamepad, FaKey } from "react-icons/fa";
+import { useLocation, useNavigate } from "react-router-dom";
+import { verifyApi } from "../service/api"; // make sure to add verifyCode and resendCode methods
 
 const VerifyCode: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const email = (location.state as { email?: string })?.email || "";
+
   const [code, setCode] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
+
+  useEffect(() => {
+    if (!email) {
+      navigate("/signup"); // if no email, go back to signup
+    }
+  }, [email, navigate]);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setCode(e.target.value);
   };
 
-  const handleVerify = () => {
-    console.log("Verifying code:", code);
-    // TODO: Call your API here (e.g., fetch("/auth/verify-code", { ... }))
+  const handleVerify = async () => {
+    if (code.length !== 6) return;
+
+    setLoading(true);
+    setError("");
+    setResendMessage("");
+
+    try {
+      const response = await verifyApi.verifyCode(email, code);
+      alert(response.data.message || "Verification successful!");
+      navigate("/dashboard"); // redirect to Dashboard
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Verification failed. Try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const isFormValid = code.length === 6; // 6-digit code only
+  const handleResend = async () => {
+    setResendLoading(true);
+    setError("");
+    setResendMessage("");
+
+    try {
+      const response = await verifyApi.resendCode(email);
+      setResendMessage(response.data.message || "Verification code resent!");
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to resend code.");
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  const isFormValid = code.length === 6;
 
   return (
     <div
       className="min-h-screen flex items-center justify-center relative overflow-hidden"
       style={{
-        background:
-          "linear-gradient(135deg, #A24FF6 0%, #667eea 50%, #764ba2 100%)",
+        background: "linear-gradient(135deg, #A24FF6 0%, #667eea 50%, #764ba2 100%)",
       }}
     >
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 left-10 w-20 h-20 bg-yellow-300 rounded-full opacity-20 animate-bounce"></div>
-        <div className="absolute top-40 right-20 w-16 h-16 bg-pink-300 rounded-full opacity-20 animate-pulse"></div>
-        <div className="absolute bottom-40 left-20 w-24 h-24 bg-green-300 rounded-full opacity-20 animate-bounce"></div>
-        <div className="absolute bottom-20 right-10 w-18 h-18 bg-orange-300 rounded-full opacity-20 animate-pulse"></div>
-        <div className="absolute top-32 right-40 w-12 h-12 bg-teal-300 rounded-full opacity-20 animate-bounce"></div>
-      </div>
-
-      {/* Back to Login */}
+      {/* Back Button */}
       <button
-        onClick={() => (window.location.href = "/login")}
+        onClick={() => navigate("/login")}
         className="absolute top-6 left-6 flex items-center space-x-2 text-white hover:text-yellow-300 transition-colors z-20"
       >
         <FaArrowLeft />
@@ -48,11 +83,9 @@ const VerifyCode: React.FC = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-400 to-blue-500 rounded-full mb-4 animate-pulse">
             <FaGamepad className="text-2xl text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">
-            Verify Your Account
-          </h1>
+          <h1 className="text-3xl font-bold text-white mb-2">Verify Your Account</h1>
           <p className="text-white/80">
-            Enter the 6-digit code sent to your email
+            Enter the 6-digit code sent to {email}
           </p>
         </div>
 
@@ -68,33 +101,39 @@ const VerifyCode: React.FC = () => {
               maxLength={6}
               value={code}
               onChange={handleInputChange}
-              className="w-full pl-10 pr-4 py-3 bg-white/90 backdrop-blur-sm border border-white/30 rounded-xl 
-                text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-4 
-                focus:ring-green-400/50 focus:bg-white transition-all tracking-widest 
-                text-center text-lg font-bold"
+              className="w-full pl-10 pr-4 py-3 bg-white/90 backdrop-blur-sm border border-white/30 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-green-400/50 focus:bg-white transition-all tracking-widest text-center text-lg font-bold"
               placeholder="______"
             />
           </div>
         </div>
 
+        {/* Messages */}
+        {error && <p className="text-red-400 mb-4 text-center">{error}</p>}
+        {resendMessage && <p className="text-green-400 mb-4 text-center">{resendMessage}</p>}
+
         {/* Verify Button */}
         <button
           onClick={handleVerify}
-          disabled={!isFormValid}
+          disabled={!isFormValid || loading}
           className={`w-full font-bold py-3 px-6 rounded-xl transition-all transform hover:scale-105 shadow-lg ${
-            isFormValid
+            isFormValid && !loading
               ? "bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white"
               : "bg-gray-400 text-gray-200 cursor-not-allowed hover:scale-100"
           }`}
         >
-          Verify Code
+          {loading ? "Verifying..." : "Verify Code"}
         </button>
+
         {/* Resend Code */}
         <div className="text-center mt-6">
           <p className="text-white/80">
             Didn’t receive the code?{" "}
-            <button className="text-yellow-300 hover:text-yellow-200 font-semibold transition-colors">
-              Resend
+            <button
+              onClick={handleResend}
+              disabled={resendLoading}
+              className="text-yellow-300 hover:text-yellow-200 font-semibold transition-colors"
+            >
+              {resendLoading ? "Sending..." : "Resend"}
             </button>
           </p>
         </div>
