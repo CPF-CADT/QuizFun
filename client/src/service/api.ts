@@ -3,7 +3,7 @@ import axios, { type AxiosRequestConfig } from 'axios';
 import type { RefObject  } from 'react';
 
 export const apiClient = axios.create({
-  baseURL: 'http://localhost:3000/api/',
+  baseURL: "http://localhost:3000/api/",
   withCredentials: true,
 });
 
