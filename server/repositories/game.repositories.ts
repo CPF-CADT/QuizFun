@@ -48,7 +48,7 @@ export class GameRepository {
     // }
 
     static async saveRoundHistory(roomId: number, scoresGained: Map<string, number>): Promise<void> {
-        const session = GameSessionManager.getSession(roomId);
+        const session = await GameSessionManager.getSession(roomId);
         // Use the new `sessionId` property which is a required string.
         if (!session || !session.sessionId || !session.questions) {
             return;
@@ -109,7 +109,7 @@ export class GameRepository {
     }
 
     static async finalizeGameSession(roomId: number): Promise<void> {
-        const session = GameSessionManager.getSession(roomId);
+        const session = await GameSessionManager.getSession(roomId);
         if (!session || !session.sessionId) {
             return;
         }
