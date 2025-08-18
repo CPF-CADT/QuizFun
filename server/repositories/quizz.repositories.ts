@@ -59,7 +59,12 @@ export class QuizzRepositories {
 		return QuizModel.create(quizz);
 	}
 	static async getQuizzByUser(userId: string) {
-		return QuizModel.find({ $match: { _id: new Types.ObjectId(userId) } }).exec();
+		return QuizModel.find({
+			$or: [
+				{ forkBy: new Types.ObjectId(userId) },
+				{creatorId: new Types.ObjectId(userId)}
+			]
+		}).exec();
 	}
 
 	static async addQuestion(quizId: string, question: IQuestion): Promise<boolean> {

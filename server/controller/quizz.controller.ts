@@ -37,6 +37,10 @@ import { Types } from 'mongoose';
  *           type: string
  *           enum: [public, private]
  *           example: "public"
+ *         dificulty:
+ *           type: string
+ *           enum: [Hard, Medium, Easy]
+ *           example: "Hard" 
  *         templateImgUrl:
  *           type: string
  *           format: uri
@@ -373,6 +377,10 @@ export async function getQuizzByUser(req: Request, res: Response) {
  *                 type: string
  *                 enum: [public, private]
  *                 example: "public"
+ *               dificulty:
+ *                 type: string
+ *                 enum: [Hard, Medium, Easy]
+ *                 example: "Hard"
  *               templateImgUrl:
  *                 type: string
  *                 format: uri
@@ -406,7 +414,7 @@ export async function getQuizzByUser(req: Request, res: Response) {
  */
 
 export async function createQuizz(req: Request, res: Response) {
-    const { title, description, visibility, templateImgUrl } = req.body;
+    const { title, description, visibility, templateImgUrl,dificulty } = req.body;
     const userId = new Types.ObjectId (req.user?.id);
     const quizz = await QuizzRepositories.createQuizz({
         title,
@@ -414,6 +422,7 @@ export async function createQuizz(req: Request, res: Response) {
         creatorId:userId,
         visibility,
         templateImgUrl,
+        dificulty,
     } as IQuiz);
     res.status(201).json({ message: 'quizz create success', data: quizz });
 }
