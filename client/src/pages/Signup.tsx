@@ -9,7 +9,6 @@ const Signup: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    name: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -98,8 +97,6 @@ const Signup: React.FC = () => {
               <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                name="name"
-                value={formData.name}
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
