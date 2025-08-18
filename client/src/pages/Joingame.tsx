@@ -13,19 +13,9 @@ const Joingame: React.FC = () => {
       setIsLoading(true);
       setTimeout(() => {
         setIsLoading(false);
-
-        // Navigate to Lobby and pass data
-        navigate("/lobby", {
-          state: {
-            gamePin,
-            hostName: "Quiz Master", // Example host name
-            players: [
-              { id: "1", name: playerName }, // Current player
-              { id: "2", name: "Player2" },  // Demo player
-            ],
-          },
-        });
-      }, 1500);
+        // Handle join game logic here
+        console.log('Joining game with pin:', gamePin, 'and name:', playerName);
+      }, 2000);
     }
   };
 
@@ -72,9 +62,9 @@ const Joingame: React.FC = () => {
               <input
                 type="text"
                 value={gamePin}
-                onChange={(e) => setGamePin(e.target.value.replace(/\D/g, "").slice(0, 7))}
+                onChange={(e) => setGamePin(e.target.value.replace(/\D/g, '').slice(0, 7))}
                 placeholder="Enter 6-7 digit PIN"
-                className="w-full px-4 py-4 rounded-xl text-gray-800 text-center text-2xl font-bold tracking-wider bg-white/95 outline-none focus:ring-4 focus:ring-yellow-400"
+                className="w-full px-4 py-4 rounded-xl text-gray-800 text-center text-2xl font-bold tracking-wider bg-white/95 backdrop-blur-sm outline-none focus:ring-4 focus:ring-yellow-400 focus:bg-white transition-all placeholder-gray-400"
                 maxLength={7}
               />
             </div>
@@ -114,6 +104,33 @@ const Joingame: React.FC = () => {
                 </>
               )}
             </button>
+
+            {/* Additional Info */}
+            <div className="mt-6 text-center">
+              <p className="text-white/70 text-sm mb-2">
+                Don't have a game PIN?
+              </p>
+              <button 
+                onClick={() => window.location.href = '/'}
+                className="text-yellow-300 hover:text-yellow-200 font-semibold underline transition-colors"
+              >
+                Create your own quiz
+              </button>
+            </div>
+          </div>
+
+          {/* Tips Card */}
+          <div className="mt-6 bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10">
+            <h3 className="font-bold mb-3 flex items-center">
+              <FaQuestionCircle className="mr-2 text-yellow-300" />
+              Quick Tips
+            </h3>
+            <ul className="text-sm text-white/80 space-y-2">
+              <li>• Ask your teacher/host for the game PIN</li>
+              <li>• Use a fun nickname that's appropriate</li>
+              <li>• Make sure you have a stable internet connection</li>
+              <li>• Get ready to have fun learning!</li>
+            </ul>
           </div>
         </div>
       </div>

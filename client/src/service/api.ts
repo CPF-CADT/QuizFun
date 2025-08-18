@@ -1,33 +1,95 @@
-import axios from "axios";
-import { getToken, setToken, clearClientAuthData } from "./auth";
+// src/service/api.ts
+import axios, { type AxiosRequestConfig } from 'axios';
+import type { RefObject  } from 'react';
 
 export const apiClient = axios.create({
   baseURL: "http://localhost:3000/api/",
   withCredentials: true,
 });
 
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = getToken();
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Your existing apiClient interceptors remain here...
-
-// Auth API
 export const authApi = {
-  login: (credentials: object) => apiClient.post("/user/login", credentials),
-  logout: () => apiClient.post("/user/logout"),
-  signUp: (data: object) => apiClient.post("/user/register", data),
+  login: (credentials: object) => apiClient.post('/user/login', credentials),
+  logout: () => apiClient.post('/user/logout'),
+  signUp: (data: object) => apiClient.post('/user/register', data),
+  getProfile: () => apiClient.get('/user/profile'),
+  refreshToken: () => apiClient.post('/user/refresh-token'),
 };
 
-// Verify API
-export const verifyApi = {
-  verifyCode: (email: string, code: string) =>
-    apiClient.post("/user/verify-code", { email, code }),
-  resendCode: (email: string) =>
-    apiClient.post("/user/resend-code", { email }),
+export const setupAuthInterceptors = (
+  setAccessToken: (token: string | null) => void,
+  logout: () => void,
+  accessTokenRef: RefObject <string | null>
+) => {
+  const requestInterceptor = apiClient.interceptors.request.use(
+    (config) => {
+      if (accessTokenRef.current) {
+        config.headers.Authorization = `Bearer ${accessTokenRef.current}`;
+      }
+      return config;
+    },
+    (error) => Promise.reject(error)
+  );
+
+  let isRefreshing = false;
+  let failedQueue: { resolve: (value: unknown) => void; reject: (reason?: any) => void; }[] = [];
+
+  const processQueue = (error: Error | null, token: string | null = null) => {
+    failedQueue.forEach(prom => {
+      if (error) {
+        prom.reject(error);
+      } else {
+        prom.resolve(token);
+      }
+    });
+    failedQueue = [];
+  };
+
+  const responseInterceptor = apiClient.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+
+      if (error.response?.status === 401 && !originalRequest._retry) {
+        if (isRefreshing) {
+          return new Promise(function(resolve, reject) {
+            failedQueue.push({ resolve, reject });
+          }).then(token => {
+            originalRequest.headers = originalRequest.headers ?? {};
+            originalRequest.headers['Authorization'] = 'Bearer ' + token;
+            return apiClient(originalRequest);
+          });
+        }
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        try {
+          const { data } = await authApi.refreshToken();
+          const newAccessToken = data.accessToken;
+          
+          setAccessToken(newAccessToken);
+          
+          if (originalRequest.headers) {
+            originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+          }
+          processQueue(null, newAccessToken);
+          return apiClient(originalRequest);
+
+        } catch (refreshError) {
+          processQueue((refreshError as Error), null);
+          console.error("Session expired. Please log in again.", refreshError);
+          logout();
+          return Promise.reject(refreshError);
+        } finally {
+          isRefreshing = false;
+        }
+      }
+      return Promise.reject(error);
+    }
+  );
+
+  return () => {
+    apiClient.interceptors.request.eject(requestInterceptor);
+    apiClient.interceptors.response.eject(responseInterceptor);
+  };
 };

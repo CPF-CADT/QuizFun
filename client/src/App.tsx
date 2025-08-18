@@ -1,46 +1,30 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login"; 
 import Homepage from "./pages/Homepage";
 import Joingame from "./pages/Joingame";
 import Dashboard from "./pages/Dashboard";
-import Explore from "./pages/Explore"; 
+import Explore from "./pages/Explore"; // Importing Explore component
 import CreateQuiz from "./pages/CreateQuiz";
 import Game from './test/Quizz';
 import VerifyCode from "./pages/VerifyCode";
-import LobbyPage from "./pages/LobbyPage"; 
-
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Root path goes to Homepage */}
-        <Route path="/" element={<Homepage />} />
-        
-        {/* Auth routes */}
+        {/* Redirect root path to login */}
+        {/* <Route path="/" element={<Navigate to="/login" replace />} /> */}
+        <Route path="/" element={<Homepage />} /> {/* Set Homepage as the root path */}
+        {/* Routes for signup and login */}
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
-
-        {/* Game routes */}
-        <Route path="/enter-pin" element={<Joingame />} /> 
-       
-        <Route path="/game" element={<Game />} />
-
-        {/* Other routes */}
+        <Route path="/enter-pin" element={<Joingame />} /> {/* ✅ new route */}
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/explore" element={<Explore />} /> 
         <Route path="/create-quiz" element={<CreateQuiz />} />
-        <Route path="/verifycode" element={<VerifyCode />} />
-        <Route
-  path="/lobby"
-  element={
-    <LobbyPage 
-      gamePin="123456"
-      players={[]} 
-      hostName="Host"
-    />
-  }
-/>
+        <Route path="/game" element={<Game />}  />
+         <Route path="/verifycode" element={<VerifyCode />} />
+
       </Routes>
     </Router>
   );

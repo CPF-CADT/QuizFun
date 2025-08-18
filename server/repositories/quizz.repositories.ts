@@ -4,30 +4,51 @@ import { UserModel } from "../model/User";
 import { GameSessionModel } from "../model/GameSession";
 export class QuizzRepositories {
 
-	static async getAllQuizzes(page: number, limit: number,sortBy: string = 'createdAt',sortOrder: string = 'desc',searchQuery?:string) {
-        const skip = (page - 1) * limit;
-		   const filter: any = { visibility: 'public' };
-    if (searchQuery) {
-        filter.title = { $regex: searchQuery, $options: 'i' }; 
-    }
-const sort: any = {};
-    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+	static async getAllQuizzes(page: number, limit: number, sortBy: string = 'createdAt', sortOrder: string = 'desc', searchQuery?: string, tags?: string[]) {
+		const offset = (page - 1) * limit;
 
+		// Base filter
+		const filter: any = {};
 
-        const quizzes = await QuizModel.find({visibility:'public'})
-            .skip(skip)
-            .limit(limit)
-            .sort(sort); 
+		// Search across multiple fields
+		if (searchQuery) {
+			filter.$or = [
+				{ title: { $regex: searchQuery, $options: 'i' } },
+				{ description: { $regex: searchQuery, $options: 'i' } }
+			];
+		}
 
-        const total = await QuizModel.countDocuments(filter);
+		// Filter by tag if provided
+		if (tags && tags.length > 0) {
+			filter.tags = { $in: tags };
+		}
 
-        return {
-            quizzes,
-            total,
-            page,
-            totalPages: Math.ceil(total / limit)
-        };
-    }
+		// Validate and apply sorting
+		const validSortFields = ['createdAt', 'title', 'updatedAt'];
+		const sort: any = {
+			[validSortFields.includes(sortBy) ? sortBy : 'createdAt']:
+				sortOrder === 'asc' ? 1 : -1
+		};
+
+		const [quizzes, total] = await Promise.all([
+			QuizModel.find(filter)
+				.sort(sort)
+				.skip(offset)
+				.limit(limit)
+				.lean(), // lean for faster queries
+			QuizModel.countDocuments(filter)
+		]);
+
+		return {
+			quizzes,
+			total,
+			page,
+			limit,
+			totalPages: Math.ceil(total / limit),
+			hasNext: page * limit < total,
+			hasPrev: page > 1
+		};
+	}
 	static async getQuizz(qId: string) {
 		if (!Types.ObjectId.isValid(qId)) {
 			throw new Error("Invalid quiz ID");
@@ -43,7 +64,7 @@ const sort: any = {};
 
 	static async addQuestion(quizId: string, question: IQuestion): Promise<boolean> {
 		const result = await QuizModel.updateOne(
-			 { $match: { _id: new Types.ObjectId(quizId) } },
+			{ _id: new Types.ObjectId(quizId) },
 			{ $push: { questions: question } }
 		);
 		return result.modifiedCount > 0;
@@ -131,24 +152,39 @@ const sort: any = {};
 
 		return result.deletedCount !== undefined && result.deletedCount > 0;
 	}
+	static async cloneQuizz(quizId: string, userId: string): Promise<IQuiz | null> {
+		const quizz = await QuizModel.findById(quizId).lean();
+		if (!quizz) return null;
+		if (quizz.visibility === 'private') {
+			return null;
+		}
+		const { _id, createdAt, updatedAt, ...quizData } = quizz;
+
+		const clonedQuiz = await QuizModel.create({
+			...quizData,
+			forkBy: new Types.ObjectId(userId),
+		});
+
+		return clonedQuiz.toObject();
+	}
 
 	static async getDashboardStats() {
-        const totalQuizzes = await QuizModel.countDocuments();
-        const totalStudents = await UserModel.countDocuments({ role: 'player' });
-        const completedQuizzes = await GameSessionModel.countDocuments({ status: 'completed' });
+		const totalQuizzes = await QuizModel.countDocuments();
+		const totalStudents = await UserModel.countDocuments({ role: 'player' });
+		const completedQuizzes = await GameSessionModel.countDocuments({ status: 'completed' });
 
-        const avgScoreAggregation = await GameSessionModel.aggregate([
-            { $unwind: "$results" },
-            { $group: { _id: null, avgScore: { $avg: "$results.finalScore" } } }
-        ]);
+		const avgScoreAggregation = await GameSessionModel.aggregate([
+			{ $unwind: "$results" },
+			{ $group: { _id: null, avgScore: { $avg: "$results.finalScore" } } }
+		]);
 
-        const averageScore = avgScoreAggregation.length > 0 ? avgScoreAggregation[0].avgScore : 0;
+		const averageScore = avgScoreAggregation.length > 0 ? avgScoreAggregation[0].avgScore : 0;
 
-        return {
-            totalQuizzes,
-            totalStudents,
-            completedQuizzes,
-            averageScore: parseFloat(averageScore.toFixed(2))
-        };
-    }
+		return {
+			totalQuizzes,
+			totalStudents,
+			completedQuizzes,
+			averageScore: parseFloat(averageScore.toFixed(2))
+		};
+	}
 }

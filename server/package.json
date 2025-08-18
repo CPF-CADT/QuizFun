@@ -15,6 +15,7 @@
   "dependencies": {
     "@faker-js/faker": "^9.9.0",
     "axios": "^1.10.0",
+    "bcrypt": "^6.0.0",
     "cloudinary": "^2.7.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -32,6 +33,7 @@
     "pg": "^8.16.0",
     "pg-hstore": "^2.3.4",
     "pg-promise": "^11.14.0",
+    "redis": "^5.8.1",
     "reflect-metadata": "^0.2.2",
     "sequelize-typescript": "^2.1.6",
     "socket.io": "^4.8.1",
@@ -44,6 +46,7 @@
   "devDependencies": {
     "@babel/preset-typescript": "^7.27.1",
     "@jest-mock/express": "^3.0.0",
+    "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.18",
     "@types/express": "^5.0.3",
