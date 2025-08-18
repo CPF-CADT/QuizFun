@@ -1,8 +1,6 @@
 import { Types } from "mongoose";
 import { IQuestion } from "../../model/Quiz";
 
-// --- TYPE DEFINITIONS ---
-
 export type ParticipantRole = 'host' | 'player';
 export type GameState = 'lobby' | 'question' | 'results' | 'end';
 
@@ -13,7 +11,7 @@ export interface GameSettings {
 
 export interface Participant {
     socket_id: string;
-    user_id?: string; // Optional to support guests
+    user_id?: string; 
     user_name: string;
     isOnline: boolean;
     score: number;
@@ -28,13 +26,13 @@ export interface PlayerAnswer {
 }
 
 export interface SessionData {
-    dbId?: Types.ObjectId;
+    sessionId: string;
     quizId: string;
     hostId: string;
     participants: Participant[];
     questions?: IQuestion[];
     currentQuestionIndex: number;
-    answers: Map<string, PlayerAnswer[]>; // Keyed by user_id or socket_id
+    answers: Map<string, PlayerAnswer[]>;
     questionTimer?: NodeJS.Timeout;
     autoNextTimer?: NodeJS.Timeout;
     gameState: GameState;
@@ -44,15 +42,49 @@ export interface SessionData {
     questionStartTime?: number;
 }
 
-/**
- * Manages all active game sessions in memory.
- */
+export interface SanitizedQuestionOption {
+    text: string;
+}
+
+export interface SanitizedQuestion {
+    questionText: string;
+    point: number;
+    timeLimit: number;
+    imageUrl?: string;
+    options: SanitizedQuestionOption[];
+}
+
+// The question structure when results are shown, including answer details.
+export interface ResultsQuestion extends SanitizedQuestion {
+    correctAnswerIndex: number;
+    yourAnswer?: {
+        optionIndex: number;
+        wasCorrect: boolean;
+    };
+}
+
+export interface GameStatePayload {
+    sessionId: string;
+    roomId: number;
+    gameState: GameState;
+    participants: Participant[];
+    currentQuestionIndex: number;
+    totalQuestions: number;
+    isFinalResults: boolean;
+    settings: GameSettings;
+    questionStartTime?: number;
+    answerCounts: number[];
+    error?: string;
+    question: SanitizedQuestion | ResultsQuestion | null;
+    yourUserId?: string;
+}
+
 class Manager {
     private sessions: Map<number, SessionData> = new Map();
 
     public addSession(
         roomId: number,
-        data: Pick<SessionData, 'quizId' | 'hostId' | 'settings'>
+        data: Pick<SessionData, 'quizId' | 'hostId' | 'settings' | 'sessionId'>
     ): void {
         const session: SessionData = {
             ...data,
@@ -64,8 +96,9 @@ class Manager {
             answerCounts: [],
         };
         this.sessions.set(roomId, session);
-        console.log(`[GameSession] Room ${roomId} created.`);
+        console.log(`[GameSession] In-memory session created for room ${roomId} (SessionID: ${data.sessionId}).`);
     }
+
 
     public getSession(roomId: number): SessionData | undefined {
         return this.sessions.get(roomId);

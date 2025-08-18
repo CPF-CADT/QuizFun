@@ -1,23 +1,56 @@
+// FILE: src/socket/handlers/handlers.ts
+
 import { Server, Socket } from "socket.io";
-import { GameSessionManager, Participant, GameSettings } from "../../config/data/GameSession";
-import { generateRandomNumber } from '../../service/generateRandomNumber';
+import { GameSessionManager, Participant, GameSettings, PlayerAnswer } from "../../config/data/GameSession";
+import { broadcastGameState, endRound, nextQuestion } from "./shared"; 
+import { GameRepository } from "../../repositories/game.repositories";
 import { QuizModel } from "../../model/Quiz";
-import { broadcastGameState, endRound } from "./shared";
-import { PlayerAnswer } from "../../config/data/GameSession";
+import { generateRandomNumber } from "../../service/generateRandomNumber";
+import { GameSessionModel } from "../../model/GameSession";
 
-// =================================================================================
-// LOBBY & GAME SETUP HANDLERS
-// =================================================================================
+interface CreateRoomData { quizId: string; userId: string; hostName: string; settings: GameSettings; }
+interface JoinRoomData { roomId: number; username: string; userId: string; }
+interface RejoinGameData { roomId: number; userId: string; }
+interface SubmitAnswerData { roomId: number; userId: string; optionIndex: number; }
 
-export function handleCreateRoom(socket: Socket, io: Server, data: { quizId: string, userId: string, hostName: string, settings: GameSettings }) {
-    const roomId = generateRandomNumber(6);
+export async function handleCreateRoom(socket: Socket, io: Server, data: CreateRoomData): Promise<void> {
+    const roomId = generateRandomNumber(6); // This is the numeric joinCode
+
+    let uniqueSessionId: string;
+    try {
+        // Step 1: Create the document in MongoDB first to get a unique _id.
+        const newGameSession = new GameSessionModel({
+            quizId: data.quizId,
+            hostId: data.userId,
+            joinCode: roomId,
+            status: 'waiting',
+        });
+        await newGameSession.save();
+        uniqueSessionId = newGameSession._id.toString();
+        console.log(`[DB] Created GameSession ${uniqueSessionId} for room ${roomId}.`);
+
+    } catch (error) {
+        console.error(`[DB] CRITICAL: Failed to create GameSession for room ${roomId}:`, error);
+        socket.emit("error-message", "A database error prevented the room from being created.");
+        return;
+    }
+
+    // Step 2: Add the session to the in-memory manager, including the new unique ID.
     GameSessionManager.addSession(roomId, {
+        sessionId: uniqueSessionId,
         quizId: data.quizId,
         hostId: data.userId,
         settings: data.settings,
     });
 
-    const room = GameSessionManager.getSession(roomId)!;
+    const room = GameSessionManager.getSession(roomId);
+    
+    if (!room) {
+        console.error(`[Lobby] CRITICAL: Failed to create or retrieve session for room ${roomId}.`);
+        socket.emit("error-message", "Failed to create the room due to a server error.");
+        return;
+    }
+
     const hostParticipant: Participant = {
         socket_id: socket.id,
         user_id: data.userId,
@@ -29,19 +62,32 @@ export function handleCreateRoom(socket: Socket, io: Server, data: { quizId: str
     };
     room.participants.push(hostParticipant);
     socket.join(roomId.toString());
+
+    // Step 3: Broadcast the initial state, which will now include the unique sessionId.
     broadcastGameState(io, roomId);
 }
 
-export function handleJoinRoom(socket: Socket, io: Server, data: { roomId: number; username: string, userId: string }) {
+
+export async function handleJoinRoom(socket: Socket, io: Server, data: JoinRoomData): Promise<void> {
     const { roomId, username, userId } = data;
     const room = GameSessionManager.getSession(roomId);
 
-    if (!room) return socket.emit("error-message", `Room "${roomId}" does not exist.`);
-    if (room.gameState !== 'lobby') return socket.emit("error-message", `Game in room "${roomId}" has already started.`);
-    if (room.participants.some(p => p.user_id === userId)) {
-        return handleRejoinGame(socket, io, { roomId, userId });
+    if (!room) {
+        socket.emit("error-message", `Room "${roomId}" does not exist.`);
+        return;
     }
-    if (room.participants.length >= 50) return socket.emit("error-message", `Room "${roomId}" is full.`);
+    if (room.gameState !== 'lobby') {
+        socket.emit("error-message", `Game in room "${roomId}" has already started.`);
+        return;
+    }
+    if (room.participants.some(p => p.user_id === userId)) {
+        await handleRejoinGame(socket, io, { roomId, userId });
+        return;
+    }
+    if (room.participants.length >= 50) {
+        socket.emit("error-message", `Room "${roomId}" is full.`);
+        return;
+    }
 
     const player: Participant = {
         socket_id: socket.id,
@@ -57,112 +103,76 @@ export function handleJoinRoom(socket: Socket, io: Server, data: { roomId: numbe
     broadcastGameState(io, roomId);
 }
 
-export async function startGame(socket: Socket, io: Server, roomId: number) {
+
+export async function startGame(socket: Socket, io: Server, roomId: number): Promise<void> {
     const room = GameSessionManager.getSession(roomId);
     const host = room?.participants.find(p => p.role === 'host');
 
     if (!room || !host || host.socket_id !== socket.id) return;
-    if (room.participants.filter(p => p.role === 'player' && p.isOnline).length === 0) return;
+    if (room.participants.filter(p => p.role === 'player' && p.isOnline).length === 0) {
+        socket.emit('error-message', "Cannot start the game with no players.");
+        return;
+    };
 
     try {
         const quiz = await QuizModel.findById(room.quizId).lean();
         if (!quiz || !quiz.questions || quiz.questions.length === 0) {
-            return broadcastGameState(io, roomId, "Error: This quiz has no questions.");
+            broadcastGameState(io, roomId, "Error: This quiz has no questions.");
+            return;
         }
         room.questions = quiz.questions;
-        nextQuestion(io, roomId);
+        
+        await GameRepository.updateSessionStatus(room.sessionId, 'in_progress');
+        
+        await nextQuestion(io, roomId);
     } catch (error) {
         console.error(`[Game] Error starting game for room ${roomId}:`, error);
         broadcastGameState(io, roomId, "A server error occurred while starting the game.");
     }
 }
 
-// =================================================================================
-// CORE GAMEPLAY HANDLERS
-// =================================================================================
 
-export function nextQuestion(io: Server, roomId: number) {
-    const room = GameSessionManager.getSession(roomId);
-    if (!room || !room.questions) return;
-
-    room.currentQuestionIndex++;
-    room.answers.clear();
-    room.answerCounts = [];
-    room.participants.forEach(p => p.hasAnswered = false);
-
-    if (room.currentQuestionIndex >= room.questions.length) {
-        console.log(`[Game] Final question answered for room ${roomId}.`);
-        room.gameState = 'end';
-        room.isFinalResults = true;
-        broadcastGameState(io, roomId);
-        return;
-    }
-
-    room.gameState = 'question';
-    console.log(`[Game] Sending question ${room.currentQuestionIndex + 1} to room ${roomId}.`);
-    broadcastGameState(io, roomId);
-}
-
-export function handleSubmitAnswer(socket: Socket, io: Server, data: { roomId: number; userId: string, optionIndex: number }) {
+export async function handleSubmitAnswer(socket: Socket, io: Server, data: SubmitAnswerData): Promise<void> {
     const { roomId, userId, optionIndex } = data;
     const room = GameSessionManager.getSession(roomId);
     const player = room?.participants.find(p => p.user_id === userId);
+    
+    if (!room || !player || player.role !== 'player' || room.gameState !== 'question' || !room.questions) return;
+    if (!room.settings.allowAnswerChange && player.hasAnswered) return;
 
-    if (!room || !player || player.role !== 'player' || room.gameState !== 'question') return;
-
-    // If answer changes are disallowed and player has already answered, do nothing.
-    if (!room.settings.allowAnswerChange && player.hasAnswered) {
+    const currentQuestion = room.questions[room.currentQuestionIndex];
+    if (!currentQuestion) {
+        console.error(`Room ${roomId} has no valid current question.`);
         return;
     }
-    // Calculate elapsed and remaining time in milliseconds
-    if (!room.questions) {
-        console.error(`Room ${roomId} has no questions.`);
-        return;
-    }
-
+    
     const elapsedMs = Date.now() - (room.questionStartTime ?? Date.now());
-    const timeLimitSec = room.questions?.[room.currentQuestionIndex]?.timeLimit ?? 0;
-    const remainingSec = Math.max(0, timeLimitSec - elapsedMs / 1000);
+    const remainingSec = Math.max(0, currentQuestion.timeLimit - elapsedMs / 1000);
 
-    // Ensure user's answer array exists
-    let userAnswer = room.answers.get(userId);
-    if (!userAnswer) {
-        userAnswer = [];
-    }
-
-    // Create PlayerAnswer object
     const playerAnswer: PlayerAnswer = {
         optionIndex: optionIndex,
         remainingTime: remainingSec,
         isCorrect: false,
     };
 
-    // Push the answer to the user's stack
-    userAnswer.push(playerAnswer);
+    const userAnswers = room.answers.get(userId) || [];
+    userAnswers.push(playerAnswer);
+    room.answers.set(userId, userAnswers);
 
-    room.answers.set(userId, userAnswer);
-
-
-    if (!player.hasAnswered) {
-        player.hasAnswered = true;
-    }
+    player.hasAnswered = true;
     console.log(`[Game] Player ${player.user_name} in room ${roomId} submitted answer ${optionIndex}.`);
 
-    // Only broadcast state back if answer changes are allowed.
-    // Otherwise, the UI locks and we wait for the round to end.
     if (room.settings.allowAnswerChange) {
         broadcastGameState(io, roomId);
     }
 
-    // If answer changes are NOT allowed, we only end the round when all players have answered.
-    // If they ARE allowed, we wait for the timer.
     const activePlayers = room.participants.filter(p => p.role === 'player' && p.isOnline);
     if (!room.settings.allowAnswerChange && activePlayers.every(p => p.hasAnswered)) {
-        endRound(io, roomId);
+        await endRound(io, roomId);
     }
 }
 
-export function handleRequestNextQuestion(socket: Socket, io: Server, roomId: number) {
+export async function handleRequestNextQuestion(socket: Socket, io: Server, roomId: number): Promise<void> {
     const room = GameSessionManager.getSession(roomId);
     const host = room?.participants.find(p => p.role === 'host');
     if (room && host?.socket_id === socket.id && room.gameState === 'results') {
@@ -170,11 +180,11 @@ export function handleRequestNextQuestion(socket: Socket, io: Server, roomId: nu
             clearTimeout(room.autoNextTimer);
             room.autoNextTimer = undefined;
         }
-        nextQuestion(io, roomId);
+        await nextQuestion(io, roomId);
     }
 }
 
-export function handlePlayAgain(socket: Socket, io: Server, roomId: number) {
+export async function handlePlayAgain(socket: Socket, io: Server, roomId: number): Promise<void> {
     const room = GameSessionManager.getSession(roomId);
     const host = room?.participants.find(p => p.role === 'host');
 
@@ -193,14 +203,13 @@ export function handlePlayAgain(socket: Socket, io: Server, roomId: number) {
     }
 }
 
-// =================================================================================
-// CONNECTION & DISCONNECTION HANDLERS
-// =================================================================================
-
-export function handleRejoinGame(socket: Socket, io: Server, data: { roomId: number, userId: string }) {
+export async function handleRejoinGame(socket: Socket, io: Server, data: RejoinGameData): Promise<void> {
     const { roomId, userId } = data;
     const room = GameSessionManager.getSession(roomId);
-    if (!room) return socket.emit('error-message', 'The game you tried to rejoin does not exist.');
+    if (!room) {
+        socket.emit('error-message', 'The game you tried to rejoin does not exist.');
+        return;
+    }
 
     const participant = room.participants.find(p => p.user_id === userId);
     if (participant) {
@@ -214,26 +223,26 @@ export function handleRejoinGame(socket: Socket, io: Server, data: { roomId: num
     }
 }
 
-export function handleDisconnect(socket: Socket, io: Server) {
+export async function handleDisconnect(socket: Socket, io: Server): Promise<void> {
     const sessionInfo = GameSessionManager.findSessionBySocketId(socket.id);
-    if (sessionInfo) {
-        const { roomId, session } = sessionInfo;
-        const disconnectedUser = session.participants.find(p => p.socket_id === socket.id);
+    if (!sessionInfo) return;
+    
+    const { roomId, session } = sessionInfo;
+    const disconnectedUser = session.participants.find(p => p.socket_id === socket.id);
 
-        if (disconnectedUser) {
-            console.log(`[Connection] User ${disconnectedUser.user_name} disconnected.`);
-            disconnectedUser.isOnline = false;
+    if (disconnectedUser) {
+        console.log(`[Connection] User ${disconnectedUser.user_name} disconnected.`);
+        disconnectedUser.isOnline = false;
 
-            if (disconnectedUser.role === 'host') {
-                broadcastGameState(io, roomId, "The host has disconnected. The game has ended.");
-                GameSessionManager.removeSession(roomId);
+        if (disconnectedUser.role === 'host') {
+            broadcastGameState(io, roomId, "The host has disconnected. The game has ended.");
+            GameSessionManager.removeSession(roomId);
+        } else {
+            const activePlayers = session.participants.filter(p => p.role === 'player' && p.isOnline);
+            if (session.gameState === 'question' && !session.settings.allowAnswerChange && activePlayers.length > 0 && activePlayers.every(p => p.hasAnswered)) {
+                await endRound(io, roomId);
             } else {
-                const activePlayers = session.participants.filter(p => p.role === 'player' && p.isOnline);
-                if (session.gameState === 'question' && !session.settings.allowAnswerChange && activePlayers.length > 0 && activePlayers.every(p => p.hasAnswered)) {
-                    endRound(io, roomId);
-                } else {
-                    broadcastGameState(io, roomId);
-                }
+                broadcastGameState(io, roomId);
             }
         }
     }

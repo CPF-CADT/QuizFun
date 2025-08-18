@@ -1,15 +1,13 @@
-import { Router } from 'express';
+import express from 'express'
 import { GameController } from '../controller/game.controller';
 
-const gameRouter = Router();
+export const gameRouter = express.Router();
 
-// gameRouter.post('/games', GameController.hostNewGame);
-// gameRouter.post('/games/:gameId/players', GameController.addPlayer);
+gameRouter.get('/', GameController.getSessions);
+gameRouter.get('/:id', GameController.getSessionDetails);
+gameRouter.get('/:id/history', GameController.getSessionHistory);
+gameRouter.post('/:sessionId/feedback', GameController.addFeedbackToSession);
+gameRouter.get('/:sessionId/results', GameController.getSessionResults);
+gameRouter.get('/:userId/history', GameController.getUserHistory);
+gameRouter.get('/:userId/performance/:quizId', GameController.getUserPerformanceOnQuiz);
 
-// gameRouter.get('/', GameController.getAllGames);
-// gameRouter.get('/games-history', GameController.getGamesWithHistory);
-
-// gameRouter.get('/users/:userId/game-history', GameController.getUserGameHistory);
-// gameRouter.get('/users/:userId/join-history', GameController.getUserJoinHistory);
-
-export default gameRouter;

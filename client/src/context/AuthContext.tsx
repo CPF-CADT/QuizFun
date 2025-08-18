@@ -1,18 +1,14 @@
-// src/contexts/authContext.ts
+// src/context/authContext.tsx
+import { useState, useEffect, useContext, createContext, useMemo, useRef, type ReactNode } from 'react';
+import { authApi, setupAuthInterceptors } from '../service/api';
+import { setStoredUser, clearClientAuthData } from '../service/auth';
 
-import { createContext, useState, useContext, useEffect, useCallback, type ReactNode } from 'react';
-import { setToken, setStoredUser, getStoredUser, clearClientAuthData } from '../service/auth';
-import { authApi, apiClient } from '../service/api';
-
+// --- Type Definitions ---
 interface User {
   id: string;
   name: string;
   email: string;
-}
-
-interface LoginResponseData {
-  accessToken: string;
-  user: User;
+  role: string;
 }
 
 interface AuthContextType {
@@ -29,71 +25,67 @@ interface AuthProviderProps {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Apply the correct props type to the function signature
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const logoutUser = useCallback(async () => {
-    try {
-      await authApi.logout();
-    } catch (error) {
-      console.error("Logout failed on server:", error);
-    } finally {
-      clearClientAuthData();
-      setUser(null);
-    }
+  const accessTokenRef = useRef(accessToken);
+  useEffect(() => {
+    accessTokenRef.current = accessToken;
+  }, [accessToken]);
+
+  const handleLogout = () => {
+    authApi.logout().catch(error => console.error("Logout API call failed", error));
+    
+    setAccessToken(null);
+    setUser(null);
+    clearClientAuthData();
+  };
+  
+  useEffect(() => {
+    const cleanupInterceptors = setupAuthInterceptors(setAccessToken, handleLogout, accessTokenRef);
+
+    const verifyAuth = async () => {
+      try {
+        const { data } = await authApi.refreshToken();
+        setAccessToken(data.accessToken);
+        
+        const userResponse = await authApi.getProfile();
+        setUser(userResponse.data);
+        setStoredUser(userResponse.data); 
+      } catch (error) {
+        console.log("No active session found.");
+        handleLogout();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    verifyAuth();
+    return cleanupInterceptors;
   }, []);
 
-  const verifyAuth = useCallback(async () => {
-    try {
-      const { data } = await apiClient.post<{ accessToken: string }>('/user/refresh-token');
-      setToken(data.accessToken);
-      const storedUser = getStoredUser();
-      if (storedUser) {
-        setUser(storedUser);
-      } else {
-        // If we have a valid session but no user data, the user should be logged out.
-        await logoutUser();
-      }
-    } catch (error) {
-      setUser(null);
-      clearClientAuthData();
-    } finally {
-      setIsLoading(false);
-    }
-  }, [logoutUser]);
-
-  useEffect(() => {
-    verifyAuth();
-  }, [verifyAuth]);
-
-  const login = async (credentials: object) => {
+  const handleLogin = async (credentials: object) => {
     const { data } = await authApi.login(credentials);
-    const { accessToken, user: userData }: LoginResponseData = data;
+    const { accessToken: newAccessToken, user: userData } = data;
     
-    setToken(accessToken);
-    setStoredUser(userData);
+    setAccessToken(newAccessToken);
     setUser(userData);
+    setStoredUser(userData);
   };
 
-  const logout = async () => {
-    await logoutUser();
-    // Redirect after state is cleared
-    window.location.href = '/login';
-  };
-
-  const value: AuthContextType = {
+  const value = useMemo(() => ({
     user,
-    login,
-    logout,
-    isAuthenticated: !!user,
+    login: handleLogin,
+    logout: handleLogout,
+    isAuthenticated: !!accessToken && !!user,
     isLoading,
-  };
+  }), [user, accessToken, isLoading]);
 
   return (
     <AuthContext.Provider value={value}>
-      {!isLoading && children}
+      {!isLoading ? children : <div className="flex items-center justify-center h-screen bg-gray-900 text-white">Loading...</div>}
     </AuthContext.Provider>
   );
 }

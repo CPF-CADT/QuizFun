@@ -1,6 +1,10 @@
 import { Request, Response } from 'express';
 import { IQuiz, IQuestion, IOption } from '../model/Quiz';
 import { QuizzRepositories } from '../repositories/quizz.repositories';
+import { FileUploadModel } from '../model/FileUpload';
+import { uploadImage } from '../service/FileUpload';
+import { GameRepository } from '../repositories/game.repositories';
+import { Types } from 'mongoose';
 
 /**
  * @swagger
@@ -82,7 +86,7 @@ import { QuizzRepositories } from '../repositories/quizz.repositories';
  * @swagger
  * /api/quizz:
  *   get:
- *     summary: Get all quizzes with advanced pagination and filtering
+ *     summary: Get all quizzes with advanced pagination, filtering, and sorting
  *     tags: [Quiz]
  *     parameters:
  *       - in: query
@@ -104,11 +108,11 @@ import { QuizzRepositories } from '../repositories/quizz.repositories';
  *           type: string
  *         description: Search quizzes by title or description
  *       - in: query
- *         name: visibility
+ *         name: tags
  *         schema:
  *           type: string
- *           enum: [public, private]
- *         description: Filter by quiz visibility
+ *           example: math,science
+ *         description: Filter by multiple tags (comma-separated)
  *       - in: query
  *         name: sortBy
  *         schema:
@@ -137,6 +141,9 @@ import { QuizzRepositories } from '../repositories/quizz.repositories';
  *                 page:
  *                   type: integer
  *                   example: 1
+ *                 limit:
+ *                   type: integer
+ *                   example: 10
  *                 totalPages:
  *                   type: integer
  *                   example: 5
@@ -150,34 +157,54 @@ import { QuizzRepositories } from '../repositories/quizz.repositories';
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Quiz'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Failed to fetch quizzes
+ *                 error:
+ *                   type: string
+ *                   example: Unknown error
  */
+
+
 export async function getAllQuizzes(req: Request, res: Response) {
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 10));
-    const search = req.query.search as string;
-    const visibility = req.query.visibility as 'public' | 'private';
+
+    const search = req.query.search as string | undefined;
+
+    // Support multiple tags: ?tags=math,science
+    const tags = req.query.tags
+        ? (req.query.tags as string).split(',').map(tag => tag.trim()).filter(Boolean)
+        : undefined;
+
     const sortBy = (req.query.sortBy as string) || 'createdAt';
     const sortOrder = (req.query.sortOrder as 'asc' | 'desc') || 'desc';
 
-    // Validate sortBy field
-    const validSortFields = ['createdAt', 'title', 'updatedAt'];
-    const finalSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
-
     try {
         const result = await QuizzRepositories.getAllQuizzes(
-            page, 
-            limit, 
+            page,
+            limit,
+            sortBy,
+            sortOrder,
+            search,
+            tags
         );
 
         res.status(200).json(result);
     } catch (error) {
-        res.status(500).json({ 
-            message: 'Failed to fetch quizzes', 
-            error: error instanceof Error ? error.message : 'Unknown error' 
+        res.status(500).json({
+            message: 'Failed to fetch quizzes',
+            error: error instanceof Error ? error.message : 'Unknown error'
         });
     }
 }
-
 
 /**
  * @swagger
@@ -318,6 +345,7 @@ export async function getQuizzByUser(req: Request, res: Response) {
     }
 }
 
+
 /**
  * @swagger
  * /api/quizz:
@@ -341,9 +369,6 @@ export async function getQuizzByUser(req: Request, res: Response) {
  *               description:
  *                 type: string
  *                 example: "A quiz on basic arithmetic"
- *               creatorId:
- *                 type: string
- *                 example: "64d8f9d3f1234a5678b90123"
  *               visibility:
  *                 type: string
  *                 enum: [public, private]
@@ -381,17 +406,124 @@ export async function getQuizzByUser(req: Request, res: Response) {
  */
 
 export async function createQuizz(req: Request, res: Response) {
-    const { title, description, creatorId, visibility, templateImgUrl } = req.body;
+    const { title, description, visibility, templateImgUrl } = req.body;
+    const userId = new Types.ObjectId (req.user?.id);
     const quizz = await QuizzRepositories.createQuizz({
         title,
         description,
-        creatorId,
+        creatorId:userId,
         visibility,
         templateImgUrl,
     } as IQuiz);
     res.status(201).json({ message: 'quizz create success', data: quizz });
 }
 
+
+
+/**
+ * @swagger
+ * /api/quizz/{quizzId}/clone:
+ *   post:
+ *     summary: Clone a quiz
+ *     tags: [Quiz]
+ *     parameters:
+ *       - in: path
+ *         name: quizzId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The quiz ID to clone
+ *     responses:
+ *       201:
+ *         description: Quiz cloned successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Quiz'
+ *       400:
+ *         description: Missing parameters
+ *       404:
+ *         description: Quiz not found
+ *       500:
+ *         description: Internal server error
+ */
+
+export async function cloneQuizz(req: Request, res: Response) {
+    try {
+        const { quizzId } = req.params;
+        const userId = req.user!.id; 
+
+        if (!quizzId || !userId) {
+            return res.status(400).json({ message: 'Quiz ID and user ID are required' });
+        }
+        const quiz = await QuizzRepositories.cloneQuizz(quizzId, userId);
+
+        if (!quiz) {
+            return res.status(404).json({ message: 'Quiz not found' });
+        }
+        res.status(201).json(quiz);
+    } catch (error) {
+        res.status(500).json({
+            message: 'Failed to clone quiz',
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+}
+
+/**
+ * @swagger
+ * /api/quizz/{quizzId}/leaderboard:
+ *   get:
+ *     summary: Get the leaderboard for a specific quiz
+ *     tags: [Quiz]
+ *     parameters:
+ *       - in: path
+ *         name: quizzId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The quiz ID
+ *     responses:
+ *       200:
+ *         description: Leaderboard data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   rank:
+ *                     type: integer
+ *                   name:
+ *                     type: string
+ *                   score:
+ *                     type: integer
+ *                   profileUrl:
+ *                     type: string
+ *       404:
+ *         description: Quiz not found or no completed games
+ *       500:
+ *         description: Internal server error
+ */
+
+export async function getQuizLeaderboard(req: Request, res: Response) {
+    try {
+        const { quizzId } = req.params;
+        const leaderboard = await GameRepository.getLeaderboardForQuiz(quizzId);
+
+        if (!leaderboard || leaderboard.length === 0) {
+            return res.status(404).json({ message: 'No leaderboard data found for this quiz.' });
+        }
+
+        res.status(200).json(leaderboard);
+    } catch (error) {
+        res.status(500).json({
+            message: 'Failed to fetch quiz leaderboard',
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+}
 
 /**
  * @swagger
@@ -708,3 +840,15 @@ export async function getDashboardStats(req: Request, res: Response) {
         res.status(500).json({ message: 'Error fetching dashboard stats', error });
     }
 }
+// interface MulterRequest extends Request {
+//   file?: Express.Multer.File; 
+// }
+// export const uploadQuizImage= async(req:MulterRequest,res:Response)=>{
+//     console.log('backend received the image ');
+//     try {
+//         if(!req.file)return res.status(400).json({message:'no file have been input'})
+//             const imageBuffer:
+//     } catch (error) {
+        
+//     }
+// }
