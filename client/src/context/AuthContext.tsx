@@ -1,6 +1,6 @@
 // src/context/authContext.tsx
 import { useState, useEffect, useContext, createContext, useMemo, useRef, type ReactNode } from 'react';
-import { authApi, setupAuthInterceptors } from '../service/api';
+import { authApi, setupAuthInterceptors, type IUser } from '../service/api';
 import { setStoredUser, clearClientAuthData } from '../service/auth';
 
 // --- Type Definitions ---
@@ -12,7 +12,7 @@ interface User {
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: IUser | null;
   login: (credentials: object) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
@@ -26,7 +26,7 @@ interface AuthProviderProps {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<IUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -52,20 +52,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
   // --- END: THE FIX ---
   
-  useEffect(() => {
-    const cleanupInterceptors = setupAuthInterceptors(setAccessToken, handleLogout, accessTokenRef);
+useEffect(() => {
+  const cleanupInterceptors = setupAuthInterceptors(setAccessToken, handleLogout, accessTokenRef);
 
     const verifyAuth = async () => {
       try {
         const { data } = await authApi.refreshToken();
         setAccessToken(data.accessToken);
-        
+
         const userResponse = await authApi.getProfile();
         setUser(userResponse.data);
         setStoredUser(userResponse.data); 
       } catch (error) {
         console.log("No active session found.");
-        handleLogout(); // This will now correctly perform a client-side only logout
+        handleLogout(); 
       } finally {
         setIsLoading(false);
       }
@@ -88,7 +88,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     user,
     login: handleLogin,
     logout: handleLogout,
-    isAuthenticated: !!accessToken && !!user,
+    isAuthenticated: !!accessToken,
     isLoading,
   }), [user, accessToken, isLoading]);
 

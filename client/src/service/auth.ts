@@ -1,21 +1,15 @@
-// src/service/auth.ts
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
+import type { IUser } from "./api";
 
-export function setStoredUser(user: User): void {
+export function setStoredUser(user: IUser): void {
   localStorage.setItem('user', JSON.stringify(user));
 }
 
-export function getStoredUser(): User | null {
+export function getStoredUser(): IUser | null {
   const userJson = localStorage.getItem('user');
   if (!userJson) return null;
 
   try {
-    return JSON.parse(userJson) as User;
+    return JSON.parse(userJson) as IUser;
   } catch (e) {
     console.error("Failed to parse user data from localStorage", e);
     localStorage.removeItem('user');

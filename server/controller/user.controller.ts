@@ -684,6 +684,7 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
  *       500:
  *         description: Server error
  */
+
 export async function logout(req: Request, res: Response): Promise<void> {
   const refreshToken = req.cookies.refreshToken;
   const cookieOptions = {
@@ -693,8 +694,9 @@ export async function logout(req: Request, res: Response): Promise<void> {
   };
 
   if (!refreshToken) {
-    res.status(400).json({ message: "No refresh token provided" });
-    return
+    res.clearCookie("refreshToken", cookieOptions);
+    res.status(200).json({ message: "Logout successful" });
+    return;
   }
 
   try {
@@ -703,23 +705,21 @@ export async function logout(req: Request, res: Response): Promise<void> {
       process.env.JWT_REFRESH_SECRET!
     ) as { id: string };
 
-    const result = await redisClient.del(`refreshToken:${decoded.id}`);
-
-    if (result === 0) {
-      res.status(400).json({ message: "Already logged out or invalid token" });
-      return
-    }
+    await redisClient.del(`refreshToken:${decoded.id}`);
 
     res.clearCookie("refreshToken", cookieOptions);
     res.status(200).json({ message: "Logout successful" });
-    return
+    return;
 
   } catch (err) {
     console.error("Error during logout:", err);
-    res.status(401).json({ message: "Invalid or expired token" });
-    return
+
+    res.clearCookie("refreshToken", cookieOptions);
+    res.status(200).json({ message: "Logout successful" });
+    return;
   }
 }
+
 
 /**
  * @swagger
