@@ -115,7 +115,6 @@ import { Types } from 'mongoose';
  *         name: tags
  *         schema:
  *           type: string
- *           example: math,science
  *         description: Filter by multiple tags (comma-separated)
  *       - in: query
  *         name: sortBy
@@ -263,17 +262,11 @@ export async function getQuizzById(req: Request, res: Response) {
 
 /**
  * @swagger
- * /api/quizz/user/{userId}:
+ * /api/quizz/user/:
  *   get:
  *     summary: Get all quizzes created by a specific user with pagination
  *     tags: [Quiz]
  *     parameters:
- *       - in: path
- *         name: userId
- *         schema:
- *           type: string
- *         required: true
- *         description: The ID of the user
  *       - in: query
  *         name: page
  *         schema:
@@ -326,21 +319,25 @@ export async function getQuizzById(req: Request, res: Response) {
  *         description: Internal server error
  */
 
-export async function getQuizzByUser(req: Request, res: Response) {
-    const { userId } = req.params;
+export async function getQuizzByUser(req: Request, res: Response) { 
+    const userId = req.user?.id;
+    if (!userId) {
+        return res.status(400).json({ message: 'User ID is missing.' });
+    }
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 10));
-    const visibility = req.query.visibility as 'public' | 'private';
-
     try {
-        const result = await QuizzRepositories.getQuizzByUser(userId);
+        const { total, quizzes } = await QuizzRepositories.getQuizzByUser(userId, page, limit);
 
-        if (result.length === 0) {
-            res.status(404).json({ message: 'No quizzes found for this user.' });
-            return;
+        if (quizzes.length === 0) {
+            return res.status(404).json({ message: 'No quizzes found for this user.' });
         }
-
-        res.status(200).json(result);
+        res.status(200).json({
+            page,
+            limit,
+            total,
+            quizzes
+        });
     } catch (error) {
         res.status(500).json({ 
             message: 'Failed to fetch user quizzes', 

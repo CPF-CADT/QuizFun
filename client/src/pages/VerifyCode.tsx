@@ -1,4 +1,4 @@
-import React, { useState, ChangeEvent } from "react";
+import React, { useState, type ChangeEvent } from "react";
 import { FaArrowLeft, FaGamepad, FaKey } from "react-icons/fa";
 
 const VerifyCode: React.FC = () => {

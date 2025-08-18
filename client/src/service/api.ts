@@ -1,6 +1,6 @@
 // src/service/api.ts
 import axios, { type AxiosRequestConfig } from 'axios';
-import type { RefObject  } from 'react';
+import type { RefObject } from 'react';
 
 export const apiClient = axios.create({
   baseURL: 'http://localhost:3000/api/',
@@ -18,7 +18,7 @@ export const authApi = {
 export const setupAuthInterceptors = (
   setAccessToken: (token: string | null) => void,
   logout: () => void,
-  accessTokenRef: RefObject <string | null>
+  accessTokenRef: RefObject<string | null>
 ) => {
   const requestInterceptor = apiClient.interceptors.request.use(
     (config) => {
@@ -48,6 +48,15 @@ export const setupAuthInterceptors = (
     (response) => response,
     async (error) => {
       const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+
+      // --- START: THE FIX ---
+      // If the refresh token request itself fails, logout immediately.
+      if (originalRequest.url === '/user/refresh-token') {
+        console.error("Session has expired or refresh token is invalid. Logging out.");
+        logout();
+        return Promise.reject(error);
+      }
+      // --- END: THE FIX ---
 
       if (error.response?.status === 401 && !originalRequest._retry) {
         if (isRefreshing) {
