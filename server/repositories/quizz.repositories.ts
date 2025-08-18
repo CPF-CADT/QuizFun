@@ -58,9 +58,33 @@ export class QuizzRepositories {
 	static async createQuizz(quizz: IQuiz): Promise<IQuiz | null> {
 		return QuizModel.create(quizz);
 	}
-	static async getQuizzByUser(userId: string) {
-		return QuizModel.find({ $match: { _id: new Types.ObjectId(userId) } }).exec();
-	}
+	static async getQuizzByUser(userId?: string, page = 1, limit = 10) {
+        if (!userId) return { total: 0, quizzes: [] };
+        const objectId = new Types.ObjectId(userId);
+        const skip = (page - 1) * limit;
+
+        // total count
+        const total = await QuizModel.countDocuments({
+            $or: [
+                { forkBy: objectId },
+                { creatorId: objectId }
+            ]
+        });
+
+        // fetch paginated quizzes
+        const quizzes = await QuizModel.find({
+            $or: [
+                { forkBy: objectId },
+                { creatorId: objectId }
+            ]
+        })
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 }) 
+        .exec();
+
+        return { total, quizzes };
+    }
 
 	static async addQuestion(quizId: string, question: IQuestion): Promise<boolean> {
 		const result = await QuizModel.updateOne(

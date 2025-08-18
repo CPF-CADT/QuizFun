@@ -35,13 +35,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     accessTokenRef.current = accessToken;
   }, [accessToken]);
 
+  // --- START: THE FIX ---
   const handleLogout = () => {
-    authApi.logout().catch(error => console.error("Logout API call failed", error));
+    // Only call the backend logout endpoint if the user was actually logged in.
+    if (accessTokenRef.current) {
+      authApi.logout().catch(error => {
+        // This error is not critical, as we are clearing the client-side state anyway.
+        console.error("Server logout failed, proceeding with client-side cleanup.", error);
+      });
+    }
     
+    // Always perform client-side cleanup.
     setAccessToken(null);
     setUser(null);
     clearClientAuthData();
   };
+  // --- END: THE FIX ---
   
   useEffect(() => {
     const cleanupInterceptors = setupAuthInterceptors(setAccessToken, handleLogout, accessTokenRef);
@@ -56,7 +65,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setStoredUser(userResponse.data); 
       } catch (error) {
         console.log("No active session found.");
-        handleLogout();
+        handleLogout(); // This will now correctly perform a client-side only logout
       } finally {
         setIsLoading(false);
       }

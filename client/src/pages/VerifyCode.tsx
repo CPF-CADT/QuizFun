@@ -2,7 +2,7 @@
 import React, { useState, type ChangeEvent, useEffect } from "react";
 import { FaArrowLeft, FaGamepad, FaKey } from "react-icons/fa";
 import { useLocation, useNavigate } from "react-router-dom";
-import { verifyApi } from "../service/api"; // make sure to add verifyCode and resendCode methods
+import { authApi } from "../service/api"; // make sure to add verifyCode and resendCode methods
 
 const VerifyCode: React.FC = () => {
   const navigate = useNavigate();
@@ -33,7 +33,7 @@ const VerifyCode: React.FC = () => {
     setResendMessage("");
 
     try {
-      const response = await verifyApi.verifyCode(email, code);
+      const response = await authApi.verifyEmail({email, code});
       alert(response.data.message || "Verification successful!");
       navigate("/dashboard"); // redirect to Dashboard
     } catch (err: any) {
@@ -49,7 +49,7 @@ const VerifyCode: React.FC = () => {
     setResendMessage("");
 
     try {
-      const response = await verifyApi.resendCode(email);
+      const response = await authApi.requestCode({email});
       setResendMessage(response.data.message || "Verification code resent!");
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to resend code.");

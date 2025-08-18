@@ -15,7 +15,7 @@ import Homepage from "./pages/Homepage";
 import Joingame from "./pages/Joingame";
 import Dashboard from "./pages/Dashboard";
 import Explore from "./pages/Explore";
-import CreateQuiz from "./pages/CreateQuiz";
+import QuizEditorPage from './pages/QuizEditorPage';
 import Game from './test/Quizz';
 import VerifyCode from "./pages/VerifyCode";
 
@@ -59,7 +59,7 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/join" element={<Joingame />} />
             <Route path="/explore" element={<Explore />} />
-            <Route path="/create-quiz" element={<CreateQuiz />} />
+            <Route path="/quiz-editor/:quizId" element={<QuizEditorPage />} />
             <Route path="/game" element={<Game />} />
           </Route>
 
