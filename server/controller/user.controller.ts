@@ -292,7 +292,6 @@ export async function register(req: Request, res: Response): Promise<void> {
 
 export async function login(req: Request, res: Response): Promise<void> {
   const { email, password } = req.body;
-  const { email, password } = req.body;
 
   const user = await UserRepository.findByEmail(email);
   if (!user) {
@@ -959,34 +958,4 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
   } catch (error) {
     res.status(500).json({ message: "Server error while fetching profile", error: (error as Error).message });
   }
-}
-
-/* ----------------------- UPDATE USER INFO ----------------------- */
-export async function updateUserInfo(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
-  const { name, password, profileUrl } = req.body;
-
-  if (!name && !password && !profileUrl) {
-      res.status(400).json({ message: 'No update data provided' });
-      return;
-  }
-
-  const dataToUpdate: Partial<UserData> = {};
-  if (name) dataToUpdate.name = name;
-  if (profileUrl) dataToUpdate.profileUrl = profileUrl;
-  if (password) dataToUpdate.password = Encryption.hashPassword(password);
-
-  const updatedUser = await UserRepository.update(id, dataToUpdate);
-
-  if (!updatedUser) {
-      res.status(404).json({ message: 'User not found' });
-      return;
-  }
-
-  const { password: _, ...userResponse } = updatedUser.toObject();
-
-  res.status(200).json({
-      message: 'User updated successfully',
-      user: userResponse,
-  });
 }
