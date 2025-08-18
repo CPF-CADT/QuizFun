@@ -1,6 +1,38 @@
 import React from 'react';
 import { FaPlus, FaHistory, FaChartLine, FaStar, FaUsers, FaTrophy, FaRocket, FaGamepad, FaBolt } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 const Homepage: React.FC = () => {
+const isLoggedIn = (): boolean => {
+  const token = localStorage.getItem("authToken");
+  if (!token) return false;
+
+  try {
+    const base64Url = token.split(".")[1];
+    if (!base64Url) return false; // malformed token
+
+    // Convert base64url -> base64
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(base64));
+
+    const currentTime = Math.floor(Date.now() / 1000); // seconds
+    return payload.exp && payload.exp > currentTime;
+  } catch (e) {
+    return false;
+  }
+};
+
+
+const navigate = useNavigate();
+
+const handleProtectedRoute = (path: string) => {
+  if (isLoggedIn()) {
+    navigate(path); 
+  } else {
+    alert("Please log in or sign up first.");
+    navigate("/Login"); 
+  }
+};
+
   return (
     <div className="min-h-screen font-sans text-white relative">
       {/* Header */}
@@ -60,19 +92,19 @@ const Homepage: React.FC = () => {
 
           {/* Enhanced action buttons */}
           <div className="flex flex-wrap justify-center gap-4 mb-12">
-            <button className="group flex items-center gap-2 bg-gradient-to-r from-emerald-400 to-teal-500 text-white font-bold px-8 py-4 rounded-xl hover:from-emerald-500 hover:to-teal-600 transition-all transform hover:scale-110 shadow-2xl border border-emerald-300">
+            <button onClick={()=> handleProtectedRoute("/create-quiz")}
+            className="group flex items-center gap-2 bg-gradient-to-r from-emerald-400 to-teal-500 text-white font-bold px-8 py-4 rounded-xl hover:from-emerald-500 hover:to-teal-600 transition-all transform hover:scale-110 shadow-2xl border border-emerald-300">
               <FaPlus className="group-hover:rotate-90 transition-transform" /> Create Quiz
             </button>
-            <button 
+            <button onClick={()=> handleProtectedRoute("/history")}
               className="group flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold px-8 py-4 rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all transform hover:scale-110 shadow-2xl border border-indigo-400" 
             >
               <FaHistory className="group-hover:rotate-12 transition-transform" /> Check History
             </button>
-            <a href='/Dashboard'>
-            <button className="group flex items-center gap-2 bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold px-8 py-4 rounded-xl hover:from-pink-600 hover:to-rose-700 transition-all transform hover:scale-110 shadow-2xl border border-pink-400" >
+            <button onClick={() => handleProtectedRoute("/Dashboard")}
+            className="group flex items-center gap-2 bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold px-8 py-4 rounded-xl hover:from-pink-600 hover:to-rose-700 transition-all transform hover:scale-110 shadow-2xl border border-pink-400" >
               <FaChartLine className="group-hover:bounce transition-transform" /> Reports
             </button>
-            </a>
             <button className="group bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold px-8 py-4 rounded-xl hover:from-cyan-600 hover:to-blue-700 transition-all transform hover:scale-110 shadow-2xl border border-cyan-400"
             onClick={()=> (window.location.href = "/join")}>
               <FaGamepad className="inline mr-2 group-hover:rotate-12 transition-transform" /> Enter Code

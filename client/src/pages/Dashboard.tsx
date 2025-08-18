@@ -190,9 +190,9 @@ const Dashboard: React.FC = () => {
 
   const sidebarItems = [
     { name: 'Dashboard', icon: Activity, section: 'dashboard', color: 'from-violet-500 to-purple-600' },
-   { name: 'Explore', icon: Compass, section: 'explore', color: 'from-blue-500 to-cyan-50'},
+   { name: 'Explore', icon: Compass, section: 'explore', color: 'from-blue-500 to-cyan-50', path:"/explore"},
     { name: 'My Library', icon: BookOpen, section: 'library', color: 'from-emerald-500 to-teal-600' },
-    { name: 'Analytics', icon: BarChart3, section: 'reports', color: 'from-orange-500 to-red-500' },
+    { name: 'Report', icon: BarChart3, section: 'Report', color: 'from-orange-500 to-red-500', path:"/report" },
     { name: 'Students', icon: Users, section: 'classes', color: 'from-pink-500 to-rose-600' },
     { name: 'Settings', icon: Settings, section: 'settings', color: 'from-slate-500 to-gray-600' }
   ];
@@ -278,17 +278,6 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
           
-          {/* Create Button */}
-          {/* <button className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-xl shadow-violet-500/25 hover:shadow-2xl hover:shadow-violet-500/40 transform hover:scale-105 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-          <a href='/create-quiz'>
-            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -skew-x-12 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-            <div className="relative flex items-center justify-center">
-              <Zap className="w-5 h-5 mr-2" />
-              Create New Quiz
-              <Sparkles className="w-4 h-4 ml-2 opacity-80" />
-            </div>
-            </a>
-          </button> */}
         </div>
 
         {/* Navigation */}
@@ -297,10 +286,13 @@ const Dashboard: React.FC = () => {
             <button
               key={item.section}
               onClick={() => {
-                 setActiveSection(item.section);
+                setActiveSection(item.section);
                 setSidebarOpen(false);
-                navigate(`/${item.section}`);
+                if (item.path) {
+                  navigate(item.path);
+                }
               }}
+
               className={`w-full flex items-center px-4 py-4 rounded-2xl font-medium transition-all duration-300 group relative ${
                 activeSection === item.section
                   ? 'bg-gradient-to-r from-violet-50 to-purple-50 text-violet-700 shadow-lg shadow-violet-500/10 border border-violet-100'
@@ -348,7 +340,7 @@ const Dashboard: React.FC = () => {
           <button onClick={() => setSidebarOpen(true)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
             <Menu className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">QuizMaster</h1>
+          <h1 className="text-lg font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">Fun Quiz</h1>
           <button className="p-2 hover:bg-gray-100 rounded-xl transition-colors relative">
             <Bell className="w-5 h-5" />
             <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
