@@ -29,7 +29,7 @@ export interface IGameHistory extends Document {
 const GameHistorySchema = new Schema<IGameHistory>({
     gameSessionId: { type: Schema.Types.ObjectId, ref: 'GameSession', required: true, index: true },
     quizId: { type: Schema.Types.ObjectId, ref: 'Quiz', required: true, index: true },
-    questionId: { type: Schema.Types.ObjectId, required: true },
+questionId: { type: Schema.Types.ObjectId, ref: 'Question', required: true },
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: false, index: true },
     guestNickname: { type: String, required: false },
     

@@ -7,5 +7,7 @@ gameRouter.get('/', GameController.getSessions);
 gameRouter.get('/:id', GameController.getSessionDetails);
 gameRouter.get('/:id/history', GameController.getSessionHistory);
 gameRouter.post('/:sessionId/feedback', GameController.addFeedbackToSession);
+gameRouter.get('/:sessionId/results', GameController.getSessionResults);
 gameRouter.get('/:userId/history', GameController.getUserHistory);
 gameRouter.get('/:userId/performance/:quizId', GameController.getUserPerformanceOnQuiz);
+

@@ -1,34 +1,72 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+// src/App.tsx
+import React from 'react';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  Outlet
+} from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+
 import Signup from "./pages/Signup";
 import Login from "./pages/Login"; 
-import Homepage from "./pages/Homepage"; // Importing Homepage component
+import Homepage from "./pages/Homepage";
 import Joingame from "./pages/Joingame";
 import Dashboard from "./pages/Dashboard";
-import Explore from "./pages/Explore"; // Importing Explore component
+import Explore from "./pages/Explore";
 import CreateQuiz from "./pages/CreateQuiz";
 import Game from './test/Quizz';
 import VerifyCode from "./pages/VerifyCode";
-import Report  from "./pages/Report";
+
+const PrivateRoute: React.FC = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen bg-gray-900 text-white">Loading session...</div>;
+  }
+  return isAuthenticated ? <Outlet /> : <Navigate to="/login" />;
+};
+
+const PublicRoute: React.FC = () => {
+    const { isAuthenticated, isLoading } = useAuth();
+    if (isLoading) {
+        return <div className="flex items-center justify-center h-screen bg-gray-900 text-white">Loading session...</div>;
+    }
+    return !isAuthenticated ? <Outlet /> : <Navigate to="/dashboard" />;
+};
+
+const NotFound: React.FC = () => (
+    <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
+        <h1 className="text-4xl font-bold">404 - Page Not Found</h1>
+    </div>
+);
+
+
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Redirect root path to login */}
-        {/* <Route path="/" element={<Navigate to="/login" replace />} /> */}
-        <Route path="/" element={<Homepage />} /> {/* Set Homepage as the root path */}
-        {/* Routes for signup and login */}
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/join" element={<Joingame />} /> {/* ✅ new route */}
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/explore" element={<Explore />} /> 
-        <Route path="/create-quiz" element={<CreateQuiz />} />
-        <Route path="/game" element={<Game />}  />
-        <Route path="/verify" element={<VerifyCode />}  />
-        <Route path="/report" element={<Report/>} />
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Homepage />} />
+          
+          <Route element={<PublicRoute />}>
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/verify" element={<VerifyCode />} />
+          </Route>
 
-      </Routes>
-    </Router>
+          <Route element={<PrivateRoute />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/join" element={<Joingame />} />
+            <Route path="/explore" element={<Explore />} />
+            <Route path="/create-quiz" element={<CreateQuiz />} />
+            <Route path="/game" element={<Game />} />
+          </Route>
+
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 
