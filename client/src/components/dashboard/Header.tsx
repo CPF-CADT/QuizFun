@@ -24,8 +24,8 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen, onNewQuizClick }) => {
         </button>
       </div>
 
-      {/* Main Header for Desktop */}
-      <div className="hidden lg:block mb-8 lg:mb-12">
+      {/* Main Header */}
+      <div className="mb-8 lg:mb-12 ml-10">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
           <div>
             <h1 className="text-3xl lg:text-5xl font-bold mb-3">

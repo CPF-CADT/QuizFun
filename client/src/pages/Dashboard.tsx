@@ -70,13 +70,14 @@ const DashboardPage: React.FC = () => {
         setSidebarOpen={setSidebarOpen}
         currentTime={currentTime}
       />
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col ml-2.5 mt-7 min-h-screen">
         <Header 
           setSidebarOpen={setSidebarOpen} 
           onNewQuizClick={() => setCreateModalOpen(true)} 
+          
         />
         <main
-          className={`flex-1 p-4 lg:p-8 transition-all duration-1000 ${
+          className={`mr-15 flex-1 p-4 lg:p-8 transition-all duration-1000 ${
             isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}
         >

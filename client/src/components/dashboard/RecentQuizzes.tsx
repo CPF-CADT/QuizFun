@@ -68,6 +68,21 @@ const RecentQuizzes: React.FC<RecentQuizzesProps> = ({ quizzes }) => {
                 </span>
               </div>
 
+              {/* <div className="mb-4">
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="text-gray-600 font-medium">Progress</span>
+                  <span className="text-gray-900 font-bold">{quiz.progress}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className={`bg-gradient-to-r ${quiz.color} h-2 rounded-full transition-all duration-1000 relative overflow-hidden`}
+                    style={{ width: `${quiz.progress}%` }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
+                  </div>
+                </div>
+              </div> */}
+
               <div className="flex items-center justify-between">
                 <Link
                   to={`/quiz-editor/${quiz._id}`}
