@@ -18,13 +18,13 @@ import { GameSessionManager } from "./data/GameSession";
 export default function socketSetup(server: http.Server) {
     const io = new Server(server, { cors: { origin: "*" } });
 
-    io.on("connection", (socket: Socket) => {
+    io.on("connection", async (socket: Socket) => {
         console.log(`[Connection] User connected with socket ID: ${socket.id}`);
         
         // Handle auto-rejoin on connection
         const { roomId, userId } = socket.handshake.query;
         if (roomId && userId && typeof roomId === 'string' && typeof userId === 'string') {
-            const room = GameSessionManager.getSession(parseInt(roomId, 10));
+            const room = await GameSessionManager.getSession(parseInt(roomId, 10));
             if (room && room.participants.some(p => p.user_id === userId)) {
                 // Using a self-invoking async function to handle the promise safely
                 (async () => {

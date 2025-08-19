@@ -36,14 +36,14 @@ export async function handleCreateRoom(socket: Socket, io: Server, data: CreateR
     }
 
     // Step 2: Add the session to the in-memory manager, including the new unique ID.
-    GameSessionManager.addSession(roomId, {
+    await GameSessionManager.addSession(roomId, {
         sessionId: uniqueSessionId,
         quizId: data.quizId,
         hostId: data.userId,
         settings: data.settings,
     });
 
-    const room = GameSessionManager.getSession(roomId);
+    const room = await GameSessionManager.getSession(roomId);
     
     if (!room) {
         console.error(`[Lobby] CRITICAL: Failed to create or retrieve session for room ${roomId}.`);
@@ -70,7 +70,7 @@ export async function handleCreateRoom(socket: Socket, io: Server, data: CreateR
 
 export async function handleJoinRoom(socket: Socket, io: Server, data: JoinRoomData): Promise<void> {
     const { roomId, username, userId } = data;
-    const room = GameSessionManager.getSession(roomId);
+    const room = await GameSessionManager.getSession(roomId);
 
     if (!room) {
         socket.emit("error-message", `Room "${roomId}" does not exist.`);
@@ -105,7 +105,7 @@ export async function handleJoinRoom(socket: Socket, io: Server, data: JoinRoomD
 
 
 export async function startGame(socket: Socket, io: Server, roomId: number): Promise<void> {
-    const room = GameSessionManager.getSession(roomId);
+    const room = await GameSessionManager.getSession(roomId);
     const host = room?.participants.find(p => p.role === 'host');
 
     if (!room || !host || host.socket_id !== socket.id) return;
@@ -134,7 +134,7 @@ export async function startGame(socket: Socket, io: Server, roomId: number): Pro
 
 export async function handleSubmitAnswer(socket: Socket, io: Server, data: SubmitAnswerData): Promise<void> {
     const { roomId, userId, optionIndex } = data;
-    const room = GameSessionManager.getSession(roomId);
+    const room = await GameSessionManager.getSession(roomId);
     const player = room?.participants.find(p => p.user_id === userId);
     
     if (!room || !player || player.role !== 'player' || room.gameState !== 'question' || !room.questions) return;
@@ -173,7 +173,7 @@ export async function handleSubmitAnswer(socket: Socket, io: Server, data: Submi
 }
 
 export async function handleRequestNextQuestion(socket: Socket, io: Server, roomId: number): Promise<void> {
-    const room = GameSessionManager.getSession(roomId);
+    const room =await  GameSessionManager.getSession(roomId);
     const host = room?.participants.find(p => p.role === 'host');
     if (room && host?.socket_id === socket.id && room.gameState === 'results') {
         if (room.autoNextTimer) {
@@ -185,7 +185,7 @@ export async function handleRequestNextQuestion(socket: Socket, io: Server, room
 }
 
 export async function handlePlayAgain(socket: Socket, io: Server, roomId: number): Promise<void> {
-    const room = GameSessionManager.getSession(roomId);
+    const room = await GameSessionManager.getSession(roomId);
     const host = room?.participants.find(p => p.role === 'host');
 
     if (room && host?.socket_id === socket.id && room.gameState === 'end') {
@@ -205,7 +205,7 @@ export async function handlePlayAgain(socket: Socket, io: Server, roomId: number
 
 export async function handleRejoinGame(socket: Socket, io: Server, data: RejoinGameData): Promise<void> {
     const { roomId, userId } = data;
-    const room = GameSessionManager.getSession(roomId);
+    const room = await GameSessionManager.getSession(roomId);
     if (!room) {
         socket.emit('error-message', 'The game you tried to rejoin does not exist.');
         return;
@@ -224,7 +224,7 @@ export async function handleRejoinGame(socket: Socket, io: Server, data: RejoinG
 }
 
 export async function handleDisconnect(socket: Socket, io: Server): Promise<void> {
-    const sessionInfo = GameSessionManager.findSessionBySocketId(socket.id);
+    const sessionInfo = await GameSessionManager.findSessionBySocketId(socket.id);
     if (!sessionInfo) return;
     
     const { roomId, session } = sessionInfo;
@@ -236,8 +236,7 @@ export async function handleDisconnect(socket: Socket, io: Server): Promise<void
 
         if (disconnectedUser.role === 'host') {
             broadcastGameState(io, roomId, "The host has disconnected. The game has ended.");
-            
-            GameSessionManager.removeSession(roomId);
+            await GameSessionManager.removeSession(roomId);
         } else {
             const activePlayers = session.participants.filter(p => p.role === 'player' && p.isOnline);
             if (session.gameState === 'question' && !session.settings.allowAnswerChange && activePlayers.length > 0 && activePlayers.every(p => p.hasAnswered)) {
