@@ -1,10 +1,9 @@
 import express from 'express'
-import {register,login,updateUserInfo,sendVerificationCode,verifyCode,refreshToken,logout,getAllUsers,getUsersByRole, getProfile} from '../controller/user.controller'
+import {register,login,updateUserInfo,sendVerificationCode,verifyCode,refreshToken,logout,getAllUsers,getUsersByRole, getProfile, googleAuthenicate} from '../controller/user.controller'
 import { authenticateToken, isEmailVerified } from '../middleware/authenicate.middleware';
 import { validationBody } from '../middleware/validation.middleware';
 import { userlogin, userRegister } from '../config/CheckValidation';
 import { handleImageUpload } from '../controller/service.controller';
-import { uploadImage } from '../service/FileUpload';
 import multer from 'multer';
 
 
@@ -17,6 +16,7 @@ userRouter.get('/', authenticateToken, getAllUsers); // GET all users with pagin
 userRouter.get('/by-role/:role', authenticateToken, getUsersByRole); // GET users by role with pagination
 // Authentication routes
 userRouter.get('/profile', authenticateToken, getProfile);
+userRouter.post('/google', googleAuthenicate);
 userRouter.post('/register',validationBody(userRegister),register);
 userRouter.post('/login',validationBody(userlogin),isEmailVerified, login);
 userRouter.put('/:id',authenticateToken, updateUserInfo)

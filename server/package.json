@@ -22,6 +22,7 @@
     "crypto": "^1.0.1",
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
+    "google-auth-library": "^10.2.1",
     "jest": "^30.0.4",
     "joi": "^18.0.0",
     "jsonwebtoken": "^9.0.2",

@@ -8,10 +8,12 @@ import { VerificationCodeRepository } from '../repositories/verification.reposit
 import { IUserData, UserModel } from '../model/User';
 import jwt from "jsonwebtoken";
 import redisClient from '../config/redis';
+import { OAuth2Client } from 'google-auth-library';
 
 const REFRESH_TOKEN_EXPIRATION_SECONDS = 7 * 24 * 60 * 60;
 const REFRESH_TOKEN_COOKIE_EXPIRATION_MS = REFRESH_TOKEN_EXPIRATION_SECONDS * 1000;
-
+const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const client = new OAuth2Client(CLIENT_ID);
 
 /**
  * @swagger
@@ -291,54 +293,27 @@ export async function register(req: Request, res: Response): Promise<void> {
  */
 
 export async function login(req: Request, res: Response): Promise<void> {
-  const { email, password } = req.body;
+  const { email, password } = req.body;
 
-  const user = await UserRepository.findByEmail(email);
-  if (!user) {
-    res.status(404).json({ message: "User not found" });
-    return;
-  }
+  const user = await UserRepository.findByEmail(email);
+  if (!user) {
+    res.status(404).json({ message: "User not found" });
+    return;
+  }
 
-  if (!user.isVerified) {
-    res.status(403).json({ message: "Account not verified. Please check your email." });
-    return;
-  }
+  if (!user.isVerified) {
+    res.status(403).json({ message: "Account not verified. Please check your email." });
+    return;
+  }
 
-  const isPasswordValid = Encryption.verifyPassword(user.password as string, password);
-  if (!isPasswordValid) {
-    res.status(401).json({ message: "Incorrect password" });
-    return;
-  }
+  const isPasswordValid = Encryption.verifyPassword(user.password as string, password);
+  if (!isPasswordValid) {
+    res.status(401).json({ message: "Incorrect password" });
+    return;
+  }
 
-  const tokens = JWT.createTokens({ id: user.id, email: user.email, role: user.role });
-
-  try {
-    await redisClient.set(`refreshToken:${user.id}`, tokens.refreshToken, {
-      EX: REFRESH_TOKEN_EXPIRATION_SECONDS
-    });
-  } catch (redisError) {
-    console.error("Redis Error on Login:", redisError);
-    res.status(500).json({ message: "Failed to create session" });
-    return;
-  }
-
-  res.cookie("refreshToken", tokens.refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
-  });
-
-  const { password: _, ...userResponse } = user.toObject();
-
-  res.status(200).json({
-    message: "Login successful",
-    accessToken: tokens.accessToken,
-    user: userResponse,
-  });
+  await handleSuccessfulLogin(user, res);
 }
-
-
 
 
 /**
@@ -512,60 +487,30 @@ export async function sendVerificationCode(req: Request, res: Response): Promise
  *         description: Server error
  */
 export async function verifyCode(req: Request, res: Response): Promise<void> {
-  const { email, code } = req.body;
+  const { email, code } = req.body;
 
-  if (!email || !code) {
-    res.status(400).json({ message: 'Email and code are required.' });
-    return;
-  }
+  if (!email || !code) {
+    res.status(400).json({ message: 'Email and code are required.' });
+    return;
+  }
 
-  const user = await UserRepository.findByEmail(email);
-  if (!user) {
-    res.status(404).json({ message: 'User not found.' });
-    return;
-  }
+  const user = await UserRepository.findByEmail(email);
+  if (!user) {
+    res.status(404).json({ message: 'User not found.' });
+    return;
+  }
 
-  const verificationToken = await VerificationCodeRepository.find(user.id.toString(), code);
-  if (!verificationToken) {
-    res.status(401).json({ message: 'Invalid or expired code.' });
-    return;
-  }
+  const verificationToken = await VerificationCodeRepository.find(user.id.toString(), code);
+  if (!verificationToken) {
+    res.status(401).json({ message: 'Invalid or expired code.' });
+    return;
+  }
 
-  // Mark user as verified
-  await UserRepository.update(user.id.toString(), { isVerified: true });
-  // Delete the used verification code
-  await VerificationCodeRepository.delete(verificationToken.id);
+  await UserRepository.update(user.id.toString(), { isVerified: true });
+  await VerificationCodeRepository.delete(verificationToken.id);
 
-  const tokens = JWT.createTokens({
-    id: user.id,
-    email: user.email,
-    role: user.role,
-  });
-
-  try {
-    await redisClient.set(`refreshToken:${user.id}`, tokens.refreshToken, {
-      EX: REFRESH_TOKEN_EXPIRATION_SECONDS,
-    });
-  } catch (err) {
-    console.error("Redis Error:", err);
-    res.status(500).json({ message: "Failed to store session." });
-    return;
-  }
-
-  res.cookie('refreshToken', tokens.refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
-  });
-
-  const { password, ...userResponse } = user.toObject();
-
-  res.status(200).json({
-    message: 'Verification successful. You are now logged in.',
-    accessToken: tokens.accessToken,
-    user: userResponse,
-  });
+  const successMessage = 'Verification successful. You are now logged in.';
+  await handleSuccessfulLogin(user, res, successMessage);
 }
 
 /**
@@ -590,6 +535,7 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
   const oldRefreshToken = req.cookies.refreshToken;
 
   if (!oldRefreshToken) {
+    console.log("Refresh attempt failed: No refresh token in cookie.");
     res.status(401).json({ message: "Refresh token missing" });
     return;
   }
@@ -598,6 +544,8 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
   try {
     decodedUser = JWT.verifyRefreshToken(oldRefreshToken) as { id: string; email?: string; role: string; };
   } catch (err) {
+    console.error("Refresh attempt failed: Token verification error.", err);
+    res.clearCookie("refreshToken", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict" });
     res.status(403).json({ message: "Invalid or expired refresh token" });
     return;
   }
@@ -605,11 +553,22 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
   try {
     const storedToken = await redisClient.get(`refreshToken:${decodedUser.id}`);
 
-    if (!storedToken || storedToken !== oldRefreshToken) {
-      await redisClient.del(`refreshToken:${decodedUser.id}`);
-      res.status(403).json({ message: "Session invalid. Please log in again." });
-      return
+    if (!storedToken) {
+        console.log(`Refresh failed for user ${decodedUser.id}: No token found in Redis. User may have logged out.`);
+        res.clearCookie("refreshToken", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict" });
+        res.status(403).json({ message: "Session not found. Please log in again." });
+        return
     }
+
+    if (storedToken !== oldRefreshToken) {
+        console.warn(`SECURITY ALERT: Refresh token reuse detected for user ${decodedUser.id}. Invalidating session.`);
+        await redisClient.del(`refreshToken:${decodedUser.id}`);
+        res.clearCookie("refreshToken", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict" });
+        res.status(403).json({ message: "Session invalid. Please log in again." });
+        return
+    }
+
+    console.log(`Successfully validated refresh token for user ${decodedUser.id}. Issuing new tokens.`);
 
     const newTokens = JWT.createTokens({
       id: decodedUser.id,
@@ -617,10 +576,12 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       role: decodedUser.role
     });
 
+    // Set the new token in Redis with the 7-day expiration
     await redisClient.set(`refreshToken:${decodedUser.id}`, newTokens.refreshToken, {
       EX: REFRESH_TOKEN_EXPIRATION_SECONDS
     });
 
+    // Set the new cookie on the client
     res.cookie("refreshToken", newTokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -628,14 +589,14 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       maxAge: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
     });
 
-    // Send the NEW access token.
-    res.json({ accessToken: newTokens.accessToken });
+    res.status(200).json({ accessToken: newTokens.accessToken });
 
   } catch (err) {
-    console.error("Error during token refresh:", err);
-    res.status(500).json({ message: "Internal server error" });
+    console.error(`CRITICAL: Error during token refresh process for user ${decodedUser.id}:`, err);
+    res.status(500).json({ message: "Internal server error during token refresh" });
   }
 }
+
 /**
  * @swagger
  * /api/user/logout:
@@ -958,4 +919,88 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
   } catch (error) {
     res.status(500).json({ message: "Server error while fetching profile", error: (error as Error).message });
   }
+}
+/**
+ * Sign in account with google
+ * post /api/user/google
+ */
+async function handleSuccessfulLogin(
+  user: IUserData, 
+  res: Response, 
+  message: string = "Login successful" // Add optional message parameter
+) {
+  try {
+    const tokens = JWT.createTokens({ id: user.id, email: user.email, role: user.role });
+
+    await redisClient.set(`refreshToken:${user.id}`, tokens.refreshToken, {
+      EX: REFRESH_TOKEN_EXPIRATION_SECONDS,
+    });
+
+    res.cookie("refreshToken", tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
+    });
+
+    const { password: _, ...userResponse } = user.toObject();
+
+    res.status(200).json({
+      message, // Use the message parameter here
+      accessToken: tokens.accessToken,
+      user: userResponse,
+    });
+
+  } catch (error) {
+    console.error("Error during handleSuccessfulLogin:", error);
+    res.status(500).json({ message: "Failed to create a session." });
+  }
+}
+
+
+
+export async function googleAuthenicate(req: Request, res: Response) {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ message: 'Token is required' });
+  }
+
+  try {
+    // Verify the token with Google
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    
+    if (!payload || !payload.email) {
+      return res.status(400).json({ message: 'Invalid Google token payload' });
+    }
+    
+    let user = await UserRepository.findByEmail(payload.email);
+
+    if (user) {
+      await handleSuccessfulLogin(user, res);
+    } else {
+      const defaultPasswordForGoolgleLogin = process.env.GOOGLE_CLIENT_SECRET || 'CADT';
+
+      const newUser = await UserRepository.create({
+        name: payload.name!,
+        email: payload.email,
+        password: Encryption.hashPassword(defaultPasswordForGoolgleLogin),
+        profileUrl: payload.picture || 'http://default.url/image.png',
+        role: 'player', // Default role for new users
+        isVerified: true, // Google accounts are already verified
+        googleId: payload.sub, // Store Google's unique user ID
+      } as IUserData);
+
+      // Log the newly created user in
+      await handleSuccessfulLogin(newUser, res);
+    }
+  } catch (error) {
+    console.error('Google authentication error:', error);
+    res.status(401).json({ message: 'Invalid token or authentication failed' });
+  }
 }

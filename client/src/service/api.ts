@@ -3,7 +3,7 @@ import axios, { type AxiosRequestConfig } from 'axios';
 import type { RefObject } from 'react';
 
 export const apiClient = axios.create({
-  baseURL: "http://localhost:3000/api/",
+  baseURL: import.meta.env.VITE_BACKEND_URL,
   withCredentials: true,
 });
 
@@ -178,6 +178,9 @@ export const authApi = {
   resetPassword: (payload: IResetPasswordPayload) => {
     return apiClient.post('/user/reset-password', payload);
   },
+  googleAuthenication:(token:string)=>{
+    return apiClient.post('/user/google',{token})
+  }
 };
 
 export const apiService ={

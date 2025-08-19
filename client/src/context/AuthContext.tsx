@@ -1,24 +1,16 @@
 // src/context/authContext.tsx
 import { useState, useEffect, useContext, createContext, useMemo, useRef, type ReactNode } from 'react';
-import { authApi, setupAuthInterceptors, type IUser } from '../service/api';
+import { authApi, setupAuthInterceptors, type ILoginResponse, type IUser } from '../service/api';
 import { setStoredUser, clearClientAuthData } from '../service/auth';
-
-// --- Type Definitions ---
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
 
 interface AuthContextType {
   user: IUser | null;
   login: (credentials: object) => Promise<void>;
   logout: () => void;
+  socialLogin:(loginData: ILoginResponse) => void; 
   isAuthenticated: boolean;
   isLoading: boolean;
 }
-
 interface AuthProviderProps {
   children: ReactNode;
 }
@@ -83,11 +75,18 @@ useEffect(() => {
     setUser(userData);
     setStoredUser(userData);
   };
+  const handleSocialLogin = (loginData: ILoginResponse) => {
+    const { accessToken: newAccessToken, user: userData } = loginData;
+    setAccessToken(newAccessToken);
+    setUser(userData);
+    setStoredUser(userData);
+  };
 
   const value = useMemo(() => ({
     user,
     login: handleLogin,
     logout: handleLogout,
+    socialLogin:handleSocialLogin,
     isAuthenticated: !!accessToken,
     isLoading,
   }), [user, accessToken, isLoading]);
