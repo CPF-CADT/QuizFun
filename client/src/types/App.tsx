@@ -1,27 +1,31 @@
-import React from 'react';
+import React from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
-  Outlet
-} from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
+  Outlet,
+} from "react-router-dom";
+import { AuthProvider, useAuth } from "../context/AuthContext";
 
-import Signup from "./pages/Signup";
-import Login from "./pages/Login"; 
-import Homepage from "./pages/Homepage";
-import Joingame from "./pages/Joingame";
-import Dashboard from "./pages/Dashboard";
-import Explore from "./pages/Explore";
-import QuizEditorPage from './pages/QuizEditorPage';
-import Game from './test/Quizz';
-import VerifyCode from "./pages/VerifyCode";
+import Signup from "../pages/Signup";
+import Login from "../pages/Login";
+import Homepage from "../pages/Homepage";
+import Joingame from "../pages/Joingame";
+import Dashboard from "../pages/Dashboard";
+import Explore from "../pages/Explore";
+import QuizEditorPage from "../pages/QuizEditorPage";
+import Game from "../test/Quizz";
+import VerifyCode from "../pages/VerifyCode";
 
 const PrivateRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) {
-    return <div className="flex items-center justify-center h-screen bg-gray-900 text-white">Loading session...</div>;
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
+        Loading session...
+      </div>
+    );
   }
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" />;
 };
@@ -56,6 +60,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/verify" element={<VerifyCode />} />
+            <Route path="/game" element={<Game />} />
           </Route>
 
           <Route element={<PrivateRoute />}>
@@ -63,7 +68,6 @@ function App() {
             <Route path="/join" element={<Joingame />} />
             <Route path="/explore" element={<Explore />} />
             <Route path="/quiz-editor/:quizId" element={<QuizEditorPage />} />
-            <Route path="/game" element={<Game />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

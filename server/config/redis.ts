@@ -14,8 +14,7 @@ redisClient.on('connect', () => console.log('Connected to Redis successfully!'))
 
 (async () => {
   try {
-    await redisClient.connect();
-    console.log('redis connected')
+    await redisClient.connect();   
   } catch (err) {
     console.error('Failed to connect to Redis:', err);
   }
