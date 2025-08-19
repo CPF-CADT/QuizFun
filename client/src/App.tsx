@@ -1,3 +1,4 @@
+import React from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -13,11 +14,11 @@ import Homepage from "./pages/Homepage";
 import Joingame from "./pages/Joingame";
 import Dashboard from "./pages/Dashboard";
 import Explore from "./pages/Explore";
-import Game from './test/Quizz';
-import Report from './pages/Report';
-import DuringGamePlay from './pages/DuringGamePlay';
-import VerifyCode from "./pages/VerifyCode";
 import QuizEditorPage from "./pages/QuizEditorPage";
+import Game from "./test/Quizz";
+import VerifyCode from "./pages/VerifyCode";
+import LobbyPage from "./pages/LobbyPage";
+import GamePage from "./pages/GamePage";
 
 const PrivateRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -32,7 +33,7 @@ const PrivateRoute: React.FC = () => {
 };
 
 const PublicRoute: React.FC = () => {
-  const { isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -53,30 +54,24 @@ const NotFound: React.FC = () => (
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Homepage />} />
-          <Route element={<PublicRoute />}>
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/verify" element={<VerifyCode />} />
-          </Route>
+    <Routes>
+      <Route path="/" element={<Homepage />} />
+      <Route element={<PublicRoute />}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/verify" element={<VerifyCode />} />
+        <Route path="/join" element={<Joingame />} />
+        <Route path="/game/:sessionId" element={<GamePage />} />
+      </Route>
 
-          <Route element={<PrivateRoute />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/join" element={<Joingame />} />
-            <Route path="/explore" element={<Explore />} />
-            <Route  path="/report" element={<Report />} />
-            <Route path="/quiz-editor/:quizId" element={<QuizEditorPage />} />
-            <Route path="/game" element={<Game />} /> 
-            <Route path="/During-game-play" element={<DuringGamePlay/>}/>
-          </Route>
+      <Route element={<PrivateRoute />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/explore" element={<Explore />} />
+        <Route path="/quiz-editor/:quizId" element={<QuizEditorPage />} />
+      </Route>
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
 
