@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { Encryption } from '../service/encription';
 import { UserRepository, UserData } from '../repositories/users.repositories';
 import { JWT } from '../service/JWT';
-import { generateRandomNumber, getExpiryDate } from '../service/generateRandomNumber';
+import { generatePassword, generateRandomNumber, getExpiryDate } from '../service/generateRandomNumber';
 import { sentEmail } from '../service/transporter';
 import { VerificationCodeRepository } from '../repositories/verification.repositories';
 import { IUserData, UserModel } from '../model/User';
@@ -12,8 +12,8 @@ import { OAuth2Client } from 'google-auth-library';
 
 const REFRESH_TOKEN_EXPIRATION_SECONDS = 7 * 24 * 60 * 60;
 const REFRESH_TOKEN_COOKIE_EXPIRATION_MS = REFRESH_TOKEN_EXPIRATION_SECONDS * 1000;
-const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const client = new OAuth2Client(CLIENT_ID);
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 /**
  * @swagger
@@ -648,16 +648,18 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
 
 export async function logout(req: Request, res: Response): Promise<void> {
   const refreshToken = req.cookies.refreshToken;
+
   const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict" as const,
   };
 
+  res.clearCookie("refreshToken", cookieOptions);
+
   if (!refreshToken) {
-    res.clearCookie("refreshToken", cookieOptions);
     res.status(200).json({ message: "Logout successful" });
-    return;
+    return
   }
 
   try {
@@ -665,21 +667,16 @@ export async function logout(req: Request, res: Response): Promise<void> {
       refreshToken,
       process.env.JWT_REFRESH_SECRET!
     ) as { id: string };
-    
+
     await redisClient.del(`refreshToken:${decoded.id}`);
-
-    res.clearCookie("refreshToken", cookieOptions);
-    res.status(200).json({ message: "Logout successful" });
-    return;
-
   } catch (err) {
-    console.error("Error during logout:", err);
-
-    res.clearCookie("refreshToken", cookieOptions);
-    res.status(200).json({ message: "Logout successful" });
-    return;
+    console.error("Logout token invalid or expired:", (err as Error).message);
   }
+
+  res.status(200).json({ message: "Logout successful" });
+  return
 }
+
 
 
 /**
@@ -970,7 +967,7 @@ export async function googleAuthenicate(req: Request, res: Response) {
     // Verify the token with Google
     const ticket = await client.verifyIdToken({
       idToken: token,
-      audience: CLIENT_ID,
+      audience: process.env.GOOGLE_CLIENT_ID,
     });
 
     const payload = ticket.getPayload();
@@ -984,7 +981,7 @@ export async function googleAuthenicate(req: Request, res: Response) {
     if (user) {
       await handleSuccessfulLogin(user, res);
     } else {
-      const defaultPasswordForGoolgleLogin = process.env.GOOGLE_CLIENT_SECRET || 'CADT';
+      const defaultPasswordForGoolgleLogin = generatePassword();
 
       const newUser = await UserRepository.create({
         name: payload.name!,
