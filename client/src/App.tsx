@@ -13,12 +13,10 @@ import Homepage from "./pages/Homepage";
 import Joingame from "./pages/Joingame";
 import Dashboard from "./pages/Dashboard";
 import Explore from "./pages/Explore";
-import CreateQuiz from "./pages/CreateQuiz";
 import Game from './test/Quizz';
 import Report from './pages/Report';
 import DuringGamePlay from './pages/DuringGamePlay';
 import VerifyCode from "./pages/VerifyCode";
-import { Rotate3D } from 'lucide-react';
 import QuizEditorPage from "./pages/QuizEditorPage";
 
 const PrivateRoute: React.FC = () => {
@@ -34,7 +32,7 @@ const PrivateRoute: React.FC = () => {
 };
 
 const PublicRoute: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isLoading } = useAuth();
 
   if (isLoading) {
     return (
