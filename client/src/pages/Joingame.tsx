@@ -1,137 +1,124 @@
-import React, { useState } from "react";
-import { FaGamepad, FaUsers, FaArrowRight, FaHome, FaQuestionCircle } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom"; // Import useSearchParams
+import { useAuth } from "../context/AuthContext";
+import { useQuizGame } from "../context/GameContext";
+import { FaUsers, FaArrowRight, FaGamepad } from "../components/common/Icons";
+
+// Helper function to generate a unique ID for guest users
+const generateGuestId = () => `guest_${Math.random().toString(36).substring(2, 10)}`;
 
 const Joingame: React.FC = () => {
+  const { isAuthenticated, user } = useAuth();
+  const { joinRoom, gameState } = useQuizGame();
+  const [searchParams] = useSearchParams(); // Hook to read URL query params
+
   const [gamePin, setGamePin] = useState("");
   const [playerName, setPlayerName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
 
-  const handleJoinGame = () => {
-    if (gamePin && playerName) {
-      setIsLoading(true);
-      setTimeout(() => {
-        setIsLoading(false);
-        // Handle join game logic here
-        console.log('Joining game with pin:', gamePin, 'and name:', playerName);
-      }, 2000);
+  // This effect runs when the component loads to handle the URL parameter
+  useEffect(() => {
+    const roomCodeFromUrl = searchParams.get("joinRoomCode");
+
+    if (roomCodeFromUrl) {
+      // 1. Pre-fill the game pin input from the URL
+      setGamePin(roomCodeFromUrl);
+
+      // 2. If the user is already logged in, join the game automatically
+      if (isAuthenticated && user) {
+        setIsLoading(true);
+        const joinData = {
+          roomId: parseInt(roomCodeFromUrl),
+          username: user.name,
+          userId: user._id,
+        };
+        console.log("Authenticated user detected. Auto-joining with data:", joinData);
+        joinRoom(joinData);
+      }
     }
+  }, [searchParams, isAuthenticated, user, joinRoom]);
+
+
+  // This function handles the form submission for guests or manual entries
+  const handleManualJoin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if ((!isAuthenticated && !playerName) || !gamePin) return;
+
+    setIsLoading(true);
+
+    const joinData = {
+      roomId: parseInt(gamePin),
+      username: isAuthenticated ? user!.name : playerName,
+      userId: isAuthenticated ? user!._id : generateGuestId(),
+    };
+
+    console.log("Attempting to join manually with data:", joinData);
+    joinRoom(joinData);
   };
 
+  // If a server error occurs, stop the loading indicator
+  useEffect(() => {
+    if (gameState.error) {
+      setIsLoading(false);
+    }
+  }, [gameState.error]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 text-white relative overflow-hidden">
-      {/* Header */}
-      <div className="flex justify-between items-center p-4 bg-white/10 backdrop-blur-md text-white shadow-lg sticky top-0 z-50">
-        <div className="flex items-center space-x-2">
-          <img src="./image/logo.png" alt="Fun Quiz" className="h-12" />
-        </div>
-        <div className="flex items-center space-x-4">
-          <button className="flex items-center space-x-2 hover:bg-white/20 px-3 py-2 rounded-lg transition-all" style={{ backgroundColor: "#A24FF6" }}>
-            <FaQuestionCircle />
-            <span className="hidden sm:inline">Help</span>
-          </button>
-          <button 
-            onClick={() => window.location.href = '/'}
-            className="flex items-center space-x-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-all" style={{ backgroundColor: "#A24FF6" }}
-          >
-            <FaHome />
-            <span className="hidden sm:inline">Home</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md relative z-10">
-          <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 shadow-2xl border border-white/20">
-            {/* Title */}
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full mb-4 animate-pulse">
-                <FaGamepad className="text-3xl text-white" />
-              </div>
-              <h1 className="text-4xl font-bold mb-2">Join the Fun!</h1>
-              <p className="text-white/80 text-lg">Enter your game details to start playing</p>
+    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 text-white flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 shadow-2xl border border-white/20">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full mb-4">
+              <FaGamepad className="text-3xl text-white" />
             </div>
+            <h1 className="text-4xl font-bold mb-2">Join the Fun!</h1>
+            <p className="text-white/80 text-lg">Enter game details to start</p>
+          </div>
 
-            {/* Game PIN */}
-            <div className="mb-6">
-              <label className="block text-sm font-semibold mb-2 text-white/90">
-                Game PIN
-              </label>
+          <form onSubmit={handleManualJoin} className="space-y-6">
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-left">Game PIN</label>
               <input
                 type="text"
                 value={gamePin}
-                onChange={(e) => setGamePin(e.target.value.replace(/\D/g, '').slice(0, 7))}
-                placeholder="Enter 6-7 digit PIN"
-                className="w-full px-4 py-4 rounded-xl text-gray-800 text-center text-2xl font-bold tracking-wider bg-white/95 backdrop-blur-sm outline-none focus:ring-4 focus:ring-yellow-400 focus:bg-white transition-all placeholder-gray-400"
-                maxLength={7}
+                onChange={(e) => setGamePin(e.target.value.replace(/\D/g, ""))}
+                placeholder="Enter PIN"
+                className="w-full px-4 py-4 rounded-xl text-gray-800 text-center text-2xl font-bold tracking-wider bg-white/95 outline-none focus:ring-4 focus:ring-yellow-400"
+                required
               />
             </div>
 
-            {/* Player Name */}
-            <div className="mb-8">
-              <label className="block text-sm font-semibold mb-2 text-white/90">
-                Your Name
-              </label>
-              <input
-                type="text"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value.slice(0, 20))}
-                placeholder="Enter your nickname"
-                className="w-full px-4 py-4 rounded-xl text-gray-800 text-center text-2xl font-bold tracking-wider bg-white/95 outline-none focus:ring-4 focus:ring-blue-400"
-                maxLength={20}
-              />
-              <p className="text-white/60 text-xs mt-1">{playerName.length}/20 characters</p>
-            </div>
+            {/* This input only shows if the user is NOT logged in */}
+            {!isAuthenticated && (
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-left">Your Name</label>
+                <input
+                  type="text"
+                  value={playerName}
+                  onChange={(e) => setPlayerName(e.target.value)}
+                  placeholder="Enter your nickname"
+                  className="w-full px-4 py-4 rounded-xl text-gray-800 text-center text-2xl font-bold bg-white/95 outline-none focus:ring-4 focus:ring-blue-400"
+                  required
+                />
+              </div>
+            )}
 
-            {/* Join Button */}
             <button
-              onClick={handleJoinGame}
-              disabled={!gamePin || gamePin.length < 6 || !playerName || isLoading}
-              className="w-full bg-gradient-to-r from-green-400 to-blue-500 hover:scale-105 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center space-x-2 transition-all"
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-green-400 to-blue-500 disabled:from-gray-400 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center transition-transform transform hover:scale-105"
             >
               {isLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  <span>Joining Game...</span>
-                </>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
               ) : (
-                <>
+                <div className="flex items-center justify-center space-x-2">
                   <FaUsers />
                   <span>Join Game</span>
                   <FaArrowRight />
-                </>
+                </div>
               )}
             </button>
-
-            {/* Additional Info */}
-            <div className="mt-6 text-center">
-              <p className="text-white/70 text-sm mb-2">
-                Don't have a game PIN?
-              </p>
-              <button 
-                onClick={() => window.location.href = '/'}
-                className="text-yellow-300 hover:text-yellow-200 font-semibold underline transition-colors"
-              >
-                Create your own quiz
-              </button>
-            </div>
-          </div>
-
-          {/* Tips Card */}
-          <div className="mt-6 bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10">
-            <h3 className="font-bold mb-3 flex items-center">
-              <FaQuestionCircle className="mr-2 text-yellow-300" />
-              Quick Tips
-            </h3>
-            <ul className="text-sm text-white/80 space-y-2">
-              <li>• Ask your teacher/host for the game PIN</li>
-              <li>• Use a fun nickname that's appropriate</li>
-              <li>• Make sure you have a stable internet connection</li>
-              <li>• Get ready to have fun learning!</li>
-            </ul>
-          </div>
+          </form>
         </div>
       </div>
     </div>

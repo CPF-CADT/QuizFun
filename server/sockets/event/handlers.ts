@@ -12,6 +12,28 @@ interface CreateRoomData { quizId: string; userId: string; hostName: string; set
 interface JoinRoomData { roomId: number; username: string; userId: string; }
 interface RejoinGameData { roomId: number; userId: string; }
 interface SubmitAnswerData { roomId: number; userId: string; optionIndex: number; }
+interface UpdateSettingsData {
+  roomId: number;
+  settings: GameSettings;
+}
+export async function handleUpdateSettings(socket: Socket, io: Server, data: UpdateSettingsData): Promise<void> {
+    const { roomId, settings } = data;
+    const room = await GameSessionManager.getSession(roomId);
+    const host = room?.participants.find(p => p.role === 'host');
+
+    // Security check: Only the host of the room can change the settings.
+    if (!room || !host || host.socket_id !== socket.id) {
+        return; 
+    }
+
+    console.log(`[Settings] Host updated settings for room ${roomId}:`, settings);
+    
+    // Update the settings for the session in memory
+    room.settings = settings;
+
+    // Broadcast the new game state (with updated settings) to everyone in the room.
+    await broadcastGameState(io, roomId);
+}
 
 export async function handleCreateRoom(socket: Socket, io: Server, data: CreateRoomData): Promise<void> {
     const roomId = generateRandomNumber(6); // This is the numeric joinCode

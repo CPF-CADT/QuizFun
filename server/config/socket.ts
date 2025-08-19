@@ -8,7 +8,8 @@ import {
     handleRequestNextQuestion,
     handleRejoinGame,
     handleDisconnect,
-    handlePlayAgain
+    handlePlayAgain,
+    handleUpdateSettings
 } from "../sockets/event/handlers";
 import { GameSessionManager } from "./data/GameSession";
 
@@ -45,7 +46,7 @@ export default function socketSetup(server: http.Server) {
                 console.error("[Socket] Error in create-room:", err);
             }
         });
-
+        socket.on('update-settings', (data) => handleUpdateSettings(socket, io, data));
         socket.on("join-room", async (data) => {
             try {
                 await handleJoinRoom(socket, io, data);
