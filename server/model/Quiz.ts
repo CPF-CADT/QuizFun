@@ -1,7 +1,5 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
-
-
 export interface IOption {
     _id: Types.ObjectId;
     text: string;
@@ -27,6 +25,7 @@ export interface IQuiz extends Document {
     templateImgUrl?: string;
     tags?:string[],
     forkBy?: Types.ObjectId,
+    dificulty:'Hard' | 'Medium' | 'Easy';
     createdAt: Date;
     updatedAt: Date;
 }
@@ -63,20 +62,30 @@ export const QuestionSchema = new Schema<IQuestion>({
 });
 
 const QuizSchema = new Schema<IQuiz>({
-    title: { type: String, required: true, trim: true, index: true }, 
+    title: { type: String, required: true, trim: true, index: true },
     description: { type: String, trim: true },
     creatorId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     visibility: { type: String, enum: ['public', 'private'], default: 'private' },
-    questions: { 
-        type: [QuestionSchema], 
-    },
+    questions: { type: [QuestionSchema] },
     templateImgUrl: { type: String },
     tags: { type: [String], index: true },
-    forkBy: { type: Schema.Types.ObjectId, ref: 'User', index: true },
-}, { 
+    forkBy: { 
+        type: Schema.Types.ObjectId, 
+        ref: 'User', 
+        index: true,
+        validate: {
+            validator: function (value: Types.ObjectId) {
+                if (!value) return true; 
+                return !this.creatorId.equals(value); 
+            },
+            message: "forkBy cannot be the same as creatorId"
+        }
+    },
+    dificulty:{type: String,enum:['Hard','Medium','Easy'],default:'Medium'}
+}, {
     timestamps: true,
-
-    collection: 'quizzes' 
+    collection: 'quizzes'
 });
+
 
 export const QuizModel = model<IQuiz>('Quiz', QuizSchema);

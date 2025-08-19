@@ -1,24 +1,16 @@
 // src/context/authContext.tsx
 import { useState, useEffect, useContext, createContext, useMemo, useRef, type ReactNode } from 'react';
-import { authApi, setupAuthInterceptors } from '../service/api';
+import { authApi, setupAuthInterceptors, type ILoginResponse, type IUser } from '../service/api';
 import { setStoredUser, clearClientAuthData } from '../service/auth';
 
-// --- Type Definitions ---
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
-
 interface AuthContextType {
-  user: User | null;
+  user: IUser | null;
   login: (credentials: object) => Promise<void>;
   logout: () => void;
+  socialLogin:(loginData: ILoginResponse) => void; 
   isAuthenticated: boolean;
   isLoading: boolean;
 }
-
 interface AuthProviderProps {
   children: ReactNode;
 }
@@ -26,7 +18,7 @@ interface AuthProviderProps {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<IUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -35,28 +27,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
     accessTokenRef.current = accessToken;
   }, [accessToken]);
 
+  // --- START: THE FIX ---
   const handleLogout = () => {
-    authApi.logout().catch(error => console.error("Logout API call failed", error));
+    // Only call the backend logout endpoint if the user was actually logged in.
+    if (accessTokenRef.current) {
+      authApi.logout().catch(error => {
+        // This error is not critical, as we are clearing the client-side state anyway.
+        console.error("Server logout failed, proceeding with client-side cleanup.", error);
+      });
+    }
     
+    // Always perform client-side cleanup.
     setAccessToken(null);
     setUser(null);
     clearClientAuthData();
   };
+  // --- END: THE FIX ---
   
-  useEffect(() => {
-    const cleanupInterceptors = setupAuthInterceptors(setAccessToken, handleLogout, accessTokenRef);
+useEffect(() => {
+  const cleanupInterceptors = setupAuthInterceptors(setAccessToken, handleLogout, accessTokenRef);
 
     const verifyAuth = async () => {
       try {
         const { data } = await authApi.refreshToken();
         setAccessToken(data.accessToken);
-        
+
         const userResponse = await authApi.getProfile();
         setUser(userResponse.data);
         setStoredUser(userResponse.data); 
       } catch (error) {
         console.log("No active session found.");
-        handleLogout();
+        handleLogout(); 
       } finally {
         setIsLoading(false);
       }
@@ -74,12 +75,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(userData);
     setStoredUser(userData);
   };
+  const handleSocialLogin = (loginData: ILoginResponse) => {
+    const { accessToken: newAccessToken, user: userData } = loginData;
+    setAccessToken(newAccessToken);
+    setUser(userData);
+    setStoredUser(userData);
+  };
 
   const value = useMemo(() => ({
     user,
     login: handleLogin,
     logout: handleLogout,
-    isAuthenticated: !!accessToken && !!user,
+    socialLogin:handleSocialLogin,
+    isAuthenticated: !!accessToken,
     isLoading,
   }), [user, accessToken, isLoading]);
 

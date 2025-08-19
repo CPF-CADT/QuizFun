@@ -8,10 +8,12 @@ import { VerificationCodeRepository } from '../repositories/verification.reposit
 import { IUserData, UserModel } from '../model/User';
 import jwt from "jsonwebtoken";
 import redisClient from '../config/redis';
+import { OAuth2Client } from 'google-auth-library';
 
-const REFRESH_TOKEN_EXPIRATION_SECONDS = 7 * 24 * 60 * 60; 
+const REFRESH_TOKEN_EXPIRATION_SECONDS = 7 * 24 * 60 * 60;
 const REFRESH_TOKEN_COOKIE_EXPIRATION_MS = REFRESH_TOKEN_EXPIRATION_SECONDS * 1000;
-
+const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const client = new OAuth2Client(CLIENT_ID);
 
 /**
  * @swagger
@@ -80,7 +82,7 @@ const REFRESH_TOKEN_COOKIE_EXPIRATION_MS = REFRESH_TOKEN_EXPIRATION_SECONDS * 10
  *       name: refreshToken
  */
 
-
+/* ----------------------- GET ALL USERS ----------------------- */
 /**
  * @swagger
  * /api/user:
@@ -93,30 +95,25 @@ const REFRESH_TOKEN_COOKIE_EXPIRATION_MS = REFRESH_TOKEN_EXPIRATION_SECONDS * 10
  *         schema:
  *           type: integer
  *           default: 1
- *         description: Page number
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           default: 10
  *           maximum: 100
- *         description: Number of users per page (max 100)
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
- *         description: Search users by name or email
  *     responses:
  *       200:
- *         description: A list of users with pagination info
+ *         description: List of users with pagination
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/PaginatedUsers'
- *       400:
- *         description: Invalid query parameters
  *       500:
- *         description: Internal server error
+ *         description: Server error
  */
 export async function getAllUsers(req: Request, res: Response): Promise<void> {
   const page = Math.max(1, parseInt(req.query.page as string) || 1);
@@ -127,13 +124,14 @@ export async function getAllUsers(req: Request, res: Response): Promise<void> {
     const result = await UserRepository.getAllUsers(page, limit, search);
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ 
-      message: 'Failed to fetch users', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    res.status(500).json({
+      message: 'Failed to fetch users',
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 }
 
+/* ----------------------- GET USERS BY ROLE ----------------------- */
 /**
  * @swagger
  * /api/user/by-role/{role}:
@@ -147,31 +145,28 @@ export async function getAllUsers(req: Request, res: Response): Promise<void> {
  *         schema:
  *           type: string
  *           enum: [player, admin, moderator]
- *         description: User role to filter by
  *       - in: query
  *         name: page
  *         schema:
  *           type: integer
  *           default: 1
- *         description: Page number
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           default: 10
  *           maximum: 100
- *         description: Number of users per page (max 100)
  *     responses:
  *       200:
- *         description: A list of users with specified role and pagination info
+ *         description: List of users with specified role
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/PaginatedUsers'
  *       400:
- *         description: Invalid role or query parameters
+ *         description: Invalid role
  *       500:
- *         description: Internal server error
+ *         description: Server error
  */
 export async function getUsersByRole(req: Request, res: Response): Promise<void> {
   const { role } = req.params;
@@ -188,14 +183,14 @@ export async function getUsersByRole(req: Request, res: Response): Promise<void>
     const result = await UserRepository.getUsersByRole(role, page, limit);
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ 
-      message: 'Failed to fetch users by role', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    res.status(500).json({
+      message: 'Failed to fetch users by role',
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 }
 
-
+/* ----------------------- REGISTER ----------------------- */
 /**
  * @swagger
  * /api/user/register:
@@ -215,83 +210,60 @@ export async function getUsersByRole(req: Request, res: Response): Promise<void>
  *             properties:
  *               name:
  *                 type: string
- *                 example: John Doe
  *               email:
  *                 type: string
  *                 format: email
- *                 example: john@example.com
  *               password:
  *                 type: string
- *                 example: securePassword123
  *               role:
  *                 type: string
- *                 example: player
  *               profile_url:
  *                 type: string
  *                 format: uri
- *                 example: https://example.com/profile.jpg
  *     responses:
  *       201:
- *         description: User created successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: User created successfully
- *                 user:
- *                   $ref: '#/components/schemas/User'
- *       400:
- *         description: Bad Request – Missing fields or user already exists.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: User already exists
+ *         description: User registered successfully
+ *       409:
+ *         description: Email already exists
  *       500:
- *         description: Internal server error
+ *         description: Server error
  */
-
 export async function register(req: Request, res: Response): Promise<void> {
-    const { name, email, password, profile_url, role } = req.body;
-    if (!name || !email || !password) {
-        res.status(400).json({ error: 'Missing required user information' });
-        return;
-    }
+  const { name, email, password, profile_url, role } = req.body;
+  if (!name || !email || !password) {
+    res.status(400).json({ error: 'Missing required user information' });
+    return;
+  }
 
-    const existingUser = await UserRepository.findByEmail(email);
-    if (existingUser) {
-        res.status(409).json({ error: 'Email is already used' }); // Use 409 Conflict for existing resources
-        return;
-    }
+  const existingUser = await UserRepository.findByEmail(email);
+  if (existingUser) {
+    res.status(409).json({ error: 'Email is already used' }); // Use 409 Conflict for existing resources
+    return;
+  }
 
 
 
-    const createdUser = await UserRepository.create({
-        name,
-        email,
-        password: Encryption.hashPassword(password),
-        profileUrl: profile_url || 'http://default.url/image.png',
-        role: role || 'player',
-        isVerified: false,
-    } as IUserData);
+  const createdUser = await UserRepository.create({
+    name,
+    email,
+    password: Encryption.hashPassword(password),
+    profileUrl: profile_url || 'http://default.url/image.png',
+    role: role || 'player',
+    isVerified: false,
+  } as IUserData);
 
-    // --- Automatically send verification email ---
-    const code = generateRandomNumber(6);
-    await VerificationCodeRepository.create(createdUser.id, code, getExpiryDate(15)); // Expires in 15 mins
+  // --- Automatically send verification email ---
+  const code = generateRandomNumber(6);
+  await VerificationCodeRepository.create(createdUser.id, code, getExpiryDate(15)); // Expires in 15 mins
 
-    const subject = 'Verify Your Email Address';
-    const htmlContent = `<p>Welcome! Your verification code is: <strong>${code}</strong></p>`;
-    await sentEmail(email, subject, '', htmlContent);
+  const subject = 'Verify Your Email Address';
+  const htmlContent = `<p>Welcome! Your verification code is: <strong>${code}</strong></p>`;
+  await sentEmail(email, subject, '', htmlContent);
 
-    res.status(201).json({ message: 'Registration successful. Please check your email to verify your account.' });
+  res.status(201).json({ message: 'Registration successful. Please check your email to verify your account.' });
 }
 
+/* ----------------------- LOGIN ----------------------- */
 /**
  * @swagger
  * /api/user/login:
@@ -307,98 +279,41 @@ export async function register(req: Request, res: Response): Promise<void> {
  *             required:
  *               - email
  *               - password
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: alice@example.com
- *               password:
- *                 type: string
- *                 example: 12345678
  *     responses:
  *       200:
  *         description: Login successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Login successful
- *                 token:
- *                   type: string
- *                 user:
- *                   $ref: '#/components/schemas/User'
- *       400:
- *         description: Invalid credentials
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: User not found or password incorrect
+ *       401:
+ *         description: Incorrect password
+ *       403:
+ *         description: Account not verified
+ *       404:
+ *         description: User not found
  *       500:
- *         description: Internal server error
+ *         description: Server error
  */
 
 export async function login(req: Request, res: Response): Promise<void> {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
 
-    const user = await UserRepository.findByEmail(email);
-    if (!user) {
-        res.status(404).json({ message: "User not found" });
-        return;
-    }
+  const user = await UserRepository.findByEmail(email);
+  if (!user) {
+    res.status(404).json({ message: "User not found" });
+    return;
+  }
 
-    if (!user.isVerified) {
-        res.status(403).json({ message: "Account not verified. Please check your email." });
-        return;
-    }
+  if (!user.isVerified) {
+    res.status(403).json({ message: "Account not verified. Please check your email." });
+    return;
+  }
 
-    const isPasswordValid = Encryption.verifyPassword(user.password as string, password);
-    if (!isPasswordValid) {
-        res.status(401).json({ message: "Incorrect password" });
-        return;
-    }
+  const isPasswordValid = Encryption.verifyPassword(user.password as string, password);
+  if (!isPasswordValid) {
+    res.status(401).json({ message: "Incorrect password" });
+    return;
+  }
 
-      const tokens = JWT.createTokens({ id: user.id, email: user.email, role: user.role });
-
-    try {
-        await redisClient.set(`refreshToken:${user.id}`, tokens.refreshToken, {
-            EX: REFRESH_TOKEN_EXPIRATION_SECONDS
-        });
-    } catch (redisError) {
-        console.error("Redis Error on Login:", redisError);
-        res.status(500).json({ message: "Failed to create session" });
-        return;
-    }
-
-    res.cookie("refreshToken", tokens.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
-    });
-
-    const { password: _, ...userResponse } = user.toObject();
-
-    res.status(200).json({
-        message: "Login successful",
-        accessToken: tokens.accessToken,
-        user: userResponse,
-    });
+  await handleSuccessfulLogin(user, res);
 }
-
-
 
 
 /**
@@ -458,37 +373,37 @@ export async function login(req: Request, res: Response): Promise<void> {
 
 
 export async function updateUserInfo(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
-    const { name, password, profileUrl } = req.body;
+  const { id } = req.params;
+  const { name, password, profileUrl } = req.body;
 
-    if (!name && !password && !profileUrl) {
-        res.status(400).json({ message: 'No update data provided' });
-        return;
-    }
+  if (!name && !password && !profileUrl) {
+    res.status(400).json({ message: 'No update data provided' });
+    return;
+  }
 
-    const dataToUpdate: Partial<UserData> = {};
+  const dataToUpdate: Partial<UserData> = {};
 
-    if (name) dataToUpdate.name = name;
-    if (profileUrl) dataToUpdate.profileUrl = profileUrl;
+  if (name) dataToUpdate.name = name;
+  if (profileUrl) dataToUpdate.profileUrl = profileUrl;
 
-    // Only hash and add the password if a new one was provided
-    if (password) {
-        dataToUpdate.password = Encryption.hashPassword(password);
-    }
+  // Only hash and add the password if a new one was provided
+  if (password) {
+    dataToUpdate.password = Encryption.hashPassword(password);
+  }
 
-    const updatedUser = await UserRepository.update(id, dataToUpdate);
+  const updatedUser = await UserRepository.update(id, dataToUpdate);
 
-    if (!updatedUser) {
-        res.status(404).json({ message: 'User not found' });
-        return;
-    }
+  if (!updatedUser) {
+    res.status(404).json({ message: 'User not found' });
+    return;
+  }
 
-    const { password: _, ...userResponse } = updatedUser.toObject();
+  const { password: _, ...userResponse } = updatedUser.toObject();
 
-    res.status(200).json({
-        message: 'User updated successfully',
-        user: userResponse,
-    });
+  res.status(200).json({
+    message: 'User updated successfully',
+    user: userResponse,
+  });
 
 }
 
@@ -496,7 +411,7 @@ export async function updateUserInfo(req: Request, res: Response): Promise<void>
  * @swagger
  * /api/user/request-code:
  *   post:
- *     summary: Send a 4-digit verification code to a user's phone number
+ *     summary: Send a verification code to email
  *     tags: [User]
  *     requestBody:
  *       required: true
@@ -505,32 +420,12 @@ export async function updateUserInfo(req: Request, res: Response): Promise<void>
  *           schema:
  *             type: object
  *             required:
- *               - phone_number
- *             properties:
- *               phone_number:
- *                 type: string
- *                 example: "0123456789"
+ *               - email
  *     responses:
  *       201:
- *         description: Verification code created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: verify code is create successful
+ *         description: Verification code sent
  *       404:
- *         description: Phone number not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: phone number does not exixts
+ *         description: User not found
  *       500:
  *         description: Server error
  *         content:
@@ -545,32 +440,32 @@ export async function updateUserInfo(req: Request, res: Response): Promise<void>
 
 
 export async function sendVerificationCode(req: Request, res: Response): Promise<void> {
-    const body: {
-        email: string;
-    } = req.body;
-    const { email } = body;
-    const userTemp = await UserRepository.findByEmail(email)
-    try {
-        await VerificationCodeRepository.delete(userTemp?.id)
-    } catch (err) {
-        console.error('Error when sent 2FA')
-    }
-    const code = generateRandomNumber(6)
-    await VerificationCodeRepository.create(email, code, getExpiryDate(15))
-    const subject = 'Email Verification Code';
-    const text = `Your verification code is: ${code}`;
-    const htmlContent = `<p>Your verification code is: <strong>${code}</strong></p>`;
-    await sentEmail(email, subject, text, htmlContent);
-    res.status(201).json({ message: 'Verification code sent successfully!' });
-    return;
+  const body: {
+    email: string;
+  } = req.body;
+  const { email } = body;
+  const userTemp = await UserRepository.findByEmail(email)
+  try {
+    await VerificationCodeRepository.delete(userTemp?.id)
+  } catch (err) {
+    console.error('Error when sent 2FA')
+  }
+  const code = generateRandomNumber(6)
+  await VerificationCodeRepository.create(email, code, getExpiryDate(5))
+  const subject = 'Email Verification Code';
+  const text = `Your verification code is: ${code}`;
+  const htmlContent = `<p>Your verification code is: <strong>${code}</strong></p>`;
+  await sentEmail(email, subject, text, htmlContent);
+  res.status(201).json({ message: 'Verification code sent successfully!' });
+  return;
 }
 
-
+/* ----------------------- VERIFY EMAIL ----------------------- */
 /**
  * @swagger
  * /api/user/verify-otp:
  *   post:
- *     summary: Verify the 4-digit two-factor authentication code
+ *     summary: Verify email with code
  *     tags: [User]
  *     requestBody:
  *       required: true
@@ -581,190 +476,132 @@ export async function sendVerificationCode(req: Request, res: Response): Promise
  *             required:
  *               - email
  *               - code
- *             properties:
- *               email:
- *                 type: string
- *                 example: "vathanak@gmail.com"
- *               code:
- *                 type: integer
- *                 example: 1234
  *     responses:
- *       201:
- *         description: Verification successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: verify code successful
- *       401:
- *         description: Invalid, expired, or already-used code
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: verify code is expired
+ *       200:
+ *         description: Email verified
+ *       400:
+ *         description: Invalid or expired code
  *       404:
- *         description: Phone number not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: phone number does not exixts
+ *         description: User not found
  *       500:
  *         description: Server error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 err:
- *                   type: string
- *                   example: server fail + error message
  */
+export async function verifyCode(req: Request, res: Response): Promise<void> {
+  const { email, code } = req.body;
 
-export async function verifyEmail(req: Request, res: Response): Promise<void> {
-  const { email, code } = req.body;
+  if (!email || !code) {
+    res.status(400).json({ message: 'Email and code are required.' });
+    return;
+  }
 
-  if (!email || !code) {
-    res.status(400).json({ message: "Email and code are required." });
-    return;
-  }
+  const user = await UserRepository.findByEmail(email);
+  if (!user) {
+    res.status(404).json({ message: 'User not found.' });
+    return;
+  }
 
-  const user = await UserRepository.findByEmail(email);
-  if (!user) {
-    res.status(400).json({ message: "Invalid verification code or email." });
-    return;
-  }
+  const verificationToken = await VerificationCodeRepository.find(user.id.toString(), code);
+  if (!verificationToken) {
+    res.status(401).json({ message: 'Invalid or expired code.' });
+    return;
+  }
 
-  const verificationToken = await VerificationCodeRepository.find(user.id.toString(), code);
+  await UserRepository.update(user.id.toString(), { isVerified: true });
+  await VerificationCodeRepository.delete(verificationToken.id);
 
-  if (!verificationToken) {
-    res.status(400).json({ message: "Invalid or expired verification code." });
-    return;
-  }
-
-  await UserRepository.update(user.id.toString(), { isVerified: true });
-  await VerificationCodeRepository.delete(verificationToken.id);
-
-  const tokens = JWT.createTokens({
-    id: user.id,
-    email: user.email,
-    role: user.role,
-  });
-
-  res.cookie("refreshToken", tokens.refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production", // secure only in prod (HTTPS)
-    sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000, 
-  });
-
-  const { password, ...userResponse } = user.toObject();
-
-  res.status(200).json({
-    message: "Email verified successfully. You are now logged in.",
-    accessToken: tokens.accessToken,
-    user: userResponse,
-  });
+  const successMessage = 'Verification successful. You are now logged in.';
+  await handleSuccessfulLogin(user, res, successMessage);
 }
-
 
 /**
  * @swagger
  * /api/user/refresh-token:
  *   post:
- *     summary: Generate a new access token using the refresh token in HTTP-only cookie
+ *     summary: Refresh access token using cookie
  *     tags: [User]
- *     description: >
- *       Uses the refresh token stored in the client's HTTP-only cookie to issue a new short-lived access token.
- *       The refresh token must be valid and not expired.  
- *       No request body is required, but the cookie must be sent.
  *     security:
  *       - cookieAuth: []
  *     responses:
  *       200:
- *         description: New access token issued successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 accessToken:
- *                   type: string
- *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *         description: Access token refreshed
  *       401:
- *         description: Refresh token missing
+ *         description: Missing refresh token
  *       403:
- *         description: Refresh token invalid or expired
+ *         description: Invalid refresh token
  *       500:
  *         description: Server error
  */
-
-
 export async function refreshToken(req: Request, res: Response): Promise<void> {
-    const oldRefreshToken = req.cookies.refreshToken;
+  const oldRefreshToken = req.cookies.refreshToken;
 
-    if (!oldRefreshToken) {
-        res.status(401).json({ message: "Refresh token missing" });
-        return;
+  if (!oldRefreshToken) {
+    console.log("Refresh attempt failed: No refresh token in cookie.");
+    res.status(401).json({ message: "Refresh token missing" });
+    return;
+  }
+
+  let decodedUser;
+  try {
+    decodedUser = JWT.verifyRefreshToken(oldRefreshToken) as { id: string; email?: string; role: string; };
+  } catch (err) {
+    console.error("Refresh attempt failed: Token verification error.", err);
+    res.clearCookie("refreshToken", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict" });
+    res.status(403).json({ message: "Invalid or expired refresh token" });
+    return;
+  }
+
+  try {
+    const storedToken = await redisClient.get(`refreshToken:${decodedUser.id}`);
+
+    if (!storedToken) {
+        console.log(`Refresh failed for user ${decodedUser.id}: No token found in Redis. User may have logged out.`);
+        res.clearCookie("refreshToken", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict" });
+        res.status(403).json({ message: "Session not found. Please log in again." });
+        return
     }
 
-    let decodedUser;
-    try {
-        decodedUser = JWT.verifyRefreshToken(oldRefreshToken) as { id: string; email?: string; role: string; };
-    } catch (err) {
-        res.status(403).json({ message: "Invalid or expired refresh token" });
-        return;
+    if (storedToken !== oldRefreshToken) {
+        console.warn(`SECURITY ALERT: Refresh token reuse detected for user ${decodedUser.id}. Invalidating session.`);
+        await redisClient.del(`refreshToken:${decodedUser.id}`);
+        res.clearCookie("refreshToken", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict" });
+        res.status(403).json({ message: "Session invalid. Please log in again." });
+        return
     }
 
-    try {
-        const storedToken = await redisClient.get(`refreshToken:${decodedUser.id}`);
+    console.log(`Successfully validated refresh token for user ${decodedUser.id}. Issuing new tokens.`);
 
-        if (!storedToken || storedToken !== oldRefreshToken) {
-            await redisClient.del(`refreshToken:${decodedUser.id}`);
-            res.status(403).json({ message: "Session invalid. Please log in again." });
-            return
-        }
+    const newTokens = JWT.createTokens({
+      id: decodedUser.id,
+      email: decodedUser.email,
+      role: decodedUser.role
+    });
 
-        const newTokens = JWT.createTokens({
-            id: decodedUser.id,
-            email: decodedUser.email,
-            role: decodedUser.role
-        });
+    // Set the new token in Redis with the 7-day expiration
+    await redisClient.set(`refreshToken:${decodedUser.id}`, newTokens.refreshToken, {
+      EX: REFRESH_TOKEN_COOKIE_EXPIRATION_MS
+    });
 
-        await redisClient.set(`refreshToken:${decodedUser.id}`, newTokens.refreshToken, {
-            EX: REFRESH_TOKEN_EXPIRATION_SECONDS
-        });
+    // Set the new cookie on the client
+    res.cookie("refreshToken", newTokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
+    });
 
-        res.cookie("refreshToken", newTokens.refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
-        });
+    res.status(200).json({ accessToken: newTokens.accessToken });
 
-        // Send the NEW access token.
-        res.json({ accessToken: newTokens.accessToken });
-
-    } catch (err) {
-        console.error("Error during token refresh:", err);
-        res.status(500).json({ message: "Internal server error" });
-    }
+  } catch (err) {
+    console.error(`CRITICAL: Error during token refresh process for user ${decodedUser.id}:`, err);
+    res.status(500).json({ message: "Internal server error during token refresh" });
+  }
 }
+
 /**
  * @swagger
  * /api/user/logout:
  *   post:
- *     summary: Logout the user by clearing the refresh token cookie
+ *     summary: Logout user and clear cookie
  *     tags: [User]
  *     description: >
  *       Logs the user out by removing their refresh token from Redis and clearing
@@ -808,42 +645,42 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
  *       500:
  *         description: Server error
  */
+
 export async function logout(req: Request, res: Response): Promise<void> {
-    const refreshToken = req.cookies.refreshToken;
-    const cookieOptions = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict" as const,
-    };
+  const refreshToken = req.cookies.refreshToken;
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict" as const,
+  };
 
-    if (!refreshToken) {
-        res.status(400).json({ message: "No refresh token provided" });
-        return
-    }
+  if (!refreshToken) {
+    res.clearCookie("refreshToken", cookieOptions);
+    res.status(200).json({ message: "Logout successful" });
+    return;
+  }
 
-    try {
-        const decoded = jwt.verify(
-            refreshToken,
-            process.env.JWT_REFRESH_SECRET!
-        ) as { id: string };
+  try {
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESH_SECRET!
+    ) as { id: string };
+    
+    await redisClient.del(`refreshToken:${decoded.id}`);
 
-        const result = await redisClient.del(`refreshToken:${decoded.id}`);
+    res.clearCookie("refreshToken", cookieOptions);
+    res.status(200).json({ message: "Logout successful" });
+    return;
 
-        if (result === 0) {
-            res.status(400).json({ message: "Already logged out or invalid token" });
-            return
-        }
+  } catch (err) {
+    console.error("Error during logout:", err);
 
-        res.clearCookie("refreshToken", cookieOptions);
-        res.status(200).json({ message: "Logout successful" });
-        return
-
-    } catch (err) {
-        console.error("Error during logout:", err);
-        res.status(401).json({ message: "Invalid or expired token" });
-        return
-    }
+    res.clearCookie("refreshToken", cookieOptions);
+    res.status(200).json({ message: "Logout successful" });
+    return;
+  }
 }
+
 
 /**
  * @swagger
@@ -1063,23 +900,107 @@ export async function resetPassword(req: Request, res: Response) {
 
 
 export async function getProfile(req: Request, res: Response): Promise<void> {
-    try {
-        const userId = req.user?.id;
-        if (!userId) {
-            res.status(401).json({ message: "Unauthorized: No user ID found in token" });
-            return;
-        }
-        const user = await UserRepository.findById(userId);
-        if (!user) {
-            res.status(404).json({ message: "User not found" });
-            return;
-        }
-        const userObject = user.toObject();
-        const { password, ...userResponse } = userObject;
-
-        res.status(200).json(userResponse);
-
-    } catch (error) {
-        res.status(500).json({ message: "Server error while fetching profile", error: (error as Error).message });
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ message: "Unauthorized: No user ID found in token" });
+      return;
     }
+    const user = await UserRepository.findById(userId);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+    const userObject = user.toObject();
+    const { password, ...userResponse } = userObject;
+    console.log(userResponse)
+    res.status(200).json(userResponse);
+
+  } catch (error) {
+    res.status(500).json({ message: "Server error while fetching profile", error: (error as Error).message });
+  }
+}
+/**
+ * Sign in account with google
+ * post /api/user/google
+ */
+async function handleSuccessfulLogin(
+  user: IUserData, 
+  res: Response, 
+  message: string = "Login successful" // Add optional message parameter
+) {
+  try {
+    const tokens = JWT.createTokens({ id: user.id, email: user.email, role: user.role });
+
+    await redisClient.set(`refreshToken:${user.id}`, tokens.refreshToken, {
+      EX: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
+    });
+
+    res.cookie("refreshToken", tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
+    });
+
+    const { password: _, ...userResponse } = user.toObject();
+
+    res.status(200).json({
+      message, // Use the message parameter here
+      accessToken: tokens.accessToken,
+      user: userResponse,
+    });
+
+  } catch (error) {
+    console.error("Error during handleSuccessfulLogin:", error);
+    res.status(500).json({ message: "Failed to create a session." });
+  }
+}
+
+
+
+export async function googleAuthenicate(req: Request, res: Response) {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ message: 'Token is required' });
+  }
+
+  try {
+    // Verify the token with Google
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    
+    if (!payload || !payload.email) {
+      return res.status(400).json({ message: 'Invalid Google token payload' });
+    }
+    
+    let user = await UserRepository.findByEmail(payload.email);
+
+    if (user) {
+      await handleSuccessfulLogin(user, res);
+    } else {
+      const defaultPasswordForGoolgleLogin = process.env.GOOGLE_CLIENT_SECRET || 'CADT';
+
+      const newUser = await UserRepository.create({
+        name: payload.name!,
+        email: payload.email,
+        password: Encryption.hashPassword(defaultPasswordForGoolgleLogin),
+        profileUrl: payload.picture || 'http://default.url/image.png',
+        role: 'player', // Default role for new users
+        isVerified: true, // Google accounts are already verified
+        googleId: payload.sub, // Store Google's unique user ID
+      } as IUserData);
+
+      // Log the newly created user in
+      await handleSuccessfulLogin(newUser, res);
+    }
+  } catch (error) {
+    console.error('Google authentication error:', error);
+    res.status(401).json({ message: 'Invalid token or authentication failed' });
+  }
 }

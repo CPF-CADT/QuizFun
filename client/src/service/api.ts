@@ -1,24 +1,16 @@
 // src/service/api.ts
 import axios, { type AxiosRequestConfig } from 'axios';
-import type { RefObject  } from 'react';
+import type { RefObject } from 'react';
 
 export const apiClient = axios.create({
-  baseURL: 'http://localhost:3000/api/',
+  baseURL: import.meta.env.VITE_BACKEND_URL,
   withCredentials: true,
 });
-
-export const authApi = {
-  login: (credentials: object) => apiClient.post('/user/login', credentials),
-  logout: () => apiClient.post('/user/logout'),
-  signUp: (data: object) => apiClient.post('/user/register', data),
-  getProfile: () => apiClient.get('/user/profile'),
-  refreshToken: () => apiClient.post('/user/refresh-token'),
-};
 
 export const setupAuthInterceptors = (
   setAccessToken: (token: string | null) => void,
   logout: () => void,
-  accessTokenRef: RefObject <string | null>
+  accessTokenRef: RefObject<string | null>
 ) => {
   const requestInterceptor = apiClient.interceptors.request.use(
     (config) => {
@@ -48,6 +40,15 @@ export const setupAuthInterceptors = (
     (response) => response,
     async (error) => {
       const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+
+      // --- START: THE FIX ---
+      // If the refresh token request itself fails, logout immediately.
+      if (originalRequest.url === '/user/refresh-token') {
+        console.error("Session has expired or refresh token is invalid. Logging out.");
+        logout();
+        return Promise.reject(error);
+      }
+      // --- END: THE FIX ---
 
       if (error.response?.status === 401 && !originalRequest._retry) {
         if (isRefreshing) {
@@ -93,3 +94,111 @@ export const setupAuthInterceptors = (
     apiClient.interceptors.response.eject(responseInterceptor);
   };
 };
+
+
+
+
+export interface IUser {
+  _id: string;
+  name: string;
+  email: string;
+  role: 'player' | 'admin' | 'moderator';
+  profileUrl: string;
+  isVerified: boolean;
+  google_id?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ILoginResponse {
+  message: string;
+  accessToken: string;
+  user: IUser;
+}
+
+export interface IRefreshTokenResponse {
+  accessToken: string;
+}
+
+export interface IVerifyCodeResponse extends ILoginResponse {}
+
+export interface IRequestCodePayload {
+  email: string;
+}
+
+export interface IVerifyCodePayload {
+  email: string;
+  code: string;
+}
+
+export interface IResetPasswordPayload {
+  resetToken: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface IVerifyResetCodeResponse {
+  message: string;
+  resetToken: string;
+}
+
+export const authApi = {
+  login: (credentials: object) => {
+    return apiClient.post<ILoginResponse>('/user/login', credentials);
+  },
+
+  logout: () => {
+    return apiClient.post('/user/logout');
+  },
+
+  signUp: (data: object) => {
+    return apiClient.post('/user/register', data);
+  },
+
+  getProfile: () => {
+    return apiClient.get<IUser>('/user/profile');
+  },
+
+  refreshToken: () => {
+    return apiClient.post<IRefreshTokenResponse>('/user/refresh-token');
+  },
+
+  requestCode: (payload: IRequestCodePayload) => {
+    return apiClient.post('/user/request-code', payload);
+  },
+
+  verifyEmail: (payload: IVerifyCodePayload) => {
+    return apiClient.post<IVerifyCodeResponse>('/user/verify-otp', payload);
+  },
+
+  verifyPasswordResetCode: (payload: IVerifyCodePayload) => {
+    return apiClient.post<IVerifyResetCodeResponse>('/user/verify-password-reset-code', payload);
+  },
+
+  resetPassword: (payload: IResetPasswordPayload) => {
+    return apiClient.post('/user/reset-password', payload);
+  },
+  googleAuthenication:(token:string)=>{
+    return apiClient.post('/user/google',{token})
+  }
+};
+
+export const apiService ={
+   uploadImageToCloudinary: async (file: string | Blob) => {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const res = await apiClient.post('service/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      return res.data.url;
+
+    } catch (error) {
+      throw new Error((error as Error).message || "Failed to upload image");
+    }
+  },
+}

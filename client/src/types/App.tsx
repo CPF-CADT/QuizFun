@@ -1,3 +1,4 @@
+import React from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -5,20 +6,17 @@ import {
   Navigate,
   Outlet,
 } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AuthProvider, useAuth } from "../context/AuthContext";
 
-import Signup from "./pages/Signup";
-import Login from "./pages/Login";
-import Homepage from "./pages/Homepage";
-import Joingame from "./pages/Joingame";
-import Dashboard from "./pages/Dashboard";
-import Explore from "./pages/Explore";
-import CreateQuiz from "./pages/CreateQuiz";
-import Game from './test/Quizz';
-import Report from './pages/Report';
-import DuringGamePlay from './pages/DuringGamePlay';
-import VerifyCode from "./pages/VerifyCode";
-import { Rotate3D } from 'lucide-react';
+import Signup from "../pages/Signup";
+import Login from "../pages/Login";
+import Homepage from "../pages/Homepage";
+import Joingame from "../pages/Joingame";
+import Dashboard from "../pages/Dashboard";
+import Explore from "../pages/Explore";
+import QuizEditorPage from "../pages/QuizEditorPage";
+import Game from "../test/Quizz";
+import VerifyCode from "../pages/VerifyCode";
 
 const PrivateRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -62,16 +60,14 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/verify" element={<VerifyCode />} />
+            <Route path="/game" element={<Game />} />
           </Route>
 
           <Route element={<PrivateRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/join" element={<Joingame />} />
             <Route path="/explore" element={<Explore />} />
-            <Route  path="/report" element={<Report />} />
             <Route path="/quiz-editor/:quizId" element={<QuizEditorPage />} />
-            <Route path="/game" element={<Game />} /> 
-            <Route path="/During-game-play" element={<DuringGamePlay/>}/>
           </Route>
 
           <Route path="*" element={<NotFound />} />
