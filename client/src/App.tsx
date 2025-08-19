@@ -1,4 +1,3 @@
-// src/App.tsx
 import React from 'react';
 import {
   BrowserRouter as Router,
@@ -28,19 +27,24 @@ const PrivateRoute: React.FC = () => {
 };
 
 const PublicRoute: React.FC = () => {
-    const { isAuthenticated, isLoading } = useAuth();
-    if (isLoading) {
-        return <div className="flex items-center justify-center h-screen bg-gray-900 text-white">Loading session...</div>;
-    }
-    return !isAuthenticated ? <Outlet /> : <Navigate to="/dashboard" />;
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
+        Loading session...
+      </div>
+    );
+  }
+
+  return <Outlet />;
 };
 
 const NotFound: React.FC = () => (
-    <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
-        <h1 className="text-4xl font-bold">404 - Page Not Found</h1>
-    </div>
+  <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
+    <h1 className="text-4xl font-bold">404 - Page Not Found</h1>
+  </div>
 );
-
 
 function App() {
   return (
@@ -48,7 +52,6 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<Homepage />} />
-          
           <Route element={<PublicRoute />}>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
