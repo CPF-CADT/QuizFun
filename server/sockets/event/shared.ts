@@ -14,7 +14,7 @@ const RESULTS_DISPLAY_DURATION = 5000; // 5 seconds
  * It correctly sets the game state and timer *before* broadcasting.
  */
 export async function nextQuestion(io: Server, roomId: number): Promise<void> {
-    const room = GameSessionManager.getSession(roomId);
+    const room = await GameSessionManager.getSession(roomId);
     if (!room || !room.questions) return;
 
     // Reset state for the new round
@@ -29,7 +29,7 @@ export async function nextQuestion(io: Server, roomId: number): Promise<void> {
         room.gameState = 'end';
         room.isFinalResults = true;
         await GameRepository.finalizeGameSession(roomId);
-        broadcastGameState(io, roomId);
+        await broadcastGameState(io, roomId);
         return;
     }
 
@@ -45,11 +45,11 @@ export async function nextQuestion(io: Server, roomId: number): Promise<void> {
     console.log(`[Game] Sending question ${room.currentQuestionIndex + 1} to room ${roomId}.`);
     
     // Broadcast the complete and correct state once.
-    broadcastGameState(io, roomId);
+    await broadcastGameState(io, roomId);
 }
 
 export async function endRound(io: Server, roomId: number): Promise<void> {
-    const room = GameSessionManager.getSession(roomId);
+    const room = await GameSessionManager.getSession(roomId);
 
     if (!room || room.gameState !== 'question' || !room.questions || room.currentQuestionIndex < 0 || room.currentQuestionIndex >= room.questions.length) {
         console.error(`[Game] endRound called in an invalid state for room ${roomId}.`);
@@ -118,12 +118,12 @@ export async function endRound(io: Server, roomId: number): Promise<void> {
         }, RESULTS_DISPLAY_DURATION);
     }
     
-    broadcastGameState(io, roomId);
+    await broadcastGameState(io, roomId);
 }
 
 
-export function broadcastGameState(io: Server, roomId: number, errorMessage?: string): void {
-    const room = GameSessionManager.getSession(roomId);
+export async function broadcastGameState(io: Server, roomId: number, errorMessage?: string): Promise<void>{
+    const room = await GameSessionManager.getSession(roomId);
     if (!room) return;
 
     const totalQuestions = room.questions?.length ?? 0;

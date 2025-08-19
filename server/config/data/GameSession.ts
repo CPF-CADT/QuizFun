@@ -1,5 +1,8 @@
 import { Types } from "mongoose";
 import { IQuestion } from "../../model/Quiz";
+import { promises } from "dns";
+import Redis from "ioredis";
+const redis = new Redis()
 
 export type ParticipantRole = 'host' | 'player';
 export type GameState = 'lobby' | 'question' | 'results' | 'end';
@@ -82,10 +85,10 @@ export interface GameStatePayload {
 class Manager {
     private sessions: Map<number, SessionData> = new Map();
 
-    public addSession(
+    public async addSession(
         roomId: number,
         data: Pick<SessionData, 'quizId' | 'hostId' | 'settings' | 'sessionId'>
-    ): void {
+    ):Promise<void> {
         const session: SessionData = {
             ...data,
             participants: [],
@@ -96,20 +99,29 @@ class Manager {
             answerCounts: [],
         };
         this.sessions.set(roomId, session);
+        await redis.set(`session= ${roomId}`,JSON.stringify(session));
         console.log(`[GameSession] In-memory session created for room ${roomId} (SessionID: ${data.sessionId}).`);
     }
 
 
-    public getSession(roomId: number): SessionData | undefined {
-        return this.sessions.get(roomId);
+
+    public  async getSession(roomId: number): Promise<SessionData | undefined > {
+        const local = this.sessions.get(roomId);
+        if(local) return local;
+        const redisData = await redis.get(`room session${roomId}`);
+        if(redisData){
+            return JSON.parse(redisData) as SessionData;
+        }
+        return undefined;
     }
 
-    public removeSession(roomId: number): void {
+    public async removeSession(roomId: number): Promise<void> {
         const room = this.getSession(roomId);
         if (room) {
-            if (room.questionTimer) clearTimeout(room.questionTimer);
-            if (room.autoNextTimer) clearTimeout(room.autoNextTimer);
+            if ((await room)?.questionTimer) clearTimeout((await room)?.questionTimer);
+            if ((await room)?.autoNextTimer) clearTimeout((await room)?.autoNextTimer);
             this.sessions.delete(roomId);
+            await redis.del(`sessionId:${roomId}`)
             console.log(`[GameSession] Room ${roomId} removed.`);
         }
     }

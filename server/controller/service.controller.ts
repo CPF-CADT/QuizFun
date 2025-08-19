@@ -70,12 +70,12 @@ import fs from 'fs';
  */
 
 
-type UploadImage = 'user_ProfilePic' | 'quizz_Image';
+type UploadImage = 'user_ProfilePic' | 'quizz_Image' |'n/a';
 interface MulterRequest extends Request {
   file?: Express.Multer.File; 
 }
 
-export const handleImageUpload = (category: UploadImage) => { return async  (req: MulterRequest, res: Response) => {
+export const handleImageUpload = (category: UploadImage ='n/a') => { return async  (req: MulterRequest, res: Response) => {
   console.log('Controller received request to upload an image.');
 
   try {
