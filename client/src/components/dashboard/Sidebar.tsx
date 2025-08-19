@@ -16,7 +16,7 @@ const sidebarItems = [
   { name: 'Dashboard', icon: Activity, section: 'dashboard', color: 'from-violet-500 to-purple-600' },
   { name: 'Explore', icon: Compass, section: 'explore', color: 'from-blue-500 to-cyan-500' },
   { name: 'My Library', icon: BookOpen, section: 'library', color: 'from-emerald-500 to-teal-600' },
-  { name: 'Analytics', icon: BarChart3, section: 'reports', color: 'from-orange-500 to-red-500' },
+  { name: 'Report', icon: BarChart3, section: 'report', color: 'from-orange-500 to-red-500' },
   { name: 'Students', icon: Users, section: 'classes', color: 'from-pink-500 to-rose-600' },
   { name: 'Settings', icon: Settings, section: 'settings', color: 'from-slate-500 to-gray-600' }
 ];
