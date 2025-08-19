@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import GoogleLoginButton from "../components/GoogleLoginButton";
 import { useState } from "react";
 import { authApi } from "../service/api";
+
 const Icon = ({
   path,
   className = "w-5 h-5",
@@ -75,130 +76,118 @@ const Signup: React.FC = () => {
     formData.password === formData.confirmPassword;
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
-      style={{
-        background:
-          "linear-gradient(135deg, #A24FF6 0%, #667eea 50%, #764ba2 100%)",
-      }}
-    >
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 left-10 w-20 h-20 bg-yellow-300 rounded-full opacity-20 animate-bounce"></div>
-        <div className="absolute top-40 right-20 w-16 h-16 bg-pink-300 rounded-full opacity-20 animate-pulse"></div>
-        <div className="absolute bottom-40 left-20 w-24 h-24 bg-green-300 rounded-full opacity-20 animate-bounce"></div>
-        <div className="absolute bottom-20 right-10 w-18 h-18 bg-orange-300 rounded-full opacity-20 animate-pulse"></div>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-6 relative overflow-hidden">
+      {/* Decorative Blur Circles */}
+      <div className="absolute top-16 left-10 w-40 h-40 bg-pink-400 opacity-20 blur-3xl rounded-full"></div>
+      <div className="absolute bottom-20 right-10 w-60 h-60 bg-indigo-400 opacity-20 blur-3xl rounded-full"></div>
 
+      {/* Back Button */}
       <button
         onClick={() => navigate("/")}
-        className="absolute top-6 left-6 flex items-center space-x-2 text-white hover:text-yellow-300 transition-colors z-20"
+        className="absolute top-6 left-6 flex items-center gap-2 text-white hover:text-yellow-300 transition-colors z-20"
       >
         <Icon path={ICONS.arrowLeft} />
-        <span className="hidden sm:inline">Back to Home</span>
+        <span className="hidden sm:inline">Back</span>
       </button>
 
-      <div className="bg-white/15 backdrop-blur-md w-full max-w-md mx-4 p-8 rounded-2xl shadow-2xl border border-white/20 relative z-10 my-20">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-400 to-blue-500 rounded-full mb-4 animate-pulse">
-            <Icon path={ICONS.gamepad} className="text-2xl text-white" />
+      {/* Card */}
+      <div className="w-full max-w-lg bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20 relative z-10">
+        {/* Logo */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-yellow-400 to-pink-500 rounded-full shadow-lg mb-4">
+            <Icon path={ICONS.gamepad} className="text-white w-8 h-8" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">
-            Create Your Account
+          <h1 className="text-3xl font-extrabold text-white mb-2">
+            Sign Up
           </h1>
-          <p className="text-white/80">
-            Join Fun Quiz and start your adventure
+          <p className="text-white/70 text-sm">
+            Create an account to join the fun!
           </p>
         </div>
 
-        <div className="space-y-6">
+        {/* Form */}
+        <div className="space-y-5">
+          {/* Username */}
           <div>
-            <label className="block mb-2 text-sm font-semibold text-white/90">
-              Username
-            </label>
+            <label className="block text-sm text-white/90 mb-2">Username</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                <Icon path={ICONS.user} />
-              </span>
+              <Icon path={ICONS.user} className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
               <input
                 type="text"
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                className="w-full pl-10 pr-4 py-3 bg-white/90 border border-white/30 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-green-400/50 transition-all"
                 placeholder="Enter your username"
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/90 text-gray-800 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-pink-400/40"
               />
             </div>
           </div>
+
+          {/* Email */}
           <div>
-            <label className="block mb-2 text-sm font-semibold text-white/90">
-              Email Address
-            </label>
+            <label className="block text-sm text-white/90 mb-2">Email</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                <Icon path={ICONS.envelope} />
-              </span>
+              <Icon path={ICONS.envelope} className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full pl-10 pr-4 py-3 bg-white/90 border border-white/30 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-green-400/50 transition-all"
                 placeholder="Enter your email"
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/90 text-gray-800 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-pink-400/40"
               />
             </div>
           </div>
+
+          {/* Password */}
           <div>
-            <label className="block mb-2 text-sm font-semibold text-white/90">
-              Password
-            </label>
+            <label className="block text-sm text-white/90 mb-2">Password</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                <Icon path={ICONS.lock} />
-              </span>
+              <Icon path={ICONS.lock} className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
                 value={formData.password}
                 onChange={handleInputChange}
-                className="w-full pl-10 pr-12 py-3 bg-white/90 border border-white/30 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-green-400/50 transition-all"
                 placeholder="Enter your password"
+                className="w-full pl-10 pr-12 py-3 rounded-xl bg-white/90 text-gray-800 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-pink-400/40"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
               >
                 <Icon
                   path={showPassword ? ICONS.eyeOpen : ICONS.eyeClosed}
-                  className="text-xl"
+                  className="w-6 h-6"
                 />
               </button>
             </div>
           </div>
+
+          {/* Confirm Password */}
           <div>
-            <label className="block mb-2 text-sm font-semibold text-white/90">
-              Confirm Password
-            </label>
+            <label className="block text-sm text-white/90 mb-2">Confirm Password</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                <Icon path={ICONS.lock} />
-              </span>
+              <Icon path={ICONS.lock} className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
               <input
                 type={showPassword ? "text" : "password"}
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
-                className="w-full pl-10 pr-12 py-3 bg-white/90 border border-white/30 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-green-400/50 transition-all"
                 placeholder="Confirm your password"
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/90 text-gray-800 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-pink-400/40"
               />
             </div>
           </div>
+
+          {/* Submit */}
           <button
             onClick={handleSignup}
             disabled={!isFormValid}
-            className={`w-full font-bold py-3 px-6 rounded-xl transition-all transform hover:scale-105 shadow-lg ${
+            className={`w-full py-3 rounded-xl font-bold shadow-md transition transform hover:scale-105 ${
               isFormValid
-                ? "bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white"
+                ? "bg-gradient-to-r from-pink-500 to-yellow-500 text-white hover:from-pink-600 hover:to-yellow-600"
                 : "bg-gray-400 text-gray-200 cursor-not-allowed hover:scale-100"
             }`}
           >
@@ -206,35 +195,31 @@ const Signup: React.FC = () => {
           </button>
         </div>
 
-        <div className="flex items-center justify-center my-6">
-          <div className="border-t border-white/30 flex-1"></div>
-          <span className="px-4 text-white/70 text-sm">or sign up with</span>
-          <div className="border-t border-white/30 flex-1"></div>
+        {/* Divider */}
+        <div className="flex items-center gap-3 my-6">
+          <div className="flex-1 border-t border-white/30"></div>
+          <span className="text-white/60 text-sm">or</span>
+          <div className="flex-1 border-t border-white/30"></div>
         </div>
 
+        {/* Social Login */}
         <div className="space-y-3">
           <GoogleLoginButton />
 
-          <button className="flex items-center justify-center w-full bg-white/10 border border-white/30 rounded-xl py-3 hover:bg-white/20 text-white gap-3">
-            <img
-              src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"
-              alt="Apple"
-              className="w-5 h-6"
-            />
+          <button className="flex items-center justify-center w-full py-3 rounded-xl bg-white/20 text-white border border-white/30 hover:bg-white/30 gap-3 transition">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" alt="Apple" className="w-5 h-6" />
             Continue with Apple
           </button>
-          <button className="flex items-center justify-center w-full bg-white/10 border border-white/30 rounded-xl py-3 hover:bg-white/20 text-white gap-3">
-            <img
-              src="https://www.svgrepo.com/show/452196/facebook-1.svg"
-              alt="Facebook"
-              className="w-5 h-5"
-            />
+
+          <button className="flex items-center justify-center w-full py-3 rounded-xl bg-white/20 text-white border border-white/30 hover:bg-white/30 gap-3 transition">
+            <img src="https://www.svgrepo.com/show/452196/facebook-1.svg" alt="Facebook" className="w-5 h-5" />
             Continue with Facebook
           </button>
         </div>
 
-        <div className="text-center mt-8">
-          <p className="text-white/80">
+        {/* Footer */}
+        <div className="text-center mt-6">
+          <p className="text-white/80 text-sm">
             Already have an account?{" "}
             <button
               onClick={() => navigate("/login")}
