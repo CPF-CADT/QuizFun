@@ -236,6 +236,7 @@ export async function handleDisconnect(socket: Socket, io: Server): Promise<void
 
         if (disconnectedUser.role === 'host') {
             broadcastGameState(io, roomId, "The host has disconnected. The game has ended.");
+            
             GameSessionManager.removeSession(roomId);
         } else {
             const activePlayers = session.participants.filter(p => p.role === 'player' && p.isOnline);

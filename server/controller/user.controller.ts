@@ -578,7 +578,7 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
 
     // Set the new token in Redis with the 7-day expiration
     await redisClient.set(`refreshToken:${decodedUser.id}`, newTokens.refreshToken, {
-      EX: REFRESH_TOKEN_EXPIRATION_SECONDS
+      EX: REFRESH_TOKEN_COOKIE_EXPIRATION_MS
     });
 
     // Set the new cookie on the client
@@ -665,7 +665,7 @@ export async function logout(req: Request, res: Response): Promise<void> {
       refreshToken,
       process.env.JWT_REFRESH_SECRET!
     ) as { id: string };
-
+    
     await redisClient.del(`refreshToken:${decoded.id}`);
 
     res.clearCookie("refreshToken", cookieOptions);
@@ -933,7 +933,7 @@ async function handleSuccessfulLogin(
     const tokens = JWT.createTokens({ id: user.id, email: user.email, role: user.role });
 
     await redisClient.set(`refreshToken:${user.id}`, tokens.refreshToken, {
-      EX: REFRESH_TOKEN_EXPIRATION_SECONDS,
+      EX: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
     });
 
     res.cookie("refreshToken", tokens.refreshToken, {
