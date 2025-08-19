@@ -1,5 +1,6 @@
 import React from 'react';
 import { FaPlus, FaHistory, FaChartLine, FaStar, FaUsers, FaTrophy, FaRocket, FaGamepad, FaBolt } from 'react-icons/fa';
+import { BiUser } from "react-icons/bi";
 const Homepage: React.FC = () => {
   return (
     <div className="min-h-screen font-sans text-white relative">
@@ -13,12 +14,13 @@ const Homepage: React.FC = () => {
           <a href="#pricing" className="hover:text-purple-600 transition">Pricing</a>
           <a href="#about" className="hover:text-purple-600 transition">About</a>
         </div>
-         <button
-         onClick={() => (window.location.href = "/Login")}
-          className="text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-all transform hover:scale-105 shadow-lg"
+        <button
+          onClick={() => (window.location.href = "/Login")}
+          className="flex items-center gap-2 text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-all transform hover:scale-105 shadow-lg"
           style={{ backgroundColor: "#A24FF6" }}
         >
-          Login / Sign up
+          <BiUser className="text-lg" />
+          <span>Login / Sign up</span>
         </button>
       </div>
 
@@ -219,7 +221,7 @@ const Homepage: React.FC = () => {
               Watch Demo
             </button>
           </div>
-          <p className="text-sm text-purple-200 mt-4">✅ No credit card required • ✅ Setup in under 5 minutes</p>
+          <p className="text-sm text-purple-200 mt-4">No credit card required </p>
         </div>
       </div>
       {/* Footer */}
