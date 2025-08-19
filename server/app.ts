@@ -9,7 +9,6 @@ import { errorHandler } from './middleware/errHandle.middleware';
 import { serviceRouter } from './routes/service.route';
 import { runSeed } from './config/seed'; 
 import {gameRouter} from './routes/game.route';
-
 const app = express();
 
 app.use(cors({
@@ -29,7 +28,6 @@ app.use('/api/quizz', quizzRouter);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/service',serviceRouter)
 app.use('/api/session',gameRouter)
-
 
 app.use(errorHandler)
 // runSeed();   
