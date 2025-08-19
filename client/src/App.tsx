@@ -19,6 +19,7 @@ import Report from './pages/Report';
 import DuringGamePlay from './pages/DuringGamePlay';
 import VerifyCode from "./pages/VerifyCode";
 import { Rotate3D } from 'lucide-react';
+import QuizEditorPage from "./pages/QuizEditorPage";
 
 const PrivateRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
