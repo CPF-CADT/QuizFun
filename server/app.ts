@@ -5,9 +5,9 @@ import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './service/swaggerConfig';
 import { userRouter } from './routes/users.route';
 import { quizzRouter } from './routes/quizz.route';
-import { errorHandler } from './middleware/errHandle.middleware';
+import { errHandle } from './middleware/errHandle.middleware';
 import { serviceRouter } from './routes/service.route';
-import { runSeed } from './config/seed'; 
+// import { runSeed } from './config/seed'; 
 import {gameRouter} from './routes/game.route';
 const app = express();
 
@@ -29,6 +29,6 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/service',serviceRouter)
 app.use('/api/session',gameRouter)
 
-app.use(errorHandler)
+app.use(errHandle)
 // runSeed();   
 export default app;

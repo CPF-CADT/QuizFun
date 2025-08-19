@@ -50,41 +50,43 @@ export class QuizzRepositories {
 		};
 	}
 	static async getQuizz(qId: string) {
-		if (!Types.ObjectId.isValid(qId)) {
-			throw new Error("Invalid quiz ID");
+			if (!Types.ObjectId.isValid(qId)) {
+				throw new Error("Invalid quiz ID");
+			}
+			return QuizModel.findById(qId).lean();
 		}
-		return QuizModel.findById(qId).lean();
-	}
 	static async createQuizz(quizz: IQuiz): Promise<IQuiz | null> {
 		return QuizModel.create(quizz);
 	}
 	static async getQuizzByUser(userId?: string, page = 1, limit = 10) {
-        if (!userId) return { total: 0, quizzes: [] };
-        const objectId = new Types.ObjectId(userId);
-        const skip = (page - 1) * limit;
+		if (!userId) return { total: 0, quizzes: [] };
 
-        // total count
-        const total = await QuizModel.countDocuments({
-            $or: [
-                { forkBy: objectId },
-                { creatorId: objectId }
-            ]
-        });
+		const objectId = new Types.ObjectId(userId);
+		const skip = (page - 1) * limit;
 
-        // fetch paginated quizzes
-        const quizzes = await QuizModel.find({
-            $or: [
-                { forkBy: objectId },
-                { creatorId: objectId }
-            ]
-        })
-        .skip(skip)
-        .limit(limit)
-        .sort({ createdAt: -1 }) 
-        .exec();
+		const result = await QuizModel.aggregate([
+			{
+			$match: {
+				$or: [{ forkBy: objectId }, { creatorId: objectId }],
+			},
+			},
+			{
+			$facet: {
+				total: [{ $count: "count" }],
+				quizzes: [
+				{ $sort: { createdAt: -1 } },
+				{ $skip: skip },
+				{ $limit: limit },
+				],
+			},
+			},
+		]).exec();
 
-        return { total, quizzes };
-    }
+		const total = result[0]?.total[0]?.count || 0;
+		const quizzes = result[0]?.quizzes || [];
+
+		return { total, quizzes };
+	}
 
 	static async addQuestion(quizId: string, question: IQuestion): Promise<boolean> {
 		const result = await QuizModel.updateOne(
