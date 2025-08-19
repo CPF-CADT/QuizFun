@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Sidebar from '../components/dashboard/Sidebar';
+
 import {
   Search,
   Star,
@@ -139,25 +141,28 @@ const Explore: React.FC = () => {
 
   const categories = [...new Set(sampleQuizzes.map(quiz => quiz.category))];
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);  
+  const [activeSection, setActiveSection] = useState('explore'); // default active section
+  const currentTime = new Date();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="flex min-h-screen">
+  {/* Sidebar */}
+  <Sidebar 
+    activeSection={activeSection}
+    setActiveSection={setActiveSection}
+    sidebarOpen={sidebarOpen}
+    setSidebarOpen={setSidebarOpen}
+    currentTime={currentTime}
+  />
+    {/* <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100"> */}
+    <div className="flex-1 relative z-10">
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-r from-emerald-400/20 to-blue-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
       </div>
-      <div className="relative z-10 p-6 lg:p-12">
-        {/* Back to Dashboard Button */}
-        <button
-          onClick={() => navigate ('/dashboard')}
-          className="absolute top-6 left-6 flex items-center space-x-2 text-purple-600  hover:text-yellow-300 transition-colors z-20"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span className="hidden sm:inline">Back to Dashboard</span>
-        </button>
-
-      <div className="relative z-10 p-6 lg:p-12">
+      <div className="relative z-10 p-5">
         {/* Hero Header */}
         <div className="text-center mb-12">
 
@@ -339,7 +344,7 @@ const Explore: React.FC = () => {
           )}
         </div>
       </div>
-      </div>
+    </div>
     </div>
   );
 };

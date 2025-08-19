@@ -17,7 +17,10 @@ import Dashboard from "./pages/Dashboard";
 import Explore from "./pages/Explore";
 import CreateQuiz from "./pages/CreateQuiz";
 import Game from './test/Quizz';
+import Report from './pages/Report';
+import DuringGamePlay from './pages/DuringGamePlay';
 import VerifyCode from "./pages/VerifyCode";
+import { Rotate3D } from 'lucide-react';
 
 const PrivateRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -59,8 +62,10 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/join" element={<Joingame />} />
             <Route path="/explore" element={<Explore />} />
+            <Route  path="/report" element={<Report />} />
             <Route path="/create-quiz" element={<CreateQuiz />} />
-            <Route path="/game" element={<Game />} />
+            <Route path="/game" element={<Game />} /> 
+            <Route path="/During-game-play" element={<DuringGamePlay/>}/>
           </Route>
 
           <Route path="*" element={<NotFound />} />

@@ -205,14 +205,7 @@ const CreateQuiz: React.FC = () => {
                         Change Theme
                     </button>
                     
-                    {/* Enhanced Preview Card */}
-                    {/* <div className='w-full h-40 bg-gradient-to-br from-white/95 to-white/85 mt-6 text-center flex flex-col justify-center items-center shadow-xl border border-white/50 hover:shadow-2xl transition-all duration-300 transform hover:scale-105'>
-                        <div className='bg-purple-100 rounded-full p-3 mb-3'>
-                            <Plus className='w-6 h-6 text-purple-600' />
-                        </div> 
-                        <p className='text-purple-800 font-semibold text-lg'>Create Quiz</p>
-                        <p className='text-purple-600 text-sm mt-1'>Question #{questionCount}</p>
-                    </div> */}
+                   
                 </div>
                 
                 {/* Questions List */}

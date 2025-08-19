@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ArrowLeft, BarChart3, Users, Award, Timer, TrendingUp, Calendar, Eye, Target, Clock, UserCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import Sidebar from '../components/dashboard/Sidebar';
 const Report: React.FC = () => {
   const [selectedQuiz, setSelectedQuiz] = useState(0);
   const quizzes = [
@@ -88,22 +89,29 @@ const Report: React.FC = () => {
     }
   };
     const navigate = useNavigate();
-
+    const [sidebarOpen, setSidebarOpen] = useState(false);  
+      const [activeSection, setActiveSection] = useState('explore'); // default active section
+      const currentTime = new Date();
+    
 
   return (
+      <div className="flex min-h-screen">
+  {/* Sidebar */}
+  <Sidebar 
+    activeSection={activeSection}
+    setActiveSection={setActiveSection}
+    sidebarOpen={sidebarOpen}
+    setSidebarOpen={setSidebarOpen}
+    currentTime={currentTime}
+  />
+    {/* <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100"> */}
+    <div className="flex-1 relative z-10">
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
       {/* Decorative Blurs */}
       <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
       <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-r from-emerald-400/20 to-blue-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
 
-      {/* Back Button */}
-      <button
-        onClick={() =>navigate ("/Dashboard")}
-        className="absolute top-6 left-6 flex items-center space-x-2 text-purple-600 hover:text-yellow-400 transition-colors z-20"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        <span className="hidden sm:inline">Back to Dashboard</span>
-      </button>
+      
 
       {/* Main Content */}
       <div className="relative z-10 p-6 lg:p-12">
@@ -282,6 +290,8 @@ const Report: React.FC = () => {
         </div>
       </div>
     </div>
+  </div>
+  </div>
   );
 };
 

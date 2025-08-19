@@ -92,7 +92,7 @@ const RecentQuizzes: React.FC<RecentQuizzesProps> = ({ quizzes }) => {
                 </span>
               </div>
 
-              <div className="mb-4">
+              {/* <div className="mb-4">
                 <div className="flex items-center justify-between text-sm mb-2">
                   <span className="text-gray-600 font-medium">Progress</span>
                   <span className="text-gray-900 font-bold">{quiz.progress}%</span>
@@ -105,7 +105,7 @@ const RecentQuizzes: React.FC<RecentQuizzesProps> = ({ quizzes }) => {
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
