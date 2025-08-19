@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '../components/homepage/header.tsx';
+import Header from '../components/homepage/Header.tsx';
 import HeroSection from '../components/homepage/HeroSection.tsx';
 import FeaturesSection from '../components/homepage/FeaturesSection';
 import ThemesSection from '../components/homepage/Section.tsx';
