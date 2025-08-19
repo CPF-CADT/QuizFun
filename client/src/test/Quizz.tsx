@@ -1,9 +1,8 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
-
+import { useAuth } from '../context/AuthContext';
 // --- TYPE DEFINITIONS ---
 // These types should align perfectly with your backend API responses.
-
 export type ParticipantRole = 'host' | 'player';
 export type GameStateValue = 'lobby' | 'question' | 'results' | 'end' | 'connecting';
 
@@ -605,7 +604,7 @@ const Game: React.FC = () => {
     const { gameState, createRoom, joinRoom, startGame, submitAnswer, requestNextQuestion, playAgain, endGame, fetchFinalResults } = useQuizGame();
     const [view, setView] = useState<'menu' | 'join' | 'create'>('menu');
     const [isConnecting, setIsConnecting] = useState(false);
-    
+    const {user,isAuthenticated} = useAuth();
     const [hostName, setHostName] = useState('');
     const [quizId, setQuizId] = useState('');
     const [username, setUsername] = useState('');
@@ -624,21 +623,28 @@ const Game: React.FC = () => {
 
     const handleCreateSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // This is a placeholder for a real, authenticated user ID.
-        const realHostId = "663c9b9487333629e8593459"; 
-        if (hostName && quizId) {
+        console.log(user?._id)
+        if (quizId && user?._id) {
             setIsConnecting(true);
+            console.log('creaete form')
             sessionStorage.removeItem('quizUserId'); // Clear any old guest ID
-            createRoom({ quizId, hostName, userId: realHostId, settings });
+            createRoom({ quizId, hostName:user.name, userId: user._id, settings });
         }
     };
 
     const handleJoinSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (username && joinRoomId) {
-            setIsConnecting(true);
-            const guestId = generateGuestId();
-            joinRoom({ roomId: parseInt(joinRoomId), username, userId: guestId });
+        if(!isAuthenticated){
+          if (username && joinRoomId) {
+              setIsConnecting(true);
+              const guestId = generateGuestId();
+              joinRoom({ roomId: parseInt(joinRoomId), username, userId: guestId });
+          }
+        }else{
+          if (joinRoomId && user?._id) {
+              setIsConnecting(true);
+              joinRoom({ roomId: parseInt(joinRoomId), username:user.name, userId: user._id });
+          }
         }
     };
 
@@ -681,7 +687,10 @@ const Game: React.FC = () => {
         <div className="w-full max-w-sm p-8 bg-gray-800 rounded-lg shadow-xl text-white">
             <h1 className="text-3xl font-bold text-center mb-6">Create a Game</h1>
             <form onSubmit={handleCreateSubmit} className="space-y-4">
-                <input type="text" placeholder="Enter your name (Host)" value={hostName} onChange={(e) => setHostName(e.target.value)} className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required />
+              {
+                (!isAuthenticated) && 
+                  <input type="text" placeholder="Enter your name (Host)" value={hostName} onChange={(e) => setHostName(e.target.value)} className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required />
+              }
                 <input type="text" placeholder="Enter Quiz ID" value={quizId} onChange={(e) => setQuizId(e.target.value)} className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required />
                 
                 <div className="space-y-3 pt-2">
@@ -705,7 +714,9 @@ const Game: React.FC = () => {
         <div className="w-full max-w-sm p-8 bg-gray-800 rounded-lg shadow-xl text-white">
             <h1 className="text-3xl font-bold text-center mb-6">Join a Game</h1>
             <form onSubmit={handleJoinSubmit} className="space-y-4">
-                <input type="text" placeholder="Enter your name" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required />
+                {!isAuthenticated &&
+                  <input type="text" placeholder="Enter your name" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required />
+                }
                 <input type="text" placeholder="Enter Room ID" value={joinRoomId} onChange={(e) => setJoinRoomId(e.target.value)} className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required />
                 <button type="submit" className="w-full bg-green-600 font-bold py-2 px-4 rounded-md hover:bg-green-700">Join</button>
                 <button type="button" onClick={() => setView('menu')} className="w-full bg-gray-600 font-bold py-2 px-4 rounded-md hover:bg-gray-500 mt-2">Back</button>

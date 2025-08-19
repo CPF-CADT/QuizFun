@@ -913,7 +913,7 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
     }
     const userObject = user.toObject();
     const { password, ...userResponse } = userObject;
-
+    console.log(userResponse)
     res.status(200).json(userResponse);
 
   } catch (error) {
