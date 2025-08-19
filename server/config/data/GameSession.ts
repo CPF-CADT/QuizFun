@@ -1,8 +1,7 @@
 import { Types } from "mongoose";
 import { IQuestion } from "../../model/Quiz";
 import { promises } from "dns";
-import Redis from "ioredis";
-const redis = new Redis()
+import redisClient from "../redis";
 
 export type ParticipantRole = 'host' | 'player';
 export type GameState = 'lobby' | 'question' | 'results' | 'end';
@@ -99,7 +98,7 @@ class Manager {
             answerCounts: [],
         };
         this.sessions.set(roomId, session);
-        await redis.set(`session= ${roomId}`,JSON.stringify(session));
+        await redisClient.set(`session= ${roomId}`,JSON.stringify(session));
         console.log(`[GameSession] In-memory session created for room ${roomId} (SessionID: ${data.sessionId}).`);
     }
 
@@ -108,7 +107,7 @@ class Manager {
     public  async getSession(roomId: number): Promise<SessionData | undefined > {
         const local = this.sessions.get(roomId);
         if(local) return local;
-        const redisData = await redis.get(`room session${roomId}`);
+        const redisData = await redisClient.get(`room session${roomId}`);
         if(redisData){
             return JSON.parse(redisData) as SessionData;
         }
@@ -121,7 +120,7 @@ class Manager {
             if ((await room)?.questionTimer) clearTimeout((await room)?.questionTimer);
             if ((await room)?.autoNextTimer) clearTimeout((await room)?.autoNextTimer);
             this.sessions.delete(roomId);
-            await redis.del(`sessionId:${roomId}`)
+            await redisClient.del(`sessionId:${roomId}`)
             console.log(`[GameSession] Room ${roomId} removed.`);
         }
     }
