@@ -536,7 +536,6 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
   const oldRefreshToken = req.cookies.refreshToken;
 
   if (!oldRefreshToken) {
-    console.log("Refresh attempt failed: No refresh token in cookie.");
     res.status(401).json({ message: "Refresh token missing" });
     return;
   }
@@ -555,7 +554,6 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
     const storedToken = await redisClient.get(`refreshToken:${decodedUser.id}`);
 
     if (!storedToken) {
-        console.log(`Refresh failed for user ${decodedUser.id}: No token found in Redis. User may have logged out.`);
         res.clearCookie("refreshToken", { httpOnly: true, secure: config.nodeEnv === "production", sameSite: "strict" });
         res.status(403).json({ message: "Session not found. Please log in again." });
         return
@@ -568,8 +566,6 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
         res.status(403).json({ message: "Session invalid. Please log in again." });
         return
     }
-
-    console.log(`Successfully validated refresh token for user ${decodedUser.id}. Issuing new tokens.`);
 
     const newTokens = JWT.createTokens({
       id: decodedUser.id,
@@ -911,7 +907,6 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
     }
     const userObject = user.toObject();
     const { password, ...userResponse } = userObject;
-    console.log(userResponse)
     res.status(200).json(userResponse);
 
   } catch (error) {

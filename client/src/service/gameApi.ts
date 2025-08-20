@@ -1,4 +1,4 @@
-import { apiClient } from './api'; 
+import { apiClient } from './api';
 
 export interface IFeedbackRequest {
   userId: string;
@@ -7,9 +7,10 @@ export interface IFeedbackRequest {
 }
 
 export interface IAnswerAttempt {
-  selectedOptionId: string;
+  selectedOptionId?: string;
   isCorrect: boolean;
   answerTimeMs: number;
+  selectedOptionText?: string;
 }
 
 export interface IGameHistory {
@@ -17,10 +18,12 @@ export interface IGameHistory {
   gameSessionId: string;
   quizId: string;
   questionId: string;
+  questionText?: string;
   userId: string;
   guestNickname?: string;
+  username?: string,
   attempts: IAnswerAttempt[];
-  isUltimatelyCorrect: boolean;
+  wasUltimatelyCorrect: boolean;
   finalScoreGained: number;
   createdAt: string; // ISO Date String
 }
@@ -31,7 +34,7 @@ export interface IGameResult {
   finalScore: number;
   finalRank: number;
   feedback: {
-    rating: string; 
+    rating: string;
     comment?: string;
   }[];
 }
@@ -51,6 +54,23 @@ export interface IGameSession {
 export interface IGetSessionsParams {
   page?: number;
   limit?: number;
+}
+export interface IGamePerformace {
+  performance: IGameHistory[],
+  username: string,
+  userId?: string
+}
+export interface ResultsPayload {
+  viewType: 'host' | 'player' | 'guest';
+  results: {
+    participantId: string;
+    name: string;
+    score: number;
+    correctAnswers: number;
+    totalQuestions: number;
+    percentage: number;
+    averageTime: number;
+  }[];
 }
 
 
@@ -79,4 +99,16 @@ export const gameApi = {
   getUserPerformanceOnQuiz: (userId: string, quizId: string) => {
     return apiClient.get<IGameHistory[]>(`/user/${userId}/performance/${quizId}`);
   },
+  getUserPerformanceInSession: (userId: string, sessionId: string) => {
+    return apiClient.get<IGamePerformace>(`/session/${sessionId}/performance/${userId}`);
+  },
+  getGuestPerformanceInSession: (sessionId: string, guestName: string) => {
+    return apiClient.get<IGamePerformace>(`/session/${sessionId}/performance/guest`, {
+      params: { name: guestName }
+    });
+  },
+  getSessionResults: (sessionId: string, params: { userId?: string; guestName?: string }) => {
+    return apiClient.get<ResultsPayload>(`/session/${sessionId}/results`, { params });
+  },
+
 };

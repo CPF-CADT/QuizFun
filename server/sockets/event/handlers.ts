@@ -173,7 +173,7 @@ export async function handleSubmitAnswer(socket: Socket, io: Server, data: Submi
     }
     
     const elapsedMs = Date.now() - (room.questionStartTime ?? Date.now());
-    const remainingSec = Math.max(0, currentQuestion.timeLimit - elapsedMs / 1000);
+    const remainingSec =currentQuestion.timeLimit - Math.max(0, currentQuestion.timeLimit - elapsedMs / 1000);
 
     const playerAnswer: PlayerAnswer = {
         optionIndex: optionIndex,
