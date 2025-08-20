@@ -7,6 +7,7 @@ import ThemesSection from '../components/homepage/Section.tsx';
 import CTASection from '../components/homepage/CTASection.tsx';
 import Footer from '../components/homepage/Footer.tsx';
 const Homepage: React.FC = () => {
+  
   const isLoggedIn = (): boolean => {
     const token = localStorage.getItem("authToken");
     if (!token) return false;
