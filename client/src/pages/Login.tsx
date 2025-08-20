@@ -29,7 +29,9 @@ const Login: React.FC = () => {
     setError('');
     try {
       // Simulate login
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // await new Promise(resolve => setTimeout(resolve, 1000));
+       await Login(formData);
+      navigate('/dashboard');
       console.log('Login successful');
     } catch (err: any) {
       const message = "Failed to sign in. Please check your credentials.";
