@@ -1,15 +1,5 @@
 import React from 'react';
-import { FaPlus, FaStar, FaUsers, FaTrophy, FaGamepad, FaPaintBrush } from 'react-icons/fa';
-import {
-  FaMagic,
-  FaGift,
-  FaBook,
-  FaBrain,
-  FaHeart,
-  FaBolt,
-  FaMusic,
-  FaLightbulb
-} from "react-icons/fa";
+import { FaPlus, FaHistory, FaChartLine, FaStar, FaUsers, FaTrophy, FaGamepad } from 'react-icons/fa';
 
 interface HeroSectionProps {
   handleProtectedRoute: (path: string) => void;
@@ -28,7 +18,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ handleProtectedRoute }) => {
       }}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-purple-900/70 via-blue-900/50 to-purple-800/70"></div>
-
+      
       <div className="relative z-10 max-w-6xl mx-auto">
         <div className="inline-flex items-center bg-yellow-400 text-purple-900 px-4 py-2 rounded-full font-bold text-sm mb-6 animate-bounce">
           <FaStar className="mr-2" />
@@ -38,14 +28,14 @@ const HeroSection: React.FC<HeroSectionProps> = ({ handleProtectedRoute }) => {
         <h1 className="text-6xl md:text-8xl font-extrabold mb-6 bg-gradient-to-r from-yellow-300 via-pink-300 to-blue-300 bg-clip-text text-transparent leading-tight">
           Fun Quiz
         </h1>
-
+        
         <h2 className="text-3xl md:text-5xl font-bold mb-8 text-white drop-shadow-lg">
-          Get Started in Minutes,<br />
+          🚀 Get Started in Minutes,<br />
           <span className="text-yellow-300">See Amazing Results Today!</span>
         </h2>
 
         <p className="max-w-3xl text-xl md:text-2xl mb-12 text-gray-100 leading-relaxed">
-          Transform your classroom with <span className="text-yellow-300 font-bold">engaging quiz games</span>,
+          Transform your classroom with <span className="text-yellow-300 font-bold">engaging quiz games</span>, 
           smart adaptive learning, and instant progress tracking that students absolutely love!
         </p>
 
@@ -54,14 +44,13 @@ const HeroSection: React.FC<HeroSectionProps> = ({ handleProtectedRoute }) => {
             className="group flex items-center gap-2 bg-gradient-to-r from-emerald-400 to-teal-500 text-white font-bold px-8 py-4 rounded-xl hover:from-emerald-500 hover:to-teal-600 transition-all transform hover:scale-110 shadow-2xl border border-emerald-300">
             <FaPlus className="group-hover:rotate-90 transition-transform" /> Create Quiz
           </button>
-          <button onClick={() => handleProtectedRoute("/explore")}
-            className="group flex items-center gap-2 
-             bg-gradient-to-r from-purple-500 to-pink-500 
-             text-white font-bold px-8 py-4 rounded-xl 
-             hover:from-purple-600 hover:to-pink-600 
-             transition-all transform hover:scale-110 
-             shadow-2xl border border-pink-300">
-            <FaPaintBrush className="group-hover:rotate-90 transition-transform" /> Search template
+          <button onClick={() => handleProtectedRoute("/history")}
+            className="group flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold px-8 py-4 rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all transform hover:scale-110 shadow-2xl border border-indigo-400">
+            <FaHistory className="group-hover:rotate-12 transition-transform" /> Check History
+          </button>
+          <button onClick={() => handleProtectedRoute("/Dashboard")}
+            className="group flex items-center gap-2 bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold px-8 py-4 rounded-xl hover:from-pink-600 hover:to-rose-700 transition-all transform hover:scale-110 shadow-2xl border border-pink-400">
+            <FaChartLine className="group-hover:bounce transition-transform" /> Reports
           </button>
           <button className="group bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold px-8 py-4 rounded-xl hover:from-cyan-600 hover:to-blue-700 transition-all transform hover:scale-110 shadow-2xl border border-cyan-400"
             onClick={() => (window.location.href = "/join")}>
@@ -87,38 +76,18 @@ const HeroSection: React.FC<HeroSectionProps> = ({ handleProtectedRoute }) => {
           </div>
         </div>
       </div>
-
+      
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[5%] left-[5%] text-yellow-300 text-4xl opacity-70 animate-pulse">
-          <FaMagic />
-        </div>
-        <div className="absolute top-[10%] right-[10%] text-purple-300 text-5xl opacity-70 animate-spin">
-          <FaStar />
-        </div>
-        <div className="absolute top-[25%] left-[15%] text-white text-4xl sm:text-6xl opacity-70 animate-bounce">
-          <FaGift />
-        </div>
-        <div className="absolute top-[30%] right-[15%] text-teal-300 text-3xl sm:text-4xl opacity-60 animate-bounce">
-          <FaBook />
-        </div>
-        <div className="absolute top-[50%] left-[5%] text-lime-300 text-3xl opacity-70 animate-bounce">
-          <FaBrain />
-        </div>
-        <div className="absolute top-[50%] right-[5%] text-pink-400 text-4xl sm:text-5xl opacity-80 animate-pulse">
-          <FaHeart />
-        </div>
-        <div className="absolute bottom-[15%] left-[20%] text-blue-300 text-3xl opacity-70 animate-pulse">
-          <FaBolt />
-        </div>
-        <div className="absolute bottom-[15%] right-[20%] text-yellow-200 text-3xl opacity-70 animate-bounce">
-          <FaMusic />
-        </div>
-        <div className="absolute bottom-[5%] left-[10%] text-red-300 text-3xl sm:text-4xl opacity-70 animate-pulse">
-          <FaLightbulb />
-        </div>
-        <div className="absolute bottom-[5%] right-[10%] text-blue-400 text-4xl opacity-80 animate-pulse">
-          <FaPaintBrush />
-        </div>
+        <div className="absolute top-[5%] left-[5%] text-yellow-300 text-4xl opacity-70 animate-pulse">✨</div>
+        <div className="absolute top-[10%] right-[10%] text-purple-300 text-5xl opacity-70 animate-spin">🌟</div>
+        <div className="absolute top-[25%] left-[15%] text-white text-4xl sm:text-6xl opacity-70 animate-bounce">🎉</div>
+        <div className="absolute top-[30%] right-[15%] text-teal-300 text-3xl sm:text-4xl opacity-60 animate-bounce">📚</div>
+        <div className="absolute top-[50%] left-[5%] text-lime-300 text-3xl opacity-70 animate-bounce">🧠</div>
+        <div className="absolute top-[50%] right-[5%] text-pink-400 text-4xl sm:text-5xl opacity-80 animate-pulse">💖</div>
+        <div className="absolute bottom-[15%] left-[20%] text-blue-300 text-3xl opacity-70 animate-pulse">⚡</div>
+        <div className="absolute bottom-[15%] right-[20%] text-yellow-200 text-3xl opacity-70 animate-bounce">🎵</div>
+        <div className="absolute bottom-[5%] left-[10%] text-red-300 text-3xl sm:text-4xl opacity-70 animate-pulse">💡</div>
+        <div className="absolute bottom-[5%] right-[10%] text-blue-400 text-4xl opacity-80 animate-pulse">🎨</div>
       </div>
     </div>
   );
