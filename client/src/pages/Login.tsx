@@ -93,7 +93,7 @@ const Login: React.FC = () => {
 
       {/* Back Button */}
       <button 
-        onClick={() => console.log('Navigate to home')}
+        onClick={() => navigate('/')}
         className="absolute top-6 left-6 flex items-center space-x-2 text-white hover:text-yellow-300 transition-all duration-300 hover:scale-105 z-20"
       >
         <div className="bg-white/20 backdrop-blur-sm rounded-full p-2">
