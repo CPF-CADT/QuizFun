@@ -13,7 +13,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 // User management routes with pagination
-userRouter.get('/', authenticateToken, getAllUsers); // GET all users with pagination
+userRouter.get('/', getAllUsers); // GET all users with pagination
 userRouter.get('/by-role/:role', authenticateToken, getUsersByRole); // GET users by role with pagination
 // Authentication routes
 userRouter.get('/profile', authenticateToken, getProfile);
