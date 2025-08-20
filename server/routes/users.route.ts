@@ -6,6 +6,7 @@ import { userlogin, userRegister } from '../config/CheckValidation';
 import { handleImageUpload } from '../controller/service.controller';
 import multer from 'multer';
 import { validateImage } from '../middleware/handleInputImage.middleware';
+import { GameController } from '../controller/game.controller';
 
 
 export const userRouter = express.Router();
@@ -27,3 +28,4 @@ userRouter.post('/refresh-token',refreshToken);
 userRouter.post('/logout',logout);
 userRouter.post('/profile-detail',upload.single('image'),validateImage,handleImageUpload('user_ProfilePic'));
  
+userRouter.get('/:userId/history', GameController.getUserHistory);

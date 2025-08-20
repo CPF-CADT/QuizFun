@@ -16,7 +16,6 @@ const GoogleLoginButton: React.FC = () => {
     
     try {
       const token = response.credential;
-      console.log(token)
       const { data } = await authApi.googleAuthenication(token);
       
       socialLogin(data);

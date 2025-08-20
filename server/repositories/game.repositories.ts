@@ -2,7 +2,7 @@ import { Types } from 'mongoose';
 import { GameSessionModel, IGameSession } from '../model/GameSession';
 import { GameHistoryModel } from '../model/GameHistory';
 import { GameSessionManager } from '../config/data/GameSession';
-import { FinalResultData, DetailedAnswer } from '../sockets/type'; 
+import { FinalResultData, DetailedAnswer } from '../sockets/type';
 import { QuizModel } from '../model/Quiz';
 interface AnswerAttemptData {
     selectedOptionId: Types.ObjectId;
@@ -19,6 +19,7 @@ interface GameHistoryCreationData {
     attempts: AnswerAttemptData[];
     isUltimatelyCorrect: boolean;
     finalScoreGained: number;
+    username?: string,
 }
 
 export interface ResultsPayload {
@@ -76,7 +77,7 @@ export class GameRepository {
                     answerTimeMs: Math.round((currentQuestion.timeLimit - answer.remainingTime) * 1000),
                 };
             });
-            
+
             const lastAttempt = attempts.at(-1)!;
 
             const historyDoc: GameHistoryCreationData = {
@@ -91,7 +92,7 @@ export class GameRepository {
 
             if (Types.ObjectId.isValid(participant.user_id)) {
                 historyDoc.userId = new Types.ObjectId(participant.user_id);
-                historyDoc.guestNickname = participant.user_name;
+                historyDoc.username = participant.user_name;
             } else {
                 historyDoc.guestNickname = participant.user_name;
             }
@@ -125,7 +126,7 @@ export class GameRepository {
                 finalScore: p.score,
                 finalRank: index + 1,
             }));
-            
+
         try {
             // Use session.sessionId to find the document to update
             await GameSessionModel.findByIdAndUpdate(session.sessionId, {
@@ -174,16 +175,208 @@ export class GameRepository {
             .populate('userId', 'name email')
             .lean();
     }
-    
-    static async fetchUserPerformanceOnQuiz(userId: string, quizId: string) {
-        if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(quizId)) return [];
+
+    static async fetchGuestPerformanceInSession(sessionId: string, guestName: string) {
+        if (!Types.ObjectId.isValid(sessionId)) return null;
         return GameHistoryModel.aggregate([
-            { $match: { userId: new Types.ObjectId(userId), quizId: new Types.ObjectId(quizId) } },
-            { $lookup: { from: 'gamesessions', localField: 'gameSessionId', foreignField: '_id', as: 'gameSession' } },
-            { $unwind: '$gameSession' },
-            { $sort: { 'gameSession.startedAt': -1 } }
+            {
+                $match: {
+                    guestNickname: guestName,
+                    gameSessionId: new Types.ObjectId(sessionId),
+                    userId: { $exists: false }
+                }
+            },
+            {
+                $lookup: {
+                    from: 'gamesessions',
+                    localField: 'gameSessionId',
+                    foreignField: '_id',
+                    as: 'sessionInfo'
+                }
+            },
+            { $unwind: '$sessionInfo' },
+
+            {
+                $lookup: {
+                    from: 'quizzes',
+                    localField: 'sessionInfo.quizId',
+                    foreignField: '_id',
+                    as: 'quizInfo'
+                }
+            },
+            { $unwind: '$quizInfo' },
+            {
+                $project: {
+                    attempts: 1, // field is now 'attempts'
+                    finalScoreGained: 1, // field is now 'finalScoreGained'
+                    isUltimatelyCorrect: 1, // field is now 'isUltimatelyCorrect'
+                    questionId: 1,
+                    questionDetails: {
+                        $first: {
+                            $filter: {
+                                input: '$quizInfo.questions',
+                                as: 'q',
+                                cond: { $eq: ['$$q._id', '$questionId'] }
+                            }
+                        }
+                    }
+                }
+            },
+
+            // Stage 5: Shape the final, detailed output (UPDATED for your models)
+            {
+                $project: {
+                    _id: 0,
+                    questionId: '$questionId',
+                    questionText: '$questionDetails.questionText',
+                    finalScoreGained: '$finalScoreGained',
+                    wasUltimatelyCorrect: '$isUltimatelyCorrect', // Use the stored value
+
+                    // Analyze the attempts
+                    changedAnswer: { $gt: [{ $size: '$attempts' }, 1] },
+                    numberOfAttempts: { $size: '$attempts' },
+                    thinkingTimeSeconds: {
+                        // Your model stores the answer time directly, which is great!
+                        $round: [
+                            { $divide: [{ $last: '$attempts.answerTimeMs' }, 1000] }, 2
+                        ]
+                    },
+
+                    // Map over all attempts to provide full details for each one
+                    attempts: {
+                        $map: {
+                            input: '$attempts',
+                            as: 'attempt',
+                            in: {
+                                // Find the option text using selectedOptionId instead of an index
+                                selectedOptionText: {
+                                    $let: {
+                                        vars: {
+                                            matchedOption: {
+                                                $first: {
+                                                    $filter: {
+                                                        input: '$questionDetails.options',
+                                                        as: 'option',
+                                                        cond: { $eq: ['$$option._id', '$$attempt.selectedOptionId'] }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        in: '$$matchedOption.text'
+                                    }
+                                },
+                                isCorrect: '$$attempt.isCorrect',
+                                answerTimeMs: '$$attempt.answerTimeMs'
+                            }
+                        }
+                    }
+                }
+            }]);
+    }
+
+    static async fetchUserPerformanceInSession(userId: string, sessionId: string) {
+        if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(sessionId)) {
+            return null;
+        }
+
+        return GameHistoryModel.aggregate([
+            // Stage 1 & 2: Match records and join with 'gamesessions' (No changes here)
+            {
+                $match: {
+                    userId: new Types.ObjectId(userId),
+                    gameSessionId: new Types.ObjectId(sessionId)
+                }
+            },
+            {
+                $lookup: {
+                    from: 'gamesessions',
+                    localField: 'gameSessionId',
+                    foreignField: '_id',
+                    as: 'sessionInfo'
+                }
+            },
+            { $unwind: '$sessionInfo' },
+
+            // Stage 3 & 4: Join with 'quizzes' and find the matching question details (No changes here)
+            {
+                $lookup: {
+                    from: 'quizzes',
+                    localField: 'sessionInfo.quizId',
+                    foreignField: '_id',
+                    as: 'quizInfo'
+                }
+            },
+            { $unwind: '$quizInfo' },
+            {
+                $project: {
+                    attempts: 1, // field is now 'attempts'
+                    finalScoreGained: 1, // field is now 'finalScoreGained'
+                    isUltimatelyCorrect: 1, // field is now 'isUltimatelyCorrect'
+                    questionId: 1,
+                    questionDetails: {
+                        $first: {
+                            $filter: {
+                                input: '$quizInfo.questions',
+                                as: 'q',
+                                cond: { $eq: ['$$q._id', '$questionId'] }
+                            }
+                        }
+                    }
+                }
+            },
+
+            // Stage 5: Shape the final, detailed output (UPDATED for your models)
+            {
+                $project: {
+                    _id: 0,
+                    questionId: '$questionId',
+                    questionText: '$questionDetails.questionText',
+                    finalScoreGained: '$finalScoreGained',
+                    wasUltimatelyCorrect: '$isUltimatelyCorrect', // Use the stored value
+
+                    // Analyze the attempts
+                    changedAnswer: { $gt: [{ $size: '$attempts' }, 1] },
+                    numberOfAttempts: { $size: '$attempts' },
+                    thinkingTimeSeconds: {
+                        // Your model stores the answer time directly, which is great!
+                        $round: [
+                            { $divide: [{ $last: '$attempts.answerTimeMs' }, 1000] }, 2
+                        ]
+                    },
+
+                    // Map over all attempts to provide full details for each one
+                    attempts: {
+                        $map: {
+                            input: '$attempts',
+                            as: 'attempt',
+                            in: {
+                                // Find the option text using selectedOptionId instead of an index
+                                selectedOptionText: {
+                                    $let: {
+                                        vars: {
+                                            matchedOption: {
+                                                $first: {
+                                                    $filter: {
+                                                        input: '$questionDetails.options',
+                                                        as: 'option',
+                                                        cond: { $eq: ['$$option._id', '$$attempt.selectedOptionId'] }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        in: '$$matchedOption.text'
+                                    }
+                                },
+                                isCorrect: '$$attempt.isCorrect',
+                                answerTimeMs: '$$attempt.answerTimeMs'
+                            }
+                        }
+                    }
+                }
+            }
         ]);
     }
+
 
     static async addFeedback(sessionId: string, userId: string, rating: number, comment: string) {
         if (!Types.ObjectId.isValid(sessionId) || !Types.ObjectId.isValid(userId)) {
@@ -213,7 +406,7 @@ export class GameRepository {
             {
                 $group: {
                     _id: { userId: "$userId", guestNickname: "$guestNickname" },
-                    name: { $first: "$guestNickname" },
+                    name: { $first: { $ifNull: ["$username", "$guestNickname"] } },
                     score: { $sum: "$finalScoreGained" },
                     correctAnswers: { $sum: { $cond: [{ $eq: ["$isUltimatelyCorrect", true] }, 1, 0] } },
                     totalQuestions: { $sum: 1 },
@@ -232,10 +425,10 @@ export class GameRepository {
                         $cond: { if: { $gt: ["$totalQuestions", 0] }, then: { $multiply: [{ $divide: ["$correctAnswers", "$totalQuestions"] }, 100] }, else: 0 }
                     },
                     averageTime: {
-                        $cond: { 
-                            if: { $gt: ["$correctAnswers", 0] }, 
-                            then: { $divide: ["$totalTimeMs", { $multiply: ["$correctAnswers", 1000] }] }, 
-                            else: 0 
+                        $cond: {
+                            if: { $gt: ["$correctAnswers", 0] },
+                            then: { $divide: ["$totalTimeMs", { $multiply: ["$correctAnswers", 1000] }] },
+                            else: 0
                         }
                     }
                 }
@@ -255,12 +448,12 @@ export class GameRepository {
                 }).lean();
 
                 if (historyDocs.length === 0) {
-                    result.detailedAnswers = []; 
+                    result.detailedAnswers = [];
                     continue;
                 }
                 const quiz = await QuizModel.findById(historyDocs[0].quizId)
-                                            .select('questions') 
-                                            .lean();
+                    .select('questions')
+                    .lean();
 
                 const questionsMap = new Map(quiz?.questions.map(q => [q._id.toString(), q]));
                 result.detailedAnswers = historyDocs.map((doc): DetailedAnswer => {
@@ -271,8 +464,8 @@ export class GameRepository {
                         );
                         return {
                             selectedOptionText: selectedOption?.text || "N/A",
-                            answerTimeMs: attempt.answerTimeMs, 
-                            isCorrect: attempt.isCorrect      
+                            answerTimeMs: attempt.answerTimeMs,
+                            isCorrect: attempt.isCorrect
                         };
                     });
 
@@ -297,93 +490,93 @@ export class GameRepository {
     }
 
     static async getLeaderboardForQuiz(quizId: string) {
-		if (!Types.ObjectId.isValid(quizId)) {
-			throw new Error("Invalid quiz ID");
-		}
+        if (!Types.ObjectId.isValid(quizId)) {
+            throw new Error("Invalid quiz ID");
+        }
 
-		const leaderboard = await GameSessionModel.aggregate([
-			// Stage 1: Filter for completed game sessions for the specific quiz.
-			{
-				$match: {
-					quizId: new Types.ObjectId(quizId),
-					status: 'completed'
-				}
-			},
-			// Stage 2: Deconstruct the results array to process each player's result.
-			{
-				$unwind: "$results"
-			},
-			// Stage 3: Group by player to find their highest score.
-			// We group by userId for registered users and nickname for guests.
-			{
-				$group: {
-					_id: {
-						userId: "$results.userId",
-						nickname: "$results.nickname"
-					},
-					maxScore: { $max: "$results.finalScore" },
-					// Keep the userId for the lookup stage
-					userId: { $first: "$results.userId" }
-				}
-			},
-			// Stage 4: Sort by the highest score in descending order.
-			{
-				$sort: {
-					maxScore: -1
-				}
-			},
-			// Stage 5: Limit to the top 20 players.
-			{
-				$limit: 20
-			},
-			// Stage 6: Populate user details for registered players.
-			{
-				$lookup: {
-					from: 'users', // The name of the users collection
-					localField: 'userId',
-					foreignField: '_id',
-					as: 'userDetails'
-				}
-			},
-			// Stage 7: Shape the final output.
-			{
-				$project: {
-					_id: 0,
-					score: "$maxScore",
-					// Conditionally choose the name from the userDetails or the guest nickname
-					name: {
-						$ifNull: [{ $arrayElemAt: ["$userDetails.name", 0] }, "$_id.nickname"]
-					},
-					profileUrl: {
-						$ifNull: [{ $arrayElemAt: ["$userDetails.profileUrl", 0] }, null]
-					}
-				}
-			},
-			// Stage 8: Add a rank to the final output
-			{
-				$group: {
-					_id: null,
-					players: { $push: "$$ROOT" }
-				}
-			},
-			{
-				$unwind: {
-					path: "$players",
-					includeArrayIndex: "players.rank"
-				}
-			},
-			{
-				$replaceRoot: {
-					newRoot: "$players"
-				}
-			},
-			{
-				$addFields: {
-					"rank": { $add: ["$rank", 1] }
-				}
-			}
-		]);
+        const leaderboard = await GameSessionModel.aggregate([
+            // Stage 1: Filter for completed game sessions for the specific quiz.
+            {
+                $match: {
+                    quizId: new Types.ObjectId(quizId),
+                    status: 'completed'
+                }
+            },
+            // Stage 2: Deconstruct the results array to process each player's result.
+            {
+                $unwind: "$results"
+            },
+            // Stage 3: Group by player to find their highest score.
+            // We group by userId for registered users and nickname for guests.
+            {
+                $group: {
+                    _id: {
+                        userId: "$results.userId",
+                        nickname: "$results.nickname"
+                    },
+                    maxScore: { $max: "$results.finalScore" },
+                    // Keep the userId for the lookup stage
+                    userId: { $first: "$results.userId" }
+                }
+            },
+            // Stage 4: Sort by the highest score in descending order.
+            {
+                $sort: {
+                    maxScore: -1
+                }
+            },
+            // Stage 5: Limit to the top 20 players.
+            {
+                $limit: 20
+            },
+            // Stage 6: Populate user details for registered players.
+            {
+                $lookup: {
+                    from: 'users', // The name of the users collection
+                    localField: 'userId',
+                    foreignField: '_id',
+                    as: 'userDetails'
+                }
+            },
+            // Stage 7: Shape the final output.
+            {
+                $project: {
+                    _id: 0,
+                    score: "$maxScore",
+                    // Conditionally choose the name from the userDetails or the guest nickname
+                    name: {
+                        $ifNull: [{ $arrayElemAt: ["$userDetails.name", 0] }, "$_id.nickname"]
+                    },
+                    profileUrl: {
+                        $ifNull: [{ $arrayElemAt: ["$userDetails.profileUrl", 0] }, null]
+                    }
+                }
+            },
+            // Stage 8: Add a rank to the final output
+            {
+                $group: {
+                    _id: null,
+                    players: { $push: "$$ROOT" }
+                }
+            },
+            {
+                $unwind: {
+                    path: "$players",
+                    includeArrayIndex: "players.rank"
+                }
+            },
+            {
+                $replaceRoot: {
+                    newRoot: "$players"
+                }
+            },
+            {
+                $addFields: {
+                    "rank": { $add: ["$rank", 1] }
+                }
+            }
+        ]);
 
-		return leaderboard;
-	}
+        return leaderboard;
+    }
 }

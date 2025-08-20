@@ -110,8 +110,6 @@ export async function endRound(io: Server, roomId: number): Promise<void> {
             io.to(host.socket_id).emit('error-message', 'A critical error occurred while saving game history.');
         }
     }
-    room.answers.clear();
-
     if (room.settings.autoNext) {
         room.autoNextTimer = setTimeout(async () => {
             await nextQuestion(io, roomId);
