@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import type { GameState } from '../../context/GameContext';
-
 const Trophy: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg {...props} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M10 2a1 1 0 00-1 1v1a1 1 0 002 0V3a1 1 0 00-1-1zm-5 4a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H6zM5 14a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H6z" clipRule="evenodd"></path></svg>
 );
@@ -9,19 +8,18 @@ interface QuestionViewProps {
     gameState: GameState;
     onSubmitAnswer: (index: number) => void;
     onNextQuestion: () => void;
+    userSeleted?:number | null;
 }
 
-export const QuestionView: React.FC<QuestionViewProps> = ({ gameState, onSubmitAnswer, onNextQuestion }) => {
+export const QuestionView: React.FC<QuestionViewProps> = ({ gameState, onSubmitAnswer, onNextQuestion,userSeleted }) => {
     const { question, yourUserId, participants, currentQuestionIndex, totalQuestions, questionStartTime, settings } = gameState;
     const [timeLeft, setTimeLeft] = useState(question?.timeLimit || 0);
     const [selectedOption, setSelectedOption] = useState<number | null>(null);
-
     const me = participants.find(p => p.user_id === yourUserId);
     const isHost = me?.role === 'host';
     const isAnswerLocked = !settings.allowAnswerChange && !!me?.hasAnswered;
-
     useEffect(() => {
-        setSelectedOption(null);
+        setSelectedOption(userSeleted || null);
     }, [currentQuestionIndex]);
     
     useEffect(() => {

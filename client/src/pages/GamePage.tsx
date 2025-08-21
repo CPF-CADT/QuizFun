@@ -14,20 +14,24 @@ export type PlayerIdentifier = { userId: string } | { guestName: string };
 
 const GamePage: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
-    const { gameState, startGame, submitAnswer, requestNextQuestion, endGame, fetchFinalResults, updateSettings } = useQuizGame();
+    const { gameState, startGame, submitAnswer, requestNextQuestion, endGame, fetchFinalResults, updateSettings,userSeleted} = useQuizGame();
     const [selectedPlayer, setSelectedPlayer] = useState<PlayerIdentifier | null>(null);
     const navigate = useNavigate();
-
     const me = useMemo(() => 
         gameState.participants.find((p: Participant) => p.user_id === gameState.yourUserId),
     [gameState.participants, gameState.yourUserId]);
-
+    const reconnectedAnswer = useMemo(() => {
+        if (userSeleted && userSeleted.questionNo === gameState.currentQuestionIndex) {
+            return userSeleted.option;
+        }
+        return null;
+    }, [userSeleted, gameState.currentQuestionIndex]);
     useEffect(() => {
         if (!gameState || !gameState.sessionId) {
             const timer = setTimeout(() => {
                 if (!gameState || !gameState.sessionId) {
                     console.log("No active session found, redirecting.");
-                    navigate('/join');
+                    navigate('/dashboard');
                 }
             }, 2500);
             return () => clearTimeout(timer);
@@ -79,7 +83,10 @@ const GamePage: React.FC = () => {
                         userId: gameState.yourUserId,
                         optionIndex
                     })} 
-                    onNextQuestion={() => requestNextQuestion(gameState.roomId)} 
+                    onNextQuestion={() => {
+                        requestNextQuestion(gameState.roomId) 
+                    }}
+                    userSeleted={reconnectedAnswer}
                 />;
             case 'results':
                 return <ResultsView gameState={gameState} onNextQuestion={() => requestNextQuestion(gameState.roomId)} />;
