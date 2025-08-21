@@ -1,18 +1,23 @@
-import { Request, Response } from 'express';
-import { Encryption } from '../service/encription';
-import { UserRepository, UserData } from '../repositories/users.repositories';
-import { JWT } from '../service/JWT';
-import { generatePassword, generateRandomNumber, getExpiryDate } from '../service/generateRandomNumber';
-import { sentEmail } from '../service/transporter';
-import { VerificationCodeRepository } from '../repositories/verification.repositories';
-import { IUserData, UserModel } from '../model/User';
+import { Request, Response } from "express";
+import { Encryption } from "../service/encription";
+import { UserRepository, UserData } from "../repositories/users.repositories";
+import { JWT } from "../service/JWT";
+import {
+  generatePassword,
+  generateRandomNumber,
+  getExpiryDate,
+} from "../service/generateRandomNumber";
+import { sentEmail } from "../service/transporter";
+import { VerificationCodeRepository } from "../repositories/verification.repositories";
+import { IUserData, UserModel } from "../model/User";
 import jwt from "jsonwebtoken";
-import redisClient from '../config/redis';
-import { OAuth2Client } from 'google-auth-library';
-import { config } from '../config/config';
+import redisClient from "../config/redis";
+import { OAuth2Client } from "google-auth-library";
+import { config } from "../config/config";
 
 const REFRESH_TOKEN_EXPIRATION_SECONDS = 7 * 24 * 60 * 60;
-const REFRESH_TOKEN_COOKIE_EXPIRATION_MS = REFRESH_TOKEN_EXPIRATION_SECONDS * 1000;
+const REFRESH_TOKEN_COOKIE_EXPIRATION_MS =
+  REFRESH_TOKEN_EXPIRATION_SECONDS * 1000;
 
 const client = new OAuth2Client(config.googleClientID);
 
@@ -118,7 +123,10 @@ const client = new OAuth2Client(config.googleClientID);
  */
 export async function getAllUsers(req: Request, res: Response): Promise<void> {
   const page = Math.max(1, parseInt(req.query.page as string) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 10));
+  const limit = Math.min(
+    100,
+    Math.max(1, parseInt(req.query.limit as string) || 10)
+  );
   const search = req.query.search as string;
 
   try {
@@ -126,8 +134,8 @@ export async function getAllUsers(req: Request, res: Response): Promise<void> {
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({
-      message: 'Failed to fetch users',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      message: "Failed to fetch users",
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 }
@@ -169,14 +177,24 @@ export async function getAllUsers(req: Request, res: Response): Promise<void> {
  *       500:
  *         description: Server error
  */
-export async function getUsersByRole(req: Request, res: Response): Promise<void> {
+export async function getUsersByRole(
+  req: Request,
+  res: Response
+): Promise<void> {
   const { role } = req.params;
   const page = Math.max(1, parseInt(req.query.page as string) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 10));
+  const limit = Math.min(
+    100,
+    Math.max(1, parseInt(req.query.limit as string) || 10)
+  );
 
-  const validRoles = ['player', 'admin', 'moderator'];
+  const validRoles = ["player", "admin", "moderator"];
   if (!validRoles.includes(role)) {
-    res.status(400).json({ message: 'Invalid role. Must be one of: player, admin, moderator' });
+    res
+      .status(400)
+      .json({
+        message: "Invalid role. Must be one of: player, admin, moderator",
+      });
     return;
   }
 
@@ -185,8 +203,8 @@ export async function getUsersByRole(req: Request, res: Response): Promise<void>
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({
-      message: 'Failed to fetch users by role',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      message: "Failed to fetch users by role",
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 }
@@ -287,28 +305,32 @@ export async function register(req: Request, res: Response): Promise<Response> {
  */
 
 export async function login(req: Request, res: Response): Promise<void> {
-  const { email, password } = req.body;
+  const { email, password } = req.body;
 
-  const user = await UserRepository.findByEmail(email);
-  if (!user) {
-    res.status(404).json({ message: "User not found" });
-    return;
-  }
+  const user = await UserRepository.findByEmail(email);
+  if (!user) {
+    res.status(404).json({ message: "User not found" });
+    return;
+  }
 
-  if (!user.isVerified) {
-    res.status(403).json({ message: "Account not verified. Please check your email." });
-    return;
-  }
+  if (!user.isVerified) {
+    res
+      .status(403)
+      .json({ message: "Account not verified. Please check your email." });
+    return;
+  }
 
-  const isPasswordValid = Encryption.verifyPassword(user.password as string, password);
-  if (!isPasswordValid) {
-    res.status(401).json({ message: "Incorrect password" });
-    return;
-  }
+  const isPasswordValid = Encryption.verifyPassword(
+    user.password as string,
+    password
+  );
+  if (!isPasswordValid) {
+    res.status(401).json({ message: "Incorrect password" });
+    return;
+  }
 
-  await handleSuccessfulLogin(user, res);
+  await handleSuccessfulLogin(user, res);
 }
-
 
 /**
  * @swagger
@@ -365,13 +387,15 @@ export async function login(req: Request, res: Response): Promise<void> {
  *         description: Server error
  */
 
-
-export async function updateUserInfo(req: Request, res: Response): Promise<void> {
+export async function updateUserInfo(
+  req: Request,
+  res: Response
+): Promise<void> {
   const { id } = req.params;
   const { name, password, profileUrl } = req.body;
 
   if (!name && !password && !profileUrl) {
-    res.status(400).json({ message: 'No update data provided' });
+    res.status(400).json({ message: "No update data provided" });
     return;
   }
 
@@ -388,17 +412,16 @@ export async function updateUserInfo(req: Request, res: Response): Promise<void>
   const updatedUser = await UserRepository.update(id, dataToUpdate);
 
   if (!updatedUser) {
-    res.status(404).json({ message: 'User not found' });
+    res.status(404).json({ message: "User not found" });
     return;
   }
 
   const { password: _, ...userResponse } = updatedUser.toObject();
 
   res.status(200).json({
-    message: 'User updated successfully',
+    message: "User updated successfully",
     user: userResponse,
   });
-
 }
 
 /**
@@ -432,25 +455,31 @@ export async function updateUserInfo(req: Request, res: Response): Promise<void>
  *                   example: server fail + error message
  */
 
-
-export async function sendVerificationCode(req: Request, res: Response): Promise<void> {
+export async function sendVerificationCode(
+  req: Request,
+  res: Response
+): Promise<void> {
   const body: {
     email: string;
   } = req.body;
   const { email } = body;
-  const userTemp = await UserRepository.findByEmail(email)
-  try {
-    await VerificationCodeRepository.delete(userTemp?.id)
-  } catch (err) {
-    console.error('Error when sent 2FA')
+  const userTemp = await UserRepository.findByEmail(email);
+  if (!userTemp) {
+    res.status(404).json({ message: "Email not register yet!" });
+    return;
   }
-  const code = generateRandomNumber(6)
-  await VerificationCodeRepository.create(email, code, getExpiryDate(5))
-  const subject = 'Email Verification Code';
+  try {
+    await VerificationCodeRepository.delete(userTemp.id);
+  } catch (err) {
+    console.error("Error when sent 2FA");
+  }
+  const code = generateRandomNumber(6);
+  await VerificationCodeRepository.create(email, code, getExpiryDate(5));
+  const subject = "Email Verification Code";
   const text = `Your verification code is: ${code}`;
   const htmlContent = `<p>Your verification code is: <strong>${code}</strong></p>`;
   await sentEmail(email, subject, text, htmlContent);
-  res.status(201).json({ message: 'Verification code sent successfully!' });
+  res.status(201).json({ message: "Verification code sent successfully!" });
   return;
 }
 
@@ -481,30 +510,33 @@ export async function sendVerificationCode(req: Request, res: Response): Promise
  *         description: Server error
  */
 export async function verifyCode(req: Request, res: Response): Promise<void> {
-  const { email, code } = req.body;
+  const { email, code } = req.body;
 
-  if (!email || !code) {
-    res.status(400).json({ message: 'Email and code are required.' });
-    return;
-  }
+  if (!email || !code) {
+    res.status(400).json({ message: "Email and code are required." });
+    return;
+  }
 
-  const user = await UserRepository.findByEmail(email);
-  if (!user) {
-    res.status(404).json({ message: 'User not found.' });
-    return;
-  }
+  const user = await UserRepository.findByEmail(email);
+  if (!user) {
+    res.status(404).json({ message: "User not found." });
+    return;
+  }
 
-  const verificationToken = await VerificationCodeRepository.find(user.id.toString(), code);
-  if (!verificationToken) {
-    res.status(401).json({ message: 'Invalid or expired code.' });
-    return;
-  }
+  const verificationToken = await VerificationCodeRepository.find(
+    user.id.toString(),
+    code
+  );
+  if (!verificationToken) {
+    res.status(401).json({ message: "Invalid or expired code." });
+    return;
+  }
 
-  await UserRepository.update(user.id.toString(), { isVerified: true });
-  await VerificationCodeRepository.delete(verificationToken.id);
+  await UserRepository.update(user.id.toString(), { isVerified: true });
+  await VerificationCodeRepository.delete(verificationToken.id);
 
-  const successMessage = 'Verification successful. You are now logged in.';
-  await handleSuccessfulLogin(user, res, successMessage);
+  const successMessage = "Verification successful. You are now logged in.";
+  await handleSuccessfulLogin(user, res, successMessage);
 }
 
 /**
@@ -535,10 +567,18 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
 
   let decodedUser;
   try {
-    decodedUser = JWT.verifyRefreshToken(oldRefreshToken) as { id: string; email?: string; role: string; };
+    decodedUser = JWT.verifyRefreshToken(oldRefreshToken) as {
+      id: string;
+      email?: string;
+      role: string;
+    };
   } catch (err) {
     console.error("Refresh attempt failed: Token verification error.", err);
-    res.clearCookie("refreshToken", { httpOnly: true, secure: config.nodeEnv === "production", sameSite: "strict" });
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: config.nodeEnv === "production",
+      sameSite: "strict",
+    });
     res.status(403).json({ message: "Invalid or expired refresh token" });
     return;
   }
@@ -553,23 +593,35 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
     }
 
     if (storedToken !== oldRefreshToken) {
-        console.warn(`SECURITY ALERT: Refresh token reuse detected for user ${decodedUser.id}. Invalidating session.`);
-        await redisClient.del(`refreshToken:${decodedUser.id}`);
-        res.clearCookie("refreshToken", { httpOnly: true, secure: config.nodeEnv === "production", sameSite: "strict" });
-        res.status(403).json({ message: "Session invalid. Please log in again." });
-        return
+      console.warn(
+        `SECURITY ALERT: Refresh token reuse detected for user ${decodedUser.id}. Invalidating session.`
+      );
+      await redisClient.del(`refreshToken:${decodedUser.id}`);
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: config.nodeEnv === "production",
+        sameSite: "strict",
+      });
+      res
+        .status(403)
+        .json({ message: "Session invalid. Please log in again." });
+      return;
     }
 
     const newTokens = JWT.createTokens({
       id: decodedUser.id,
       email: decodedUser.email,
-      role: decodedUser.role
+      role: decodedUser.role,
     });
 
     // Set the new token in Redis with the 7-day expiration
-    await redisClient.set(`refreshToken:${decodedUser.id}`, newTokens.refreshToken, {
-      EX: REFRESH_TOKEN_COOKIE_EXPIRATION_MS
-    });
+    await redisClient.set(
+      `refreshToken:${decodedUser.id}`,
+      newTokens.refreshToken,
+      {
+        EX: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
+      }
+    );
 
     // Set the new cookie on the client
     res.cookie("refreshToken", newTokens.refreshToken, {
@@ -580,10 +632,14 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
     });
 
     res.status(200).json({ accessToken: newTokens.accessToken });
-
   } catch (err) {
-    console.error(`CRITICAL: Error during token refresh process for user ${decodedUser.id}:`, err);
-    res.status(500).json({ message: "Internal server error during token refresh" });
+    console.error(
+      `CRITICAL: Error during token refresh process for user ${decodedUser.id}:`,
+      err
+    );
+    res
+      .status(500)
+      .json({ message: "Internal server error during token refresh" });
   }
 }
 
@@ -595,9 +651,9 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
  *     tags: [User]
  *     description: >
  *       Logs the user out by removing their refresh token from Redis and clearing
- *       the HTTP-only cookie.  
+ *       the HTTP-only cookie.
  *       - If the refresh token is missing, invalid, expired, or already removed,
- *         an error response is returned.  
+ *         an error response is returned.
  *       - No request body required.
  *     security:
  *       - cookieAuth: []
@@ -649,14 +705,13 @@ export async function logout(req: Request, res: Response): Promise<void> {
 
   if (!refreshToken) {
     res.status(200).json({ message: "Logout successful" });
-    return
+    return;
   }
 
   try {
-    const decoded = jwt.verify(
-      refreshToken,
-      config.jwtRefreshSecret!
-    ) as { id: string };
+    const decoded = jwt.verify(refreshToken, config.jwtRefreshSecret!) as {
+      id: string;
+    };
 
     await redisClient.del(`refreshToken:${decoded.id}`);
   } catch (err) {
@@ -664,10 +719,8 @@ export async function logout(req: Request, res: Response): Promise<void> {
   }
 
   res.status(200).json({ message: "Logout successful" });
-  return
+  return;
 }
-
-
 
 /**
  * @swagger
@@ -721,8 +774,12 @@ export async function verifyPasswordResetCode(req: Request, res: Response) {
   const user = await UserRepository.findByEmail(email);
   if (!user) return res.status(400).json({ message: "Invalid email or code." });
 
-  const verification = await VerificationCodeRepository.find(user.id.toString(), code);
-  if (!verification) return res.status(400).json({ message: "Invalid or expired code." });
+  const verification = await VerificationCodeRepository.find(
+    user.id.toString(),
+    code
+  );
+  if (!verification)
+    return res.status(400).json({ message: "Invalid or expired code." });
 
   await VerificationCodeRepository.delete(verification.id);
 
@@ -797,12 +854,17 @@ export async function resetPassword(req: Request, res: Response) {
   const { resetToken, newPassword, confirmPassword } = req.body;
 
   if (newPassword !== confirmPassword) {
-    res.status(401).json({ message: "Password and confirm password must be the same." });
+    res
+      .status(401)
+      .json({ message: "Password and confirm password must be the same." });
     return;
   }
 
   try {
-    const payload = jwt.verify(resetToken, config.jwtSecretResetPassword!) as { id: string; type: string };
+    const payload = jwt.verify(resetToken, config.jwtSecretResetPassword!) as {
+      id: string;
+      type: string;
+    };
     if (payload.type !== "password_reset") {
       res.status(400).json({ message: "Invalid token type" });
       return;
@@ -885,12 +947,13 @@ export async function resetPassword(req: Request, res: Response) {
  *                   example: "Detailed error message"
  */
 
-
 export async function getProfile(req: Request, res: Response): Promise<void> {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ message: "Unauthorized: No user ID found in token" });
+      res
+        .status(401)
+        .json({ message: "Unauthorized: No user ID found in token" });
       return;
     }
     const user = await UserRepository.findById(userId);
@@ -901,9 +964,13 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
     const userObject = user.toObject();
     const { password, ...userResponse } = userObject;
     res.status(200).json(userResponse);
-
   } catch (error) {
-    res.status(500).json({ message: "Server error while fetching profile", error: (error as Error).message });
+    res
+      .status(500)
+      .json({
+        message: "Server error while fetching profile",
+        error: (error as Error).message,
+      });
   }
 }
 /**
@@ -911,82 +978,80 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
  * post /api/user/google
  */
 async function handleSuccessfulLogin(
-  user: IUserData, 
-  res: Response, 
-  message: string = "Login successful" // Add optional message parameter
+  user: IUserData,
+  res: Response,
+  message: string = "Login successful" // Add optional message parameter
 ) {
-  try {
-    const tokens = JWT.createTokens({ id: user.id, email: user.email, role: user.role });
+  try {
+    const tokens = JWT.createTokens({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
 
-    await redisClient.set(`refreshToken:${user.id}`, tokens.refreshToken, {
-      EX: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
-    });
+    await redisClient.set(`refreshToken:${user.id}`, tokens.refreshToken, {
+      EX: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
+    });
 
-    res.cookie("refreshToken", tokens.refreshToken, {
-      httpOnly: true,
-      secure: config.nodeEnv === "production",
-      sameSite: "strict",
-      maxAge: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
-    });
+    res.cookie("refreshToken", tokens.refreshToken, {
+      httpOnly: true,
+      secure: config.nodeEnv === "production",
+      sameSite: "strict",
+      maxAge: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
+    });
 
-    const { password: _, ...userResponse } = user.toObject();
+    const { password: _, ...userResponse } = user.toObject();
 
-    res.status(200).json({
-      message, // Use the message parameter here
-      accessToken: tokens.accessToken,
-      user: userResponse,
-    });
-
-  } catch (error) {
-    console.error("Error during handleSuccessfulLogin:", error);
-    res.status(500).json({ message: "Failed to create a session." });
-  }
+    res.status(200).json({
+      message, // Use the message parameter here
+      accessToken: tokens.accessToken,
+      user: userResponse,
+    });
+  } catch (error) {
+    console.error("Error during handleSuccessfulLogin:", error);
+    res.status(500).json({ message: "Failed to create a session." });
+  }
 }
 
-
-
 export async function googleAuthenicate(req: Request, res: Response) {
-  const { token } = req.body;
+  const { token } = req.body;
 
-  if (!token) {
-    return res.status(400).json({ message: 'Token is required' });
-  }
+  if (!token) {
+    return res.status(400).json({ message: "Token is required" });
+  }
 
-  try {
-    // Verify the token with Google
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: config.googleClientID,
-    });
+  try {
+    // Verify the token with Google
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: config.googleClientID,
+    });
 
-    const payload = ticket.getPayload();
-    
-    if (!payload || !payload.email) {
-      return res.status(400).json({ message: 'Invalid Google token payload' });
-    }
-    
-    let user = await UserRepository.findByEmail(payload.email);
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) {
+      return res.status(400).json({ message: "Invalid Google token payload" });
+    }
+    let user = await UserRepository.findByEmail(payload.email);
 
-    if (user) {
-      await handleSuccessfulLogin(user, res);
-    } else {
-      const defaultPasswordForGoolgleLogin = generatePassword();
+    if (user) {
+      await handleSuccessfulLogin(user, res);
+    } else {
+      const defaultPasswordForGoolgleLogin = generatePassword();
 
-      const newUser = await UserRepository.create({
-        name: payload.name!,
-        email: payload.email,
-        password: Encryption.hashPassword(defaultPasswordForGoolgleLogin),
-        profileUrl: payload.picture || 'http://default.url/image.png',
-        role: 'player', // Default role for new users
-        isVerified: true, // Google accounts are already verified
-        googleId: payload.sub, // Store Google's unique user ID
-      } as IUserData);
+      const newUser = await UserRepository.create({
+        name: payload.name!,
+        email: payload.email,
+        password: Encryption.hashPassword(defaultPasswordForGoolgleLogin),
+        profileUrl: payload.picture || "http://default.url/image.png",
+        role: "player", // Default role for new users
+        isVerified: true, // Google accounts are already verified
+        googleId: payload.sub, // Store Google's unique user ID
+      } as IUserData); // Log the newly created user in
 
-      // Log the newly created user in
-      await handleSuccessfulLogin(newUser, res);
-    }
-  } catch (error) {
-    console.error('Google authentication error:', error);
-    res.status(401).json({ message: 'Invalid token or authentication failed' });
-  }
+      await handleSuccessfulLogin(newUser, res);
+    }
+  } catch (error) {
+    console.error("Google authentication error:", error);
+    res.status(401).json({ message: "Invalid token or authentication failed" });
+  }
 }
