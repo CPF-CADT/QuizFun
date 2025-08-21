@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FaTachometerAlt, FaSignOutAlt, FaCog } from 'react-icons/fa';
-import { useAuth } from '../../context/AuthContext';
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { FaTachometerAlt, FaSignOutAlt, FaCog } from "react-icons/fa";
+import { useAuth } from "../../context/AuthContext";
 
 const UserProfile: React.FC = () => {
   const { user, logout } = useAuth();
@@ -11,19 +11,22 @@ const UserProfile: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/'); // Redirect to homepage after logout
+    navigate("/"); // Redirect to homepage after logout
   };
 
   // Effect to close the dropdown if the user clicks outside of it
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -38,7 +41,7 @@ const UserProfile: React.FC = () => {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 text-gray-700 font-semibold hover:text-purple-600 transition-colors focus:outline-none"
       >
-        {user.profileUrl? (
+        {user.profileUrl ? (
           <img
             src={user.profileUrl}
             alt={user.name}
@@ -61,18 +64,19 @@ const UserProfile: React.FC = () => {
               <img
                 src={user.profileUrl}
                 alt={user.name}
-                className="w-10 h-10 rounded-full border"
+                className="w-12 h-12 rounded-full border object-cover"
               />
             ) : (
-              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-purple-100 text-purple-600 font-bold">
-                {user.name.charAt(0).toUpperCase()}
+              <div className="w-12 h-12 flex items-center justify-center rounded-full bg-purple-100 text-purple-600 font-bold">
+                {user.name?.charAt(0).toUpperCase()}
               </div>
             )}
-            <div>
+            <div className="flex flex-col overflow-hidden">
               <p className="text-sm font-semibold text-gray-800">{user.name}</p>
               <p className="text-xs text-gray-500 truncate">{user.email}</p>
             </div>
           </div>
+
           <a
             href="/dashboard"
             className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"

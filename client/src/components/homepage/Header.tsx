@@ -8,12 +8,10 @@ const Header: React.FC = () => {
 
   return (
     <div className="flex items-center justify-between p-4 bg-white text-black shadow-md sticky top-0 z-50">
-      {/* Left: Logo */}
       <div className="flex items-center ml-4">
         <img src="./image/logo.png" alt="Fun Quiz" className="h-10 sm:h-12 md:h-15" />
       </div>
 
-      {/* Right: Login / UserProfile */}
       <div className="flex items-center mr-4">
         {user ? (
           <UserProfile />
