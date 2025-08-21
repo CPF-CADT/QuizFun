@@ -18,8 +18,10 @@ import QuizEditorPage from "./pages/QuizEditorPage";
 import Game from "./test/Quizz";
 import VerifyCode from "./pages/VerifyCode";
 import LobbyPage from "./pages/LobbyPage";
+import HistoryPage from "./pages/History";
 import GamePage from "./pages/GamePage";
 import PerformanceDetailPage from "./pages/PerformanceDetailPage";
+import Report from "./pages/Report";
 
 const PrivateRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -72,10 +74,12 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/explore" element={<Explore />} />
         <Route path="/quiz-editor/:quizId" element={<QuizEditorPage />} />
+        <Route path="/report" element={<Report />} />
         <Route
           path="/session/:sessionId/performance/:userId"
           element={<PerformanceDetailPage />}
         />
+        <Route path="/history" element={<HistoryPage />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />
