@@ -13,3 +13,20 @@ export function getExpiryDate(minutes: number): Date {
   const expireUtc7 = new Date(now.getTime() + minutes * 60 * 1000 + 7 * 60 * 60 * 1000);
   return expireUtc7;
 }
+export function generatePassword(length: number = 128): string {
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?/~`";
+  let result = "";
+  const array = new Uint32Array(length);
+
+  // Use crypto for strong randomness
+  const cryptoObj = require("crypto");
+  const randomValues = new Uint32Array(length);
+  cryptoObj.webcrypto.getRandomValues(randomValues);
+
+  for (let i = 0; i < length; i++) {
+    result += chars[randomValues[i] % chars.length];
+  }
+
+  return result;
+}

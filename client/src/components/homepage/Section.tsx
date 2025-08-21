@@ -15,13 +15,13 @@ const ThemesSection: React.FC = () => {
 
         <div className="flex justify-center">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 mt-8 justify-center">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2,3,4].map((i) => (
               <div
                 key={i}
                 className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-transform duration-300 hover:scale-105 w-full max-w-[600px] aspect-[2/1]"
               >
                 <img
-                  src={`./image/theme${i}.jpg`}
+                  src={`./image/image${i}.svg`}
                   alt="Quiz Themes"
                   className="w-full h-full rounded-lg object-cover"
                 />

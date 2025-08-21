@@ -26,4 +26,13 @@ const UserSchema = new Schema<IUserData>({
   collection: 'users' 
  });
 
+//index for role
+UserSchema.index({role: 1});
+
+//index for name
+UserSchema.index({name: 1});
+
+
+
+
 export const UserModel = model<IUserData>('User', UserSchema);

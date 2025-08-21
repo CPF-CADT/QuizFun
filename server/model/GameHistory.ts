@@ -24,14 +24,16 @@ export interface IGameHistory extends Document {
     isUltimatelyCorrect: boolean; // Was the *final* answer correct?
     finalScoreGained: number;
     createdAt: Date;
+    username?:string,
 }
 
 const GameHistorySchema = new Schema<IGameHistory>({
     gameSessionId: { type: Schema.Types.ObjectId, ref: 'GameSession', required: true, index: true },
     quizId: { type: Schema.Types.ObjectId, ref: 'Quiz', required: true, index: true },
-questionId: { type: Schema.Types.ObjectId, ref: 'Question', required: true },
+    questionId: { type: Schema.Types.ObjectId, ref: 'Question', required: true },
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: false, index: true },
     guestNickname: { type: String, required: false },
+    username: { type: String, required: false },
     
     // UPDATED: Store the full history of attempts.
     attempts: { type: [AnswerAttemptSchema], required: true },
@@ -44,5 +46,8 @@ questionId: { type: Schema.Types.ObjectId, ref: 'Question', required: true },
     timestamps: { createdAt: true, updatedAt: false },
     collection: 'gamehistories'
 });
+
+//index for questionId
+GameHistorySchema.index({questionId: 1});
 
 export const GameHistoryModel = model<IGameHistory>('GameHistory', GameHistorySchema);

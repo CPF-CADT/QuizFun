@@ -48,4 +48,10 @@ const GameSessionSchema = new Schema<IGameSession>({
   endedAt: { type: Date },
 }, { timestamps: true ,collection:'gamesessions'});
 
+//index for quizId
+GameSessionSchema.index({quizId: 1});
+
+//index for hostId
+GameSessionSchema.index({hostId: 1});
+
 export const GameSessionModel = model<IGameSession>('GameSession', GameSessionSchema);

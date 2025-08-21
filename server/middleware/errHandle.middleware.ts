@@ -1,11 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 
-export function errorHandler(err: any, req: Request, res: Response, next: NextFunction) {
-    console.log(err)
-    console.log(req)
-    res.status(err.status || 500).json({
-        success: false,
+import { config } from '../config/config';
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const errHandle = (err: Error, req: Request, res: Response, next: NextFunction) => {
+    console.error(err);
+    res.status(500).json({
         message: err.message || 'Internal Server Error',
-        stack: process.env.NODE_ENV === 'production' ? undefined : err.stack
+        stack: config.nodeEnv === 'production' ? undefined : err.stack
     });
-}
+};

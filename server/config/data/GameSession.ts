@@ -1,5 +1,4 @@
 import { IQuestion } from "../../model/Quiz";
-import { promises } from "dns";
 import redisClient from "../redis";
 
 export type ParticipantRole = 'host' | 'player';

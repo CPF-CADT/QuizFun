@@ -7,7 +7,7 @@ export const backgroundTemplates: IQuizTemplate[] = [
         id: 0,
         name: "Purple Dream",
         preview: "/image/bg-1.png", // Use absolute paths from the public folder
-        background: "/image/theme1.jpg",
+        background: "/image/image1.svg",
         gradient: "from-purple-900/20 via-transparent to-blue-900/20",
         sidebarGradient: "from-purple-600/90 to-purple-800/90"
     },

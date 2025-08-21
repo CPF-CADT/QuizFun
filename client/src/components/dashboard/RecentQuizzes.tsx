@@ -1,10 +1,9 @@
-// src/components/dashboard/RecentQuizzes.tsx
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useQuizGame } from '../../context/GameContext';
+import { useAuth } from '../../context/AuthContext';
+import { Clock, Edit, Play, FaUsers } from '../common/Icons';
 import type { IQuiz } from '../../types/quiz';
-import { 
-  Activity, ChevronRight, Users, Clock, Edit, Play 
-} from 'lucide-react';
 
 interface RecentQuizzesProps {
   quizzes: IQuiz[];
@@ -21,7 +20,7 @@ const getDifficultyColor = (difficulty: string) => {
 
 const RecentQuizzes: React.FC<RecentQuizzesProps> = ({ quizzes }) => {
   return (
-    <div className="bg-white/80 backdrop-blur-xl rounded-2xl lg:rounded-3xl border border-gray-200/50 p-6 lg:p-8 shadow-xl ml-5">
+    <div className="bg-white/80 backdrop-blur-xl rounded-2xl lg:rounded-3xl border border-gray-200/50 p-6 lg:p-8 shadow-xl">
       <div className="flex items-center justify-between mb-6 lg:mb-8">
         <div className="flex items-center">
           <div className="w-10 h-10 bg-gradient-to-r from-violet-500 to-purple-500 rounded-xl flex items-center justify-center mr-3">

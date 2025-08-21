@@ -1,7 +1,8 @@
-import jwt from "jsonwebtoken";
+import jwt from 'jsonwebtoken';
+import { config } from '../config/config';
 export class JWT {
-    static JWT_SECRET = process.env.JWT_SECRET || "access_secret";
-    static JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "refresh_secret";
+    static JWT_SECRET = config.jwtSecret;
+    static JWT_REFRESH_SECRET = config.jwtRefreshSecret;
     static createTokens({
         id,
         email,

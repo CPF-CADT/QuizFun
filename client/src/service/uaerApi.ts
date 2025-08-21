@@ -4,6 +4,7 @@ type UserRole = 'player' | 'admin' | 'moderator';
 interface ILoginCredentials {
   email: string;
   password: string;
+  profile_url?:string;
 }
 
 interface IRegisterUserData {
@@ -54,6 +55,9 @@ export const userApi = {
 
   getAllUsers: (params: IGetAllUsersParams) => {
     return apiClient.get('/user', { params });
+  },
+  getUserProfileDetail:(params:ILoginCredentials | IRegisterUserData) =>{
+    return apiClient.get('/profile',{params})
   },
 
   getUsersByRole: (role: UserRole, params: IGetAllUsersParams) => {

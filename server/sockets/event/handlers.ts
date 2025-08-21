@@ -12,6 +12,28 @@ interface CreateRoomData { quizId: string; userId: string; hostName: string; set
 interface JoinRoomData { roomId: number; username: string; userId: string; }
 interface RejoinGameData { roomId: number; userId: string; }
 interface SubmitAnswerData { roomId: number; userId: string; optionIndex: number; }
+interface UpdateSettingsData {
+  roomId: number;
+  settings: GameSettings;
+}
+export async function handleUpdateSettings(socket: Socket, io: Server, data: UpdateSettingsData): Promise<void> {
+    const { roomId, settings } = data;
+    const room = await GameSessionManager.getSession(roomId);
+    const host = room?.participants.find(p => p.role === 'host');
+
+    // Security check: Only the host of the room can change the settings.
+    if (!room || !host || host.socket_id !== socket.id) {
+        return; 
+    }
+
+    console.log(`[Settings] Host updated settings for room ${roomId}:`, settings);
+    
+    // Update the settings for the session in memory
+    room.settings = settings;
+
+    // Broadcast the new game state (with updated settings) to everyone in the room.
+    await broadcastGameState(io, roomId);
+}
 
 export async function handleCreateRoom(socket: Socket, io: Server, data: CreateRoomData): Promise<void> {
     const roomId = generateRandomNumber(6); // This is the numeric joinCode
@@ -106,9 +128,12 @@ export async function handleJoinRoom(socket: Socket, io: Server, data: JoinRoomD
 
 export async function startGame(socket: Socket, io: Server, roomId: number): Promise<void> {
     const room = await GameSessionManager.getSession(roomId);
-    const host = room?.participants.find(p => p.role === 'host');
+    if(!room) return;
+    
+    const host = room.participants.find(p => p.role === 'host');
 
-    if (!room || !host || host.socket_id !== socket.id) return;
+    if (!host || host.socket_id !== socket.id) return;
+    
     if (room.participants.filter(p => p.role === 'player' && p.isOnline).length === 0) {
         socket.emit('error-message', "Cannot start the game with no players.");
         return;
@@ -135,7 +160,8 @@ export async function startGame(socket: Socket, io: Server, roomId: number): Pro
 export async function handleSubmitAnswer(socket: Socket, io: Server, data: SubmitAnswerData): Promise<void> {
     const { roomId, userId, optionIndex } = data;
     const room = await GameSessionManager.getSession(roomId);
-    const player = room?.participants.find(p => p.user_id === userId);
+    if(!room) return;
+    const player = room.participants.find(p => p.user_id === userId);
     
     if (!room || !player || player.role !== 'player' || room.gameState !== 'question' || !room.questions) return;
     if (!room.settings.allowAnswerChange && player.hasAnswered) return;
@@ -147,7 +173,7 @@ export async function handleSubmitAnswer(socket: Socket, io: Server, data: Submi
     }
     
     const elapsedMs = Date.now() - (room.questionStartTime ?? Date.now());
-    const remainingSec = Math.max(0, currentQuestion.timeLimit - elapsedMs / 1000);
+    const remainingSec =currentQuestion.timeLimit - Math.max(0, currentQuestion.timeLimit - elapsedMs / 1000);
 
     const playerAnswer: PlayerAnswer = {
         optionIndex: optionIndex,
@@ -174,8 +200,10 @@ export async function handleSubmitAnswer(socket: Socket, io: Server, data: Submi
 
 export async function handleRequestNextQuestion(socket: Socket, io: Server, roomId: number): Promise<void> {
     const room =await  GameSessionManager.getSession(roomId);
-    const host = room?.participants.find(p => p.role === 'host');
-    if (room && host?.socket_id === socket.id && room.gameState === 'results') {
+    if(!room) return;
+    const host = room.participants.find(p => p.role === 'host');
+    if(!host || !host.socket_id) return;
+    if (room && host.socket_id === socket.id && room.gameState === 'results') {
         if (room.autoNextTimer) {
             clearTimeout(room.autoNextTimer);
             room.autoNextTimer = undefined;
@@ -186,9 +214,12 @@ export async function handleRequestNextQuestion(socket: Socket, io: Server, room
 
 export async function handlePlayAgain(socket: Socket, io: Server, roomId: number): Promise<void> {
     const room = await GameSessionManager.getSession(roomId);
-    const host = room?.participants.find(p => p.role === 'host');
-
-    if (room && host?.socket_id === socket.id && room.gameState === 'end') {
+    if(!room) return;
+    const host = room.participants.find(p => p.role === 'host');
+        
+    if(!host || !host.socket_id) return;
+    
+    if (room && host.socket_id === socket.id && room.gameState === 'end') {
         console.log(`[Lobby] Host is restarting game in room ${roomId}`);
         room.gameState = 'lobby';
         room.currentQuestionIndex = -1;
@@ -224,7 +255,7 @@ export async function handleRejoinGame(socket: Socket, io: Server, data: RejoinG
 }
 
 export async function handleDisconnect(socket: Socket, io: Server): Promise<void> {
-    const sessionInfo = await GameSessionManager.findSessionBySocketId(socket.id);
+    const sessionInfo = GameSessionManager.findSessionBySocketId(socket.id);
     if (!sessionInfo) return;
     
     const { roomId, session } = sessionInfo;
