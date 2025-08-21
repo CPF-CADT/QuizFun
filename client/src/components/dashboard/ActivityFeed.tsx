@@ -11,7 +11,7 @@ const ActivityFeed: React.FC = () => {
   ];
 
   return (
-    <div className="bg-white/90 backdrop-blur-xl rounded-2xl border border-gray-200/50 p-6 shadow-xl hover:shadow-2xl transition-shadow duration-300">
+    <div className="bg-white/90 backdrop-blur-xl rounded-2xl border border-gray-200/50 p-6 shadow-xl hover:shadow-2xl transition-shadow duration-300 ml-5">
       <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
         <Globe className="w-5 h-5 mr-2 text-blue-500" />
         Today's Overview
