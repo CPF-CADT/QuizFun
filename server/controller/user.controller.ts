@@ -229,39 +229,32 @@ export async function getUsersByRole(req: Request, res: Response): Promise<void>
  *       500:
  *         description: Server error
  */
-export async function register(req: Request, res: Response): Promise<void> {
+export async function register(req: Request, res: Response): Promise<Response> {
   const { name, email, password, profile_url, role } = req.body;
   if (!name || !email || !password) {
-    res.status(400).json({ error: 'Missing required user information' });
-    return;
+    return res.status(400).json({ error: 'Missing required user information' });
   }
-
-  const existingUser = await UserRepository.findByEmail(email);
-  if (existingUser) {
-    res.status(409).json({ error: 'Email is already used' }); // Use 409 Conflict for existing resources
-    return;
-  }
-
-
-
-  const createdUser = await UserRepository.create({
-    name,
-    email,
-    password: Encryption.hashPassword(password),
-    profileUrl: profile_url || 'http://default.url/image.png',
-    role: role || 'player',
-    isVerified: false,
-  } as IUserData);
-
-  // --- Automatically send verification email ---
-  const code = generateRandomNumber(6);
-  await VerificationCodeRepository.create(createdUser.id, code, getExpiryDate(15)); // Expires in 15 mins
-
-  const subject = 'Verify Your Email Address';
-  const htmlContent = `<p>Welcome! Your verification code is: <strong>${code}</strong></p>`;
-  await sentEmail(email, subject, '', htmlContent);
-
-  res.status(201).json({ message: 'Registration successful. Please check your email to verify your account.' });
+  let createdUser;
+  try{
+      createdUser = await UserRepository.create({
+        name,
+        email,
+        password: Encryption.hashPassword(password),
+        profileUrl: profile_url || 'http://default.url/image.png',
+        role: role || 'player',
+        isVerified: false,
+      } as IUserData);
+    }catch(err){
+      return res.status(409).json({ error: 'Email is already used' }); // Use 409 Conflict for existing resources
+    }
+    const code = generateRandomNumber(6);
+    const subject = 'Verify Your Email Address';
+    const htmlContent = `<p>Welcome! Your verification code is: <strong>${code}</strong></p>`;
+    await Promise.all([
+      VerificationCodeRepository.create(createdUser.id, code, getExpiryDate(15)),
+      sentEmail(email, subject, '', htmlContent)
+    ]);
+    return res.status(201).json({ message: 'Registration successful. Please check your email to verify your account.' });
 }
 
 /* ----------------------- LOGIN ----------------------- */
