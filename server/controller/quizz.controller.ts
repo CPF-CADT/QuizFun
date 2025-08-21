@@ -846,15 +846,41 @@ export async function getDashboardStats(req: Request, res: Response) {
         res.status(500).json({ message: 'Error fetching dashboard stats', error });
     }
 }
-// interface MulterRequest extends Request {
-//   file?: Express.Multer.File; 
-// }
-// export const uploadQuizImage= async(req:MulterRequest,res:Response)=>{
-//     console.log('backend received the image ');
-//     try {
-//         if(!req.file)return res.status(400).json({message:'no file have been input'})
-//             const imageBuffer:
-//     } catch (error) {
-        
-//     }
-// }
+
+export async function handleUpdateQuiz (req: Request, res: Response):Promise<Response>{
+  const { quizId } = req.params;
+  const creatorId = req.user?.id; 
+  if(!creatorId){
+    return res.status(403).json({ error: 'Invalid ownerid' });
+  }
+  const { title, description, visibility, dificulty, tags } = req.body;
+
+  if (!title) {
+    return res.status(400).json({ error: 'Title is required.' });
+  }
+
+  const updateData: Partial<IQuiz> = {
+    title,
+    description,
+    visibility,
+    dificulty,
+    tags,
+  };
+
+  try {
+    const updatedQuiz = await QuizzRepositories.updateQuizz(quizId, creatorId, updateData);
+
+    if (!updatedQuiz) {
+      return res.status(404).json({ error: 'Quiz not found or you do not have permission to edit it.' });
+    }
+
+    console.log('Quiz updated successfully.');
+    return res.status(200).json({
+      message: 'Quiz updated successfully!',
+      data: updatedQuiz,
+    });
+  } catch (error) {
+    console.error('Failed to update quiz.', error);
+    return res.status(500).json({ error: 'Failed to update quiz. Please try again later.' });
+  }
+};

@@ -1,4 +1,4 @@
-import React, {
+import {
   useState,
   useMemo,
   useCallback,
@@ -141,11 +141,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         sessionStorage.setItem("quizUserId", newState.yourUserId);
     });
 
-    newSocket.on("error-message", (message: string) => {
+    newSocket.on("error-message", () => {
       sessionStorage.clear();
       setGameState(initialState);
-    }); // No cleanup function needed here to avoid disconnecting on re-renders.
-    // The socket will persist for the lifetime of the provider.
+    });
   }, [navigate]);
   
   useEffect(() => {

@@ -1,8 +1,6 @@
-
-// src/components/quiz/QuizSidebar.tsx
 import { useNavigate } from 'react-router-dom';
 import type { IQuizTemplate, IQuestion } from '../../types/quiz';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Settings } from 'lucide-react'; // Import Settings icon
 import { QuestionList } from './QuestionList';
 import { SidebarActions } from './SidebarActions';
 
@@ -15,6 +13,7 @@ interface QuizSidebarProps {
     onDeleteQuestion: (id: string) => void;
     onAddOrUpdate: () => void;
     onCancelEdit: () => void;
+    onOpenSettings: () => void; // Add this prop
     isFormValid: boolean;
 }
 
@@ -30,6 +29,15 @@ const QuizSidebar: React.FC<QuizSidebarProps> = (props) => {
                 </button>
                 <h1 className='text-2xl text-white font-bold tracking-wide break-words'>{props.quizTitle}</h1>
             </div>
+
+            {/* Settings Button */}
+            <button 
+              onClick={props.onOpenSettings} 
+              className="flex items-center justify-center gap-2 w-full mb-4 px-4 py-2 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors"
+            >
+              <Settings size={18} />
+              Quiz Settings
+            </button>
 
             <QuestionList
                 questions={props.questions}

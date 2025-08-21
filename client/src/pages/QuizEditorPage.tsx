@@ -1,12 +1,13 @@
-// src/pages/QuizEditorPage.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { quizApi } from '../service/quizApi';
-import type { IQuestion, IQuiz, IOption} from '../types/quiz'; 
+import type { IQuestion, IQuiz, IOption } from '../types/quiz'; 
 import { backgroundTemplates } from '../data/templates';
 import DynamicBackground from '../components/quizz/DynamicBackground';
 import QuizSidebar from '../components/quizz/QuizSidebar';
 import QuizMainContent from '../components/quizz/QuizMainContent';
+import QuizSettingsModal from '../components/quizz/QuizSettingsModal'; 
+import { Toaster } from 'react-hot-toast';
 
 const QuizEditorPage: React.FC = () => {
     const { quizId } = useParams<{ quizId: string }>();
@@ -14,8 +15,8 @@ const QuizEditorPage: React.FC = () => {
 
     const [quizDetails, setQuizDetails] = useState<IQuiz | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false); // State for the modal
     
-    // Form state for a single question
     const [currentQuestion, setCurrentQuestion] = useState('');
     const [options, setOptions] = useState<IOption[]>([
         { text: '', isCorrect: false },
@@ -37,7 +38,7 @@ const QuizEditorPage: React.FC = () => {
             setQuizDetails(response.data);
         } catch (error) {
             console.error("Failed to fetch quiz:", error);
-            navigate('/dashboard'); // Or a 404 page
+            navigate('/dashboard'); 
         } finally {
             setIsLoading(false);
         }
@@ -61,11 +62,9 @@ const QuizEditorPage: React.FC = () => {
     const handleAddOrUpdateQuestion = async () => {
         if (!isFormValid || !quizId) return;
 
-        // This payload matches the `Omit<IQuestion, '_id'>` type
         const questionPayload = {
             questionText: currentQuestion,
             options: options.filter(opt => opt.text.trim() !== ''),
-            // Set default values for required fields if they are not in the form
             point: 10, 
             timeLimit: 30,
         };
@@ -74,10 +73,9 @@ const QuizEditorPage: React.FC = () => {
             if (editingQuestionId) {
                 await quizApi.updateQuestion(quizId, editingQuestionId, questionPayload);
             } else {
-                // Corrected: Use the function name from your quizApi service
                 await quizApi.addQuestionToQuiz(quizId, questionPayload);
             }
-            fetchQuizData(); // Refresh data from the server
+            fetchQuizData();
             resetForm();
         } catch (error) {
             console.error("Failed to save question", error);
@@ -114,6 +112,7 @@ const QuizEditorPage: React.FC = () => {
 
     return (
         <div className='backdrop-blur-md min-h-screen flex relative overflow-hidden'>
+            <Toaster position="top-center" />
             <DynamicBackground template={backgroundTemplates[0]} />
             <QuizSidebar
                 template={backgroundTemplates[0]}
@@ -124,6 +123,7 @@ const QuizEditorPage: React.FC = () => {
                 onDeleteQuestion={handleDeleteQuestion}
                 onAddOrUpdate={handleAddOrUpdateQuestion}
                 onCancelEdit={resetForm}
+                onOpenSettings={() => setIsSettingsModalOpen(true)} // Open modal
                 isFormValid={isFormValid}
             />
             <QuizMainContent
@@ -140,6 +140,14 @@ const QuizEditorPage: React.FC = () => {
                 }}
                 isEditing={!!editingQuestionId}
                 questionNumber={(quizDetails.questions?.length || 0) + 1}
+            />
+            <QuizSettingsModal
+              isOpen={isSettingsModalOpen}
+              onClose={() => setIsSettingsModalOpen(false)}
+              quiz={quizDetails}
+              onQuizUpdate={(updatedQuiz) => {
+                setQuizDetails(updatedQuiz);
+              }}
             />
         </div>
     );

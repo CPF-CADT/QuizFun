@@ -1,72 +1,38 @@
 // src/service/quizApi.ts
+import type { Dificulty, IOption, IQuestion, IQuiz } from '../types/quiz';
 import { apiClient } from './api'; // Assuming your central axios instance is in 'api.ts'
 
-// --- INTERFACES (based on your Swagger schemas) ---
-
-export interface IOption {
-  _id?: string;
-  text: string;
-  isCorrect: boolean;
-}
-
-export interface IQuestion {
-  _id?: string;
-  questionText: string;
-  point: number;
-  timeLimit: number;
-  options: IOption[];
-  imageUrl?: string;
-  tags?: string[];
-}
-
-export type Dificulty = 'Hard' | 'Medium' | 'Easy';
-
-export interface IQuiz {
-  _id: string;
-  title: string;
-  description?: string;
-  creatorId: string;
-  visibility: 'public' | 'private';
-  dificulty: Dificulty;
-  templateImgUrl?: string;
-  questions: IQuestion[];
-  tags?: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-// --- PAYLOAD & PARAMS INTERFACES ---
-
 export interface ICreateQuizPayload {
-  title: string;
-  description?: string;
-  visibility: 'public' | 'private';
-  dificulty: Dificulty;
-  templateImgUrl?: string;
+    title: string;
+    description?: string;
+    visibility: 'public' | 'private';
+    dificulty: Dificulty;
+    templateImgUrl?: string;
+    tags?: string[]
 }
 
 export interface IGetAllQuizzesParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-  tags?: string; // e.g., "math,science"
-  sortBy?: 'createdAt' | 'title' | 'updatedAt';
-  sortOrder?: 'asc' | 'desc';
+    page?: number;
+    limit?: number;
+    search?: string;
+    tags?: string; // e.g., "math,science"
+    sortBy?: 'createdAt' | 'title' | 'updatedAt';
+    sortOrder?: 'asc' | 'desc';
 }
 
 export interface IGetQuizzesByUserParams {
-  page?: number;
-  limit?: number;
+    page?: number;
+    limit?: number;
 }
 
 export interface IQuizPaginatedResponse {
-  quizzes: IQuiz[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
+    quizzes: IQuiz[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
 }
 
 export interface ILeaderboardEntry {
@@ -75,56 +41,68 @@ export interface ILeaderboardEntry {
     score: number;
     profileUrl: string;
 }
+export interface IUpdateQuizPayload {
+    title: string;
+    description?: string;
+    visibility: 'public' | 'private';
+    dificulty: Dificulty;
+    tags?: string[];
+}
+
 
 export const quizApi = {
-  getAllQuizzes: (params: IGetAllQuizzesParams) => {
-    return apiClient.get<IQuizPaginatedResponse>('/quizz', { params });
-  },
+    getAllQuizzes: (params: IGetAllQuizzesParams) => {
+        return apiClient.get<IQuizPaginatedResponse>('/quizz', { params });
+    },
 
-  getQuizById: (quizId: string) => {
-    return apiClient.get<IQuiz>(`/quizz/${quizId}`);
-  },
+    getQuizById: (quizId: string) => {
+        return apiClient.get<IQuiz>(`/quizz/${quizId}`);
+    },
 
-  getMyQuizzes: (params: IGetQuizzesByUserParams) => {
-    return apiClient.get(`/quizz/user/`, { params }); 
-  },
-  
-  createQuiz: (quizData: ICreateQuizPayload) => {
-    return apiClient.post<{ message: string, data: IQuiz }>('/quizz', quizData);
-  },
+    getMyQuizzes: (params: IGetQuizzesByUserParams) => {
+        return apiClient.get(`/quizz/user/`, { params });
+    },
 
-  deleteQuiz: (quizId: string) => {
-    return apiClient.delete<{ message: string }>(`/quizz/${quizId}`);
-  },
-  
-  cloneQuiz: (quizId: string) => {
-    return apiClient.post<IQuiz>(`/quizz/${quizId}/clone`);
-  },
+    createQuiz: (quizData: ICreateQuizPayload) => {
+        return apiClient.post<{ message: string, data: IQuiz }>('/quizz', quizData);
+    },
 
-  getQuizLeaderboard: (quizId: string) => {
-    return apiClient.get<ILeaderboardEntry[]>(`/quizz/${quizId}/leaderboard`);
-  },
+    deleteQuiz: (quizId: string) => {
+        return apiClient.delete<{ message: string }>(`/quizz/${quizId}`);
+    },
 
-  addQuestionToQuiz : (quizId: string, question: Omit<IQuestion, '_id'>) => {
-    return apiClient.post<{ message: string }>('/quizz/question', { quizzId: quizId, question });
-  },
+    cloneQuiz: (quizId: string) => {
+        return apiClient.post<IQuiz>(`/quizz/${quizId}/clone`);
+    },
+    updateQuiz: (quizId: string, quizData: IUpdateQuizPayload) => {
+        return apiClient.put<{ message: string, data: IQuiz }>(`/quizz/${quizId}`, quizData);
+    },
 
-  updateQuestion: (quizId: string, questionId: string, questionData: Omit<IQuestion, '_id'>) => {
-    return apiClient.put<{ message: string, question: IQuestion }>(`/quizz/${quizId}/question/${questionId}`, questionData);
-  },
 
-  deleteQuestion: (quizId: string, questionId: string) => {
-    return apiClient.delete<{ message: string }>(`/quizz/${quizId}/question/${questionId}`);
-  },
+    getQuizLeaderboard: (quizId: string) => {
+        return apiClient.get<ILeaderboardEntry[]>(`/quizz/${quizId}/leaderboard`);
+    },
 
-  updateOption: (quizId: string, questionId: string, optionId: string, optionData: Omit<IOption, '_id'>) => {
-    return apiClient.put<{ message: string, option: IOption }>(`/quizz/${quizId}/question/${questionId}/option/${optionId}`, optionData);
-  },
+    addQuestionToQuiz: (quizId: string, question: Omit<IQuestion, '_id'>) => {
+        return apiClient.post<{ message: string }>('/quizz/question', { quizzId: quizId, question });
+    },
 
-  deleteOption: (quizId: string, questionId: string, optionId: string) => {
-    return apiClient.delete<{ message: string }>(`/quizz/${quizId}/question/${questionId}/option/${optionId}`);
-  },
-  getDashboardStats: () => {
-    return apiClient.get('/quizz/dashboard/stats');
-  }
+    updateQuestion: (quizId: string, questionId: string, questionData: Omit<IQuestion, '_id'>) => {
+        return apiClient.put<{ message: string, question: IQuestion }>(`/quizz/${quizId}/question/${questionId}`, questionData);
+    },
+
+    deleteQuestion: (quizId: string, questionId: string) => {
+        return apiClient.delete<{ message: string }>(`/quizz/${quizId}/question/${questionId}`);
+    },
+
+    updateOption: (quizId: string, questionId: string, optionId: string, optionData: Omit<IOption, '_id'>) => {
+        return apiClient.put<{ message: string, option: IOption }>(`/quizz/${quizId}/question/${questionId}/option/${optionId}`, optionData);
+    },
+
+    deleteOption: (quizId: string, questionId: string, optionId: string) => {
+        return apiClient.delete<{ message: string }>(`/quizz/${quizId}/question/${questionId}/option/${optionId}`);
+    },
+    getDashboardStats: () => {
+        return apiClient.get('/quizz/dashboard/stats');
+    }
 };
