@@ -18,7 +18,9 @@ import Report from './pages/Report';
 import DuringGamePlay from './pages/DuringGamePlay';
 import VerifyCode from "./pages/VerifyCode";
 import QuizEditorPage from "./pages/QuizEditorPage";
-import  Library from "./pages/Library";
+import Library from "./pages/Library";
+import History from "./pages/History"; // ✅ new import
+
 const PrivateRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) {
@@ -33,7 +35,6 @@ const PrivateRoute: React.FC = () => {
 
 const PublicRoute: React.FC = () => {
   const { isLoading } = useAuth();
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
@@ -41,7 +42,6 @@ const PublicRoute: React.FC = () => {
       </div>
     );
   }
-
   return <Outlet />;
 };
 
@@ -68,11 +68,11 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/join" element={<Joingame />} />
             <Route path="/explore" element={<Explore />} />
-            <Route  path="/report" element={<Report />} />
+            <Route path="/report" element={<Report />} />
             <Route path="/quiz-editor/:quizId" element={<QuizEditorPage />} />
             <Route path="/game" element={<Game />} /> 
             <Route path="/During-game-play" element={<DuringGamePlay/>}/>
-            
+            <Route path="/history" element={<History />} /> {/* ✅ added path */}
           </Route>
 
           <Route path="*" element={<NotFound />} />
