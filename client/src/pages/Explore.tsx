@@ -140,12 +140,6 @@ const Explore: React.FC = () => {
   const currentTime = new Date();
 
   return (
-    <div 
-      className="min-h-screen relative overflow-hidden"
-      style={{ 
-        background: 'linear-gradient(135deg, #8B5CF6 0%, #A855F7 25%, #C084FC 50%)',
-      }}
-    >
     <div className="flex min-h-screen">
   {/* Sidebar */}
   <Sidebar 
@@ -173,7 +167,7 @@ const Explore: React.FC = () => {
           <h1 className="text-5xl lg:text-6xl font-bold bg-gradient-to-r from-gray-900 via-white-800 to-purple-600 bg-clip-text text-transparent mb-4">
             Explore Quizzes
           </h1>
-          <p className="text-xl text-white max-w-2xl mx-auto">
+          <p className="text-xl text-gray-500 max-w-2xl mx-auto">
             Challenge yourself with our curated collection of interactive quizzes across various topics
           </p>
         </div>
@@ -344,7 +338,6 @@ const Explore: React.FC = () => {
           )}
         </div>
       </div>
-    </div>
     </div>
     </div>
   );
