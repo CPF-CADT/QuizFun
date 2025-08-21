@@ -21,7 +21,7 @@ const getDifficultyColor = (difficulty: string) => {
 
 const RecentQuizzes: React.FC<RecentQuizzesProps> = ({ quizzes }) => {
   return (
-    <div className="bg-white/80 backdrop-blur-xl rounded-2xl lg:rounded-3xl border border-gray-200/50 p-6 lg:p-8 shadow-xl">
+    <div className="bg-white/80 backdrop-blur-xl rounded-2xl lg:rounded-3xl border border-gray-200/50 p-6 lg:p-8 shadow-xl ml-5">
       <div className="flex items-center justify-between mb-6 lg:mb-8">
         <div className="flex items-center">
           <div className="w-10 h-10 bg-gradient-to-r from-violet-500 to-purple-500 rounded-xl flex items-center justify-center mr-3">

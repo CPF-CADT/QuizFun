@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { ArrowLeft, BarChart3, Users, Award, Timer, TrendingUp, Calendar, Eye, Target, Clock, UserCheck } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { BarChart3, Users, Award, Timer, TrendingUp, Calendar, Eye, Target, UserCheck } from "lucide-react";
 import Sidebar from '../components/dashboard/Sidebar';
 const Report: React.FC = () => {
   const [selectedQuiz, setSelectedQuiz] = useState(0);
@@ -88,7 +87,6 @@ const Report: React.FC = () => {
       default: return "bg-gray-100 text-gray-700";
     }
   };
-    const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(false);  
       const [activeSection, setActiveSection] = useState('explore'); // default active section
       const currentTime = new Date();

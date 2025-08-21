@@ -19,8 +19,6 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen, onNewQuizClick }) => {
           Fun Quiz
         </h1>
         <button className="p-2 hover:bg-gray-100 rounded-xl transition-colors relative">
-          <Bell className="w-5 h-5 text-gray-600" />
-          <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
         </button>
       </div>
 
@@ -36,12 +34,7 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen, onNewQuizClick }) => {
             <p className="text-gray-600 text-lg lg:text-xl">Ready to inspire minds today?</p>
           </div>
           
-          <div className="flex items-center space-x-4">
-            <button className="p-4 bg-white/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 hover:bg-white hover:shadow-lg transition-all duration-300 text-gray-600 hover:text-violet-600 relative">
-              <Bell className="w-5 h-5" />
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-red-400 to-pink-500 rounded-full animate-pulse"></div>
-            </button>
-          </div>
+         
         </div>
 
         {/* Quick Actions */}
