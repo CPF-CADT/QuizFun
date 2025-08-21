@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useQuizGame } from '../../context/GameContext';
 import { useAuth } from '../../context/AuthContext';
-import { Clock, Edit, Play, FaUsers } from '../common/Icons';
+import { Clock, Edit, Play, FaUsers,Activity,ChevronRight } from '../common/Icons';
 import type { IQuiz } from '../../types/quiz';
 
 interface RecentQuizzesProps {
@@ -58,7 +58,7 @@ const RecentQuizzes: React.FC<RecentQuizzesProps> = ({ quizzes }) => {
             <div className="border-t pt-4 mt-4">
               <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
                 <span className="flex items-center">
-                  <Users className="w-4 h-4 mr-1.5 text-gray-400" />
+                  <FaUsers className="w-4 h-4 mr-1.5 text-gray-400" />
                   {quiz.questions?.length || 0} questions
                 </span>
                 <span className="flex items-center">

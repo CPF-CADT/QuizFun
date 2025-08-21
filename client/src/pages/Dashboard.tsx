@@ -62,7 +62,8 @@ const DashboardPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 relative overflow-hidden">
+     
+  <div className="flex min-h-screen relative overflow-hidden">
       <Sidebar
         activeSection={activeSection}
         setActiveSection={setActiveSection}

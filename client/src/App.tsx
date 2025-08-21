@@ -20,6 +20,7 @@ import VerifyCode from "./pages/VerifyCode";
 import LobbyPage from "./pages/LobbyPage";
 import GamePage from "./pages/GamePage";
 import Report from "./pages/Report";
+import Library from "./pages/Library";
 import PerformanceDetailPage from "./pages/PerformanceDetailPage";
 
 const PrivateRoute: React.FC = () => {
@@ -72,6 +73,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/explore" element={<Explore />} />
         <Route path="/report" element={<Report />} />
+        <Route path="/library" element={<Library />} />
         <Route path="/quiz-editor/:quizId" element={<QuizEditorPage />} />
         <Route
           path="/session/:sessionId/performance/:userId"

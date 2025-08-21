@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FaSearch, FaFilter, FaClock, FaStar, FaBook, FaRocket, FaHeart, FaGamepad, FaTrophy, FaCalendarAlt, FaChevronDown, FaPlay, FaEye, FaDownload } from "react-icons/fa";
-
+import Sidebar from '../components/dashboard/Sidebar';
 // Mock quiz history data
 const mockQuizHistory = [
   {
@@ -71,7 +71,7 @@ const mockQuizHistory = [
   }
 ];
 
-const QuizLibrary: React.FC = () => {
+const Library: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("All");
   const [selectedDifficulty, setSelectedDifficulty] = useState("All");
@@ -118,12 +118,23 @@ const QuizLibrary: React.FC = () => {
   };
 
   return (
+    
     <div 
       className="min-h-screen relative overflow-hidden"
       style={{ 
-        background: 'linear-gradient(135deg, #8B5CF6 0%, #A855F7 25%, #C084FC 50%, #DDD6FE 75%, #F3E8FF 100%)',
+        background: 'linear-gradient(135deg, #8B5CF6 0%, #A855F7 25%, #C084FC 50%)',
       }}
     >
+      <div className="flex min-h-screen">
+  {/* Sidebar */}
+  <Sidebar
+    activeSection="library"
+    setActiveSection={() => {}}
+    sidebarOpen={true}
+    setSidebarOpen={() => {}}
+    currentTime={new Date()}
+  />
+    <div className="flex-3 relative z-10 m-6">
       {/* Floating Educational Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 transform animate-bounce">
@@ -156,7 +167,7 @@ const QuizLibrary: React.FC = () => {
             <FaBook className="text-3xl text-white" />
           </div>
           <h1 className="text-5xl font-bold text-white mb-4 tracking-tight">
-            Quiz Library 📚
+            Quiz Library 
           </h1>
           <p className="text-white/80 text-xl max-w-2xl mx-auto">
             Explore your learning journey and revisit your quiz adventures
@@ -313,7 +324,7 @@ const QuizLibrary: React.FC = () => {
 
         {/* Stats Summary */}
         <div className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-6 mt-8">
-          <h2 className="text-2xl font-bold text-white mb-4 text-center">Your Learning Stats 📊</h2>
+          <h2 className="text-2xl font-bold text-white mb-4 text-center">Your Learning Stats </h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-3xl font-bold text-yellow-300">{mockQuizHistory.length}</div>
@@ -326,13 +337,13 @@ const QuizLibrary: React.FC = () => {
               <div className="text-white/70">Average Score</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-300">
+              <div className="text-3xl font-bold text-blue-800">
                 {mockQuizHistory.reduce((acc, quiz) => acc + quiz.totalQuestions, 0)}
               </div>
               <div className="text-white/70">Questions Answered</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-pink-300">
+              <div className="text-3xl font-bold text-pink-700">
                 {new Set(mockQuizHistory.map(quiz => quiz.subject)).size}
               </div>
               <div className="text-white/70">Subjects Explored</div>
@@ -340,8 +351,10 @@ const QuizLibrary: React.FC = () => {
           </div>
         </div>
       </div>
+      </div>
+    </div>
     </div>
   );
 };
 
-export default QuizLibrary;
+export default Library;

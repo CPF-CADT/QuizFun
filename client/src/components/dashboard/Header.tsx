@@ -27,11 +27,11 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen, onNewQuizClick }) => {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
           <div>
             <h1 className="text-3xl lg:text-5xl font-bold mb-3">
-              <span className="bg-gradient-to-r from-gray-900 via-violet-900 to-purple-900 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-gray-900 via-white-900 to-purple-900 bg-clip-text text-transparent">
                 Dashboard
               </span>
             </h1>
-            <p className="text-gray-600 text-lg lg:text-xl">Ready to inspire minds today?</p>
+            <p className="text-white text-lg lg:text-xl">Ready to inspire minds today?</p>
           </div>
           
          
