@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { io, Socket } from "socket.io-client";
+import { gameApi } from "../service/gameApi";
 
 // --- TYPE DEFINITIONS (Comprehensive) ---
 export type ParticipantRole = "host" | "player";
@@ -105,9 +106,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   const [gameState, setGameState] = useState<GameState>(initialState);
   const navigate = useNavigate();
 
-  // Effect for initializing and managing the socket connection
   useEffect(() => {
-    // FIX: Initialize socket only ONCE and store it in a ref
     if (socketRef.current) return;
 
     const newSocket = io(SERVER_URL, { autoConnect: true, reconnection: true });
@@ -197,21 +196,34 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     navigate("/dashboard");
   }, [gameState.roomId, navigate]);
 
-  const fetchFinalResults = useCallback(async (sessionId: string | null) => {
-    const userId = sessionStorage.getItem("quizUserId");
-    if (!userId || !sessionId) return alert("User or session ID is missing.");
+   const fetchFinalResults = useCallback(async (sessionId: string | null) => {
+    if (!sessionId) {
+      return alert("Session ID is missing.");
+    }
+    
+    const userId = sessionStorage.getItem("quizUserId"); 
+    const guestName = sessionStorage.getItem("quizUserName");
+
+    if (!userId && !guestName) {
+      return alert("User or Guest identifier is missing.");
+    }
+
     try {
-      const response = await fetch(
-        `${SERVER_URL}/api/session/${sessionId}/results?userId=${userId}`
-      );
-      if (!response.ok) throw new Error(`Server error: ${response.status}`);
-      const data: ResultsPayload = await response.json();
+      const response = await gameApi.getSessionResults(sessionId, { 
+        userId: userId || undefined, 
+        guestName: guestName || undefined 
+      });
+      
+      const data: ResultsPayload = response.data; 
+
       setGameState((prev) => ({ ...prev, finalResults: data }));
+
     } catch (error) {
       console.error("Failed to fetch final results:", error);
       alert("Could not load game results.");
     }
   }, []);
+
 
   const value = useMemo(
     () => ({
