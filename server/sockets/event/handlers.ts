@@ -98,11 +98,12 @@ export async function handleJoinRoom(socket: Socket, io: Server, data: JoinRoomD
         socket.emit("error-message", `Room "${roomId}" does not exist.`);
         return;
     }
-    if (room.gameState !== 'lobby') {
+    if (room.gameState === 'end') {
         socket.emit("error-message", `Game in room "${roomId}" has already started.`);
         return;
     }
     if (room.participants.some(p => p.user_id === userId)) {
+
         await handleRejoinGame(socket, io, { roomId, userId });
         return;
     }
@@ -248,6 +249,10 @@ export async function handleRejoinGame(socket: Socket, io: Server, data: RejoinG
         participant.socket_id = socket.id;
         participant.isOnline = true;
         socket.join(roomId.toString());
+        if(participant.hasAnswered){
+            socket.emit('your-selected',{reconnect:true,option:room.answers.get(userId)?.at(-1)?.optionIndex,questionNo:room.currentQuestionIndex});
+        }
+        console.log(participant.hasAnswered,room.answers.get(userId)?.at(-1)?.optionIndex,room.currentQuestionIndex)
         broadcastGameState(io, roomId);
     } else {
         socket.emit('error-message', 'Could not find your session in this game.');
