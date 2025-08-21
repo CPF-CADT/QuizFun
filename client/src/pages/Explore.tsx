@@ -6,17 +6,12 @@ import {
   Search,
   Star,
   TrendingUp,
-  ChevronRight,
-  Filter,
   BookOpen,
   Users,
   Clock,
-  Heart,
-  Tag,
   Play,
   Award,
   Zap,
-  ArrowLeft,
 } from 'lucide-react';
 
 interface QuizPreview {
@@ -140,7 +135,6 @@ const Explore: React.FC = () => {
   });
 
   const categories = [...new Set(sampleQuizzes.map(quiz => quiz.category))];
-  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);  
   const [activeSection, setActiveSection] = useState('explore'); // default active section
   const currentTime = new Date();
