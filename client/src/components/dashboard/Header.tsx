@@ -1,13 +1,14 @@
 // src/components/dashboard/Header.tsx
 import React from 'react';
-import { PlusCircle, ArrowRight, BarChart3, Users, Bell, Menu } from 'lucide-react';
+import { PlusCircle, ArrowRight, BarChart3, Users, Menu, FileText } from 'lucide-react';
 
 interface HeaderProps {
   setSidebarOpen: (isOpen: boolean) => void;
   onNewQuizClick: () => void; 
+  onPDFImportClick: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ setSidebarOpen, onNewQuizClick }) => {
+const Header: React.FC<HeaderProps> = ({ setSidebarOpen, onNewQuizClick, onPDFImportClick }) => {
   return (
     <>
       {/* Mobile Header */}
@@ -47,6 +48,17 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen, onNewQuizClick }) => {
             <div className="flex items-center">
               <PlusCircle className="w-5 h-5 mr-2" />
               Create Quiz
+              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
+            </div>
+          </button>
+
+          <button 
+            onClick={onPDFImportClick}
+            className="group px-6 lg:px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-2xl font-semibold shadow-xl shadow-green-500/25 hover:shadow-2xl hover:shadow-green-500/40 transform hover:scale-105 hover:-translate-y-1 transition-all duration-300"
+          >
+            <div className="flex items-center">
+              <FileText className="w-5 h-5 mr-2" />
+              Import from PDF
               <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
             </div>
           </button>

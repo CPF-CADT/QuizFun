@@ -424,6 +424,96 @@ export async function createQuizz(req: Request, res: Response) {
     res.status(201).json({ message: 'quizz create success', data: quizz });
 }
 
+/**
+ * @swagger
+ * /api/quizz/create-from-import:
+ *   post:
+ *     summary: Create a quiz with imported questions
+ *     tags: [Quiz]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: "Imported Quiz"
+ *               description:
+ *                 type: string
+ *                 example: "Quiz created from PDF import"
+ *               visibility:
+ *                 type: string
+ *                 enum: [public, private]
+ *                 example: "private"
+ *               dificulty:
+ *                 type: string
+ *                 enum: [Hard, Medium, Easy]
+ *                 example: "Medium"
+ *               templateImgUrl:
+ *                 type: string
+ *                 format: uri
+ *                 nullable: true
+ *               questions:
+ *                 type: array
+ *                 items:
+ *                   $ref: '#/components/schemas/Question'
+ *     responses:
+ *       201:
+ *         description: Quiz created successfully with imported questions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Quiz created successfully with imported questions"
+ *                 data:
+ *                   $ref: '#/components/schemas/Quiz'
+ *       400:
+ *         description: Invalid input or missing questions
+ *       500:
+ *         description: Internal server error
+ */
+export async function createQuizzFromImport(req: Request, res: Response) {
+    try {
+        const { title, description, visibility, templateImgUrl, dificulty, questions } = req.body;
+        const userId = new Types.ObjectId(req.user?.id);
+
+        // Validate that questions are provided
+        if (!questions || !Array.isArray(questions) || questions.length === 0) {
+            return res.status(400).json({ 
+                message: 'No questions provided',
+                error: 'At least one question is required to create a quiz' 
+            });
+        }
+
+        // Create the quiz with questions
+        const quizz = await QuizzRepositories.createQuizz({
+            title,
+            description,
+            creatorId: userId,
+            visibility: visibility || 'private',
+            templateImgUrl,
+            dificulty: dificulty || 'Medium',
+            questions
+        } as IQuiz);
+
+        res.status(201).json({ 
+            message: 'Quiz created successfully with imported questions', 
+            data: quizz 
+        });
+    } catch (error) {
+        console.error('Error creating quiz from import:', error);
+        res.status(500).json({
+            message: 'Internal server error',
+            error: 'Failed to create quiz'
+        });
+    }
+}
+
 
 
 /**

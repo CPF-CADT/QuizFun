@@ -165,6 +165,8 @@ const QuizEditorPage: React.FC = () => {
         onHandleDeleteQuizz={onHandleDeleteQuizz}
         onOpenSettings={() => setIsSettingsModalOpen(true)} // Open modal
         isFormValid={isFormValid}
+                quizId={quizId}
+                onQuestionsImported={fetchQuizData}
       />
       <QuizMainContent
         question={currentQuestion}

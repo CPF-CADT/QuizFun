@@ -95,6 +95,35 @@ export const quizApi = {
         return apiClient.delete<{ message: string }>(`/quizz/${quizId}/question/${questionId}`);
     },
 
+    // PDF Import functionality
+    importPDF: (file: File) => {
+        const formData = new FormData();
+        formData.append('pdf', file);
+        return apiClient.post<{
+            message: string;
+            data: {
+                questions: Omit<IQuestion, '_id'>[];
+                title?: string;
+                errors: string[];
+            }
+        }>('/quizz/import-pdf', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+    },
+
+    createQuizFromImport: (quizData: {
+        title: string;
+        description?: string;
+        visibility: 'public' | 'private';
+        dificulty: Dificulty;
+        templateImgUrl?: string;
+        questions: Omit<IQuestion, '_id'>[];
+    }) => {
+        return apiClient.post<{ message: string, data: IQuiz }>('/quizz/create-from-import', quizData);
+    },
+
     updateOption: (quizId: string, questionId: string, optionId: string, optionData: Omit<IOption, '_id'>) => {
         return apiClient.put<{ message: string, option: IOption }>(`/quizz/${quizId}/question/${questionId}/option/${optionId}`, optionData);
     },
