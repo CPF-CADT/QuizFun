@@ -424,6 +424,96 @@ export async function createQuizz(req: Request, res: Response) {
     res.status(201).json({ message: 'quizz create success', data: quizz });
 }
 
+/**
+ * @swagger
+ * /api/quizz/create-from-import:
+ *   post:
+ *     summary: Create a quiz with imported questions
+ *     tags: [Quiz]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: "Imported Quiz"
+ *               description:
+ *                 type: string
+ *                 example: "Quiz created from PDF import"
+ *               visibility:
+ *                 type: string
+ *                 enum: [public, private]
+ *                 example: "private"
+ *               dificulty:
+ *                 type: string
+ *                 enum: [Hard, Medium, Easy]
+ *                 example: "Medium"
+ *               templateImgUrl:
+ *                 type: string
+ *                 format: uri
+ *                 nullable: true
+ *               questions:
+ *                 type: array
+ *                 items:
+ *                   $ref: '#/components/schemas/Question'
+ *     responses:
+ *       201:
+ *         description: Quiz created successfully with imported questions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Quiz created successfully with imported questions"
+ *                 data:
+ *                   $ref: '#/components/schemas/Quiz'
+ *       400:
+ *         description: Invalid input or missing questions
+ *       500:
+ *         description: Internal server error
+ */
+export async function createQuizzFromImport(req: Request, res: Response) {
+    try {
+        const { title, description, visibility, templateImgUrl, dificulty, questions } = req.body;
+        const userId = new Types.ObjectId(req.user?.id);
+
+        // Validate that questions are provided
+        if (!questions || !Array.isArray(questions) || questions.length === 0) {
+            return res.status(400).json({ 
+                message: 'No questions provided',
+                error: 'At least one question is required to create a quiz' 
+            });
+        }
+
+        // Create the quiz with questions
+        const quizz = await QuizzRepositories.createQuizz({
+            title,
+            description,
+            creatorId: userId,
+            visibility: visibility || 'private',
+            templateImgUrl,
+            dificulty: dificulty || 'Medium',
+            questions
+        } as IQuiz);
+
+        res.status(201).json({ 
+            message: 'Quiz created successfully with imported questions', 
+            data: quizz 
+        });
+    } catch (error) {
+        console.error('Error creating quiz from import:', error);
+        res.status(500).json({
+            message: 'Internal server error',
+            error: 'Failed to create quiz'
+        });
+    }
+}
+
 
 
 /**
@@ -827,15 +917,17 @@ export async function deleteOption(req: Request, res: Response) {
  *       500:
  *         description: Internal server error
  */
-export async function deleteQuizz(req: Request, res: Response) {
+export async function deleteQuizz(req: Request, res: Response):Promise<Response> {
     const { quizzId } = req.params;
-
-
-    const deleted = await QuizzRepositories.deleteQuizz(quizzId);
+    const userId = req.user?.id
+    if(!userId){
+        return res.status(404).json({ message: 'User not found' });
+    }
+    const deleted = await QuizzRepositories.deleteQuizz(quizzId,userId);
     if (!deleted) {
         return res.status(404).json({ message: 'Quiz or Question not found' });
     }
-    res.status(200).json({ message: 'Question deleted successfully' });
+    return res.status(200).json({ message: 'Question deleted successfully' });
 }
 
 export async function getDashboardStats(req: Request, res: Response) {
@@ -846,15 +938,41 @@ export async function getDashboardStats(req: Request, res: Response) {
         res.status(500).json({ message: 'Error fetching dashboard stats', error });
     }
 }
-// interface MulterRequest extends Request {
-//   file?: Express.Multer.File; 
-// }
-// export const uploadQuizImage= async(req:MulterRequest,res:Response)=>{
-//     console.log('backend received the image ');
-//     try {
-//         if(!req.file)return res.status(400).json({message:'no file have been input'})
-//             const imageBuffer:
-//     } catch (error) {
-        
-//     }
-// }
+
+export async function handleUpdateQuiz (req: Request, res: Response):Promise<Response>{
+  const { quizId } = req.params;
+  const creatorId = req.user?.id; 
+  if(!creatorId){
+    return res.status(403).json({ error: 'Invalid ownerid' });
+  }
+  const { title, description, visibility, dificulty, tags } = req.body;
+
+  if (!title) {
+    return res.status(400).json({ error: 'Title is required.' });
+  }
+
+  const updateData: Partial<IQuiz> = {
+    title,
+    description,
+    visibility,
+    dificulty,
+    tags,
+  };
+
+  try {
+    const updatedQuiz = await QuizzRepositories.updateQuizz(quizId, creatorId, updateData);
+
+    if (!updatedQuiz) {
+      return res.status(404).json({ error: 'Quiz not found or you do not have permission to edit it.' });
+    }
+
+    console.log('Quiz updated successfully.');
+    return res.status(200).json({
+      message: 'Quiz updated successfully!',
+      data: updatedQuiz,
+    });
+  } catch (error) {
+    console.error('Failed to update quiz.', error);
+    return res.status(500).json({ error: 'Failed to update quiz. Please try again later.' });
+  }
+};

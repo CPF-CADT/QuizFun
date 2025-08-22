@@ -1,13 +1,14 @@
 // src/components/dashboard/Header.tsx
 import React from 'react';
-import { PlusCircle, ArrowRight, BarChart3, Users, Bell, Menu } from 'lucide-react';
+import { PlusCircle, ArrowRight, BarChart3, Users, Menu, FileText } from 'lucide-react';
 
 interface HeaderProps {
   setSidebarOpen: (isOpen: boolean) => void;
   onNewQuizClick: () => void; 
+  onPDFImportClick: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ setSidebarOpen, onNewQuizClick }) => {
+const Header: React.FC<HeaderProps> = ({ setSidebarOpen, onNewQuizClick, onPDFImportClick }) => {
   return (
     <>
       {/* Mobile Header */}
@@ -27,11 +28,11 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen, onNewQuizClick }) => {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
           <div>
             <h1 className="text-3xl lg:text-5xl font-bold mb-3">
-              <span className="bg-gradient-to-r from-gray-900 via-violet-900 to-purple-900 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-gray-900 via-white-900 to-purple-900 bg-clip-text text-transparent">
                 Dashboard
               </span>
             </h1>
-            <p className="text-gray-600 text-lg lg:text-xl">Ready to inspire minds today?</p>
+            <p className="text-white text-lg lg:text-xl">Ready to inspire minds today?</p>
           </div>
           
          
@@ -50,11 +51,22 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen, onNewQuizClick }) => {
               <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
             </div>
           </button>
+
+          <button 
+            onClick={onPDFImportClick}
+            className="group px-6 lg:px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-2xl font-semibold shadow-xl shadow-green-500/25 hover:shadow-2xl hover:shadow-green-500/40 transform hover:scale-105 hover:-translate-y-1 transition-all duration-300"
+          >
+            <div className="flex items-center">
+              <FileText className="w-5 h-5 mr-2" />
+              Import from PDF
+              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
+            </div>
+          </button>
           
           <button className="px-6 lg:px-8 py-4 bg-white/80 backdrop-blur-xl border border-gray-200/50 text-gray-700 rounded-2xl font-semibold hover:border-violet-300 hover:text-violet-700 hover:shadow-lg hover:bg-white transform hover:scale-105 transition-all duration-300">
             <div className="flex items-center">
               <BarChart3 className="w-5 h-5 mr-2" />
-              Analytics
+             Report
             </div>
           </button>
           

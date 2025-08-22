@@ -1,8 +1,6 @@
-
-// src/components/quiz/QuizSidebar.tsx
 import { useNavigate } from 'react-router-dom';
 import type { IQuizTemplate, IQuestion } from '../../types/quiz';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Settings } from 'lucide-react'; // Import Settings icon
 import { QuestionList } from './QuestionList';
 import { SidebarActions } from './SidebarActions';
 
@@ -12,10 +10,14 @@ interface QuizSidebarProps {
     questions: IQuestion[];
     editingQuestionId: string | null;
     onEditQuestion: (question: IQuestion) => void;
+    onHandleDeleteQuizz: () => void;
     onDeleteQuestion: (id: string) => void;
     onAddOrUpdate: () => void;
     onCancelEdit: () => void;
+    onOpenSettings: () => void; // Add this prop
     isFormValid: boolean;
+    quizId?: string;
+    onQuestionsImported?: () => void;
 }
 
 const QuizSidebar: React.FC<QuizSidebarProps> = (props) => {
@@ -31,6 +33,15 @@ const QuizSidebar: React.FC<QuizSidebarProps> = (props) => {
                 <h1 className='text-2xl text-white font-bold tracking-wide break-words'>{props.quizTitle}</h1>
             </div>
 
+            {/* Settings Button */}
+            <button 
+              onClick={props.onOpenSettings} 
+              className="flex items-center justify-center gap-2 w-full mb-4 px-4 py-2 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors"
+            >
+              <Settings size={18} />
+              Quiz Settings
+            </button>
+
             <QuestionList
                 questions={props.questions}
                 editingQuestionId={props.editingQuestionId}
@@ -43,6 +54,9 @@ const QuizSidebar: React.FC<QuizSidebarProps> = (props) => {
                 isFormValid={props.isFormValid}
                 onAddOrUpdate={props.onAddOrUpdate}
                 onCancelEdit={props.onCancelEdit}
+                quizId={props.quizId}
+                onQuestionsImported={props.onQuestionsImported}
+                onHandleDeleteQuizz={props.onHandleDeleteQuizz}
             />
         </div>
     );

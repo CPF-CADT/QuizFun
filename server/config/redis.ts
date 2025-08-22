@@ -4,19 +4,35 @@ import { config } from "./config";
 
 const redisClient = createClient({
   url: config.redisURL,
+  socket: {
+    reconnectStrategy: (retries) => {
+      return Math.min(retries * 50, 2000); // backoff
+    },
+    keepAlive: true,
+  },
 });
 
-redisClient.on("error", (err) => console.error("Redis Client Error", err));
-redisClient.on("connect", () => console.log("Connecting to Redis..."));
-redisClient.on("ready", () => console.log("Redis client connected successfully."));
+redisClient.on("ready", () => {
+  console.log("Redis client connected successfully.");
+
+  if (process.env.NODE_ENV === "production") {
+    const PING_INTERVAL = 4 * 60 * 1000; // 4 min
+    setInterval(async () => {
+      try {
+        await redisClient.ping();
+        console.log("Redis PING successful");
+      } catch (err) {
+        console.error("Failed Redis PING:", err);
+      }
+    }, PING_INTERVAL);
+  }
+});
 
 (async () => {
-  try {
+  if (!redisClient.isOpen) {
     await redisClient.connect();
-  } catch (err) {
-    console.error("Failed to connect to Redis:", err);
-    process.exit(1); // Exit if connection fails
   }
 })();
 
 export default redisClient;
+

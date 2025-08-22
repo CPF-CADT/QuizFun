@@ -1,24 +1,16 @@
 import React, { useState } from "react";
 import {
+  BarChart3,
+  Users,
+  Award,
+  Timer,
   TrendingUp,
   Calendar,
+  Eye,
   Target,
+  UserCheck,
 } from "lucide-react";
 import Sidebar from "../components/dashboard/Sidebar";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-} from "recharts";
-
 const Report: React.FC = () => {
   const [selectedQuiz, setSelectedQuiz] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -107,40 +99,9 @@ const Report: React.FC = () => {
         return "bg-gray-100 text-gray-700";
     }
   };
-
-  // Pie Chart Data
-  const pieData = [
-    { name: "Players", value: currentQuiz.totalPlayers },
-    { name: "Attempts", value: currentQuiz.attempts },
-    { name: "Completion %", value: currentQuiz.completionRate },
-  ];
-
-  const COLORS = ["#6366f1", "#f97316", "#22c55e"];
-
-  // Line Chart Data (trend over dummy metrics)
-  const lineData = [
-    {
-      name: "Metric 1",
-      Avg: currentQuiz.averageScore,
-      High: currentQuiz.highestScore,
-      Attempts: currentQuiz.attempts,
-      Completion: currentQuiz.completionRate,
-    },
-    {
-      name: "Metric 2",
-      Avg: currentQuiz.averageScore + 5,
-      High: currentQuiz.highestScore - 3,
-      Attempts: currentQuiz.attempts + 10,
-      Completion: currentQuiz.completionRate - 2,
-    },
-    {
-      name: "Metric 3",
-      Avg: currentQuiz.averageScore + 10,
-      High: currentQuiz.highestScore,
-      Attempts: currentQuiz.attempts + 15,
-      Completion: currentQuiz.completionRate,
-    },
-  ];
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState("report"); // default active section
+  const currentTime = new Date();
 
   return (
     <div className="flex min-h-screen">
@@ -152,14 +113,14 @@ const Report: React.FC = () => {
         setSidebarOpen={setSidebarOpen}
         currentTime={currentTime}
       />
-
-      {/* Main Content */}
+      {/* <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100"> */}
       <div className="flex-1 relative z-10">
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
           {/* Decorative Blurs */}
           <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-r from-emerald-400/20 to-blue-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
 
+          {/* Main Content */}
           <div className="relative z-10 p-6 lg:p-12">
             {/* Header */}
             <div className="text-center mb-8">
@@ -171,7 +132,7 @@ const Report: React.FC = () => {
               </p>
             </div>
 
-            {/* Quiz Selection */}
+            {/* Quiz Selection Grid */}
             <div className="mb-8">
               <h2 className="text-xl font-semibold mb-4 text-gray-800">
                 Select a Quiz to Analyze
@@ -208,134 +169,193 @@ const Report: React.FC = () => {
               </div>
             </div>
 
-            {/* Key Metrics */}
-            <div className="bg-white/70 backdrop-blur-md border border-white/20 shadow-xl rounded-2xl p-6 mb-8">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-semibold text-gray-800">
-                  Key Metrics Overview
-                </h3>
-                <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
-                  View Detail
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Left: Pie Chart */}
-                <div className="w-full h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={100}
-                        label
-                      >
-                        {pieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Right: Line Chart */}
-                <div className="w-full h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={lineData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="Avg" stroke="#3b82f6" strokeWidth={2} />
-                      <Line type="monotone" dataKey="High" stroke="#f97316" strokeWidth={2} />
-                      <Line type="monotone" dataKey="Attempts" stroke="#22c55e" strokeWidth={2} />
-                      <Line type="monotone" dataKey="Completion" stroke="#a855f7" strokeWidth={2} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
-
-            {/* Performance & Recommendations */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Performance Analysis */}
-              <div className="bg-white/40 rounded-xl p-6">
-                <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center">
-                  <TrendingUp className="w-5 h-5 mr-2 text-blue-600" />
-                  Performance Analysis
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Score Distribution</span>
-                    <span className="font-medium">Good performance overall</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Engagement Level</span>
+            {/* Selected Quiz Analytics */}
+            <div className="bg-white/70 backdrop-blur-md border border-white/20 shadow-xl rounded-2xl p-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+                <div>
+                  <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
+                    {currentQuiz.title}
+                  </h2>
+                  <div className="flex flex-wrap items-center gap-3 mt-2">
                     <span
-                      className={`font-medium ${
-                        currentQuiz.completionRate > 85
-                          ? "text-green-600"
-                          : "text-yellow-600"
-                      }`}
+                      className={`text-sm px-3 py-1 rounded-full ${getDifficultyColor(
+                        currentQuiz.difficulty
+                      )}`}
                     >
-                      {currentQuiz.completionRate > 85 ? "High" : "Moderate"}
+                      {currentQuiz.difficulty}
                     </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Difficulty Assessment</span>
-                    <span className="font-medium">
-                      {currentQuiz.averageScore > 80 ? "Appropriate" : "Consider reviewing"}
+                    <span className="text-sm px-3 py-1 rounded-full bg-blue-100 text-blue-700">
+                      {currentQuiz.category}
                     </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Retry Rate</span>
-                    <span className="font-medium">
-                      {Math.round(
-                        (currentQuiz.attempts / currentQuiz.totalPlayers - 1) * 100
-                      )}
-                      %
+                    <span className="text-sm text-gray-500 flex items-center">
+                      <Calendar className="w-4 h-4 mr-1" />
+                      Ends: {currentQuiz.endDate}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Recommendations */}
-              <div className="bg-white/40 rounded-xl p-6">
-                <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center">
-                  <Target className="w-5 h-5 mr-2 text-purple-600" />
-                  Recommendations
-                </h3>
-                <div className="space-y-3 text-sm">
-                  {currentQuiz.averageScore < 70 && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                      <p className="text-red-700">• Consider reviewing question difficulty</p>
+              {/* Key Metrics */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+                <div className="bg-white/60 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl p-4 text-center">
+                  <div className="flex justify-center mb-2">
+                    <Users className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <p className="text-sm text-gray-500">Total Players</p>
+                  <p className="text-xl font-bold text-gray-800">
+                    {currentQuiz.totalPlayers}
+                  </p>
+                </div>
+
+                <div className="bg-white/60 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl p-4 text-center">
+                  <div className="flex justify-center mb-2">
+                    <Eye className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <p className="text-sm text-gray-500">Total Attempts</p>
+                  <p className="text-xl font-bold text-gray-800">
+                    {currentQuiz.attempts}
+                  </p>
+                </div>
+
+                <div className="bg-white/60 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl p-4 text-center">
+                  <div className="flex justify-center mb-2">
+                    <BarChart3
+                      className={`w-6 h-6 ${getScoreColor(
+                        currentQuiz.averageScore
+                      )}`}
+                    />
+                  </div>
+                  <p className="text-sm text-gray-500">Avg Score</p>
+                  <p
+                    className={`text-xl font-bold ${getScoreColor(
+                      currentQuiz.averageScore
+                    )}`}
+                  >
+                    {currentQuiz.averageScore}%
+                  </p>
+                </div>
+
+                <div className="bg-white/60 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl p-4 text-center">
+                  <div className="flex justify-center mb-2">
+                    <Award className="w-6 h-6 text-emerald-600" />
+                  </div>
+                  <p className="text-sm text-gray-500">Highest Score</p>
+                  <p className="text-xl font-bold text-emerald-600">
+                    {currentQuiz.highestScore}%
+                  </p>
+                </div>
+
+                <div className="bg-white/60 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl p-4 text-center">
+                  <div className="flex justify-center mb-2">
+                    <UserCheck className="w-6 h-6 text-teal-600" />
+                  </div>
+                  <p className="text-sm text-gray-500">Completion Rate</p>
+                  <p className="text-xl font-bold text-teal-600">
+                    {currentQuiz.completionRate}%
+                  </p>
+                </div>
+
+                <div className="bg-white/60 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl p-4 text-center">
+                  <div className="flex justify-center mb-2">
+                    <Timer className="w-6 h-6 text-orange-600" />
+                  </div>
+                  <p className="text-sm text-gray-500">Avg Time</p>
+                  <p className="text-xl font-bold text-orange-600">
+                    {currentQuiz.averageTime}
+                  </p>
+                </div>
+              </div>
+
+              {/* Performance Insights */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Performance Analysis */}
+                <div className="bg-white/40 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center">
+                    <TrendingUp className="w-5 h-5 mr-2 text-blue-600" />
+                    Performance Analysis
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Score Distribution</span>
+                      <span className="font-medium">
+                        Good performance overall
+                      </span>
                     </div>
-                  )}
-                  {currentQuiz.completionRate < 80 && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                      <p className="text-yellow-700">• Low completion rate - check quiz length</p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Engagement Level</span>
+                      <span
+                        className={`font-medium ${
+                          currentQuiz.completionRate > 85
+                            ? "text-green-600"
+                            : "text-yellow-600"
+                        }`}
+                      >
+                        {currentQuiz.completionRate > 85 ? "High" : "Moderate"}
+                      </span>
                     </div>
-                  )}
-                  {currentQuiz.averageScore > 90 && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <p className="text-blue-700">• High scores - consider adding advanced questions</p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">
+                        Difficulty Assessment
+                      </span>
+                      <span className="font-medium">
+                        {currentQuiz.averageScore > 80
+                          ? "Appropriate"
+                          : "Consider reviewing"}
+                      </span>
                     </div>
-                  )}
-                  {currentQuiz.completionRate > 90 && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                      <p className="text-green-700">• Excellent engagement - great quiz structure!</p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Retry Rate</span>
+                      <span className="font-medium">
+                        {Math.round(
+                          (currentQuiz.attempts / currentQuiz.totalPlayers -
+                            1) *
+                            100
+                        )}
+                        %
+                      </span>
                     </div>
-                  )}
+                  </div>
+                </div>
+
+                {/* Recommendations */}
+                <div className="bg-white/40 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center">
+                    <Target className="w-5 h-5 mr-2 text-purple-600" />
+                    Recommendations
+                  </h3>
+                  <div className="space-y-3 text-sm">
+                    {currentQuiz.averageScore < 70 && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                        <p className="text-red-700">
+                          • Consider reviewing question difficulty
+                        </p>
+                      </div>
+                    )}
+                    {currentQuiz.completionRate < 80 && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <p className="text-yellow-700">
+                          • Low completion rate - check quiz length
+                        </p>
+                      </div>
+                    )}
+                    {currentQuiz.averageScore > 90 && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <p className="text-blue-700">
+                          • High scores - consider adding advanced questions
+                        </p>
+                      </div>
+                    )}
+                    {currentQuiz.completionRate > 90 && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <p className="text-green-700">
+                          • Excellent engagement - great quiz structure!
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </div>

@@ -123,7 +123,7 @@ export const useQuizGame = () => {
             const storedRoomId = sessionStorage.getItem('quizRoomId');
             const storedUserId = sessionStorage.getItem('quizUserId');
             // ⭐️ Also check for sessionId for better reconnection logic if needed
-            const storedSessionId = sessionStorage.getItem('quizSessionId');
+            // const storedSessionId = sessionStorage.getItem('quizSessionId');
 
             if (storedRoomId && storedUserId) {
                 newSocket.emit('rejoin-game', { 

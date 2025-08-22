@@ -3,7 +3,7 @@ import { Calendar, Clock, Award, TrendingUp, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/dashboard/Sidebar";
 
-const HistoryPage: React.FC = () => {
+const History: React.FC = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("history");
@@ -158,4 +158,4 @@ const HistoryPage: React.FC = () => {
   );
 };
 
-export default HistoryPage;
+export default History;

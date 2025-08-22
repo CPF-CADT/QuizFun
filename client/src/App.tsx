@@ -1,12 +1,11 @@
 import React from "react";
 import {
-  BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
   Outlet,
 } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { useAuth } from "./context/AuthContext";
 
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
@@ -15,13 +14,15 @@ import Joingame from "./pages/Joingame";
 import Dashboard from "./pages/Dashboard";
 import Explore from "./pages/Explore";
 import QuizEditorPage from "./pages/QuizEditorPage";
-import Game from "./test/Quizz";
+// import Game from "./test/Quizz";
 import VerifyCode from "./pages/VerifyCode";
-import LobbyPage from "./pages/LobbyPage";
+// import LobbyPage from "./pages/LobbyPage";
 import HistoryPage from "./pages/History";
 import GamePage from "./pages/GamePage";
 import PerformanceDetailPage from "./pages/PerformanceDetailPage";
 import Report from "./pages/Report";
+import Library from "./pages/Library";
+import SettingsPage from "./pages/SettingsPage";
 import Library from "./pages/Library";
 
 const PrivateRoute: React.FC = () => {              
@@ -37,7 +38,7 @@ const PrivateRoute: React.FC = () => {
 };
 
 const PublicRoute: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -82,6 +83,7 @@ function App() {
           element={<PerformanceDetailPage />}
         />
         <Route path="/history" element={<HistoryPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />
