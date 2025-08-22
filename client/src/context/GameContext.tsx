@@ -98,17 +98,18 @@ const initialState: GameState = {
   answerCounts: [],
   questionStartTime: undefined,
 };
-interface reconnectSelectedOption{
-  reconnect?:boolean;
-  option:number;
-  questionNo:number;
+interface reconnectSelectedOption {
+  reconnect?: boolean;
+  option: number;
+  questionNo: number;
 }
 const GameContext = createContext<any>(null);
 
 export const GameProvider = ({ children }: { children: ReactNode }) => {
   const socketRef = useRef<Socket | null>(null);
   const [gameState, setGameState] = useState<GameState>(initialState);
-  const [userSeleted,setUserSeleted] = useState<reconnectSelectedOption | null>(null);
+  const [userSeleted, setUserSeleted] =
+    useState<reconnectSelectedOption | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -121,15 +122,15 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       console.log("Socket connected:", newSocket.id);
       const storedRoomId = sessionStorage.getItem("quizRoomId");
       const storedUserId = sessionStorage.getItem("quizUserId");
+      console.log(storedRoomId, storedUserId);
       if (storedRoomId && storedUserId) {
         newSocket.emit("join-room", {
           roomId: parseInt(storedRoomId),
           userId: storedUserId,
         });
-        
       }
     });
-    
+
     newSocket.on("game-update", (newState: Partial<GameState>) => {
       console.log("Received game-update. New gameState:", newState.gameState);
       setGameState((prev) => ({ ...prev, ...newState, error: undefined })); // Persist session info for potential reconnections
@@ -146,14 +147,18 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       setGameState(initialState);
     });
   }, [navigate]);
-  
+
   useEffect(() => {
     if (!socketRef.current) return;
     const socket = socketRef.current;
-    socket.on("your-selected", (data:reconnectSelectedOption) => {
-      console.log(data.reconnect,data.option,data.questionNo)
-      if(data.reconnect){
-        setUserSeleted({option:data.option,questionNo:data.questionNo,reconnect:data.reconnect});
+    socket.on("your-selected", (data: reconnectSelectedOption) => {
+      console.log(data.reconnect, data.option, data.questionNo);
+      if (data.reconnect) {
+        setUserSeleted({
+          option: data.option,
+          questionNo: data.questionNo,
+          reconnect: data.reconnect,
+        });
       }
     });
 
@@ -164,7 +169,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
   // Effect for handling navigation after a new session is created
   useEffect(() => {
+    const storedRoomId = sessionStorage.getItem("quizRoomId");
+    const storedUserId = sessionStorage.getItem("quizUserId");
+
     if (
+      (storedRoomId &&
+      storedUserId) &&
       gameState.sessionId &&
       window.location.pathname.indexOf(`/game/${gameState.sessionId}`) === -1
     ) {
@@ -174,18 +184,21 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       navigate(`/game/${gameState.sessionId}`);
     }
   }, [gameState.sessionId, navigate]);
-   const updateSettings = useCallback((newSettings: GameSettings) => {
-        if (gameState.roomId && socketRef.current) {
-            // 1. Optimistic Update: Change the state locally for instant UI feedback
-            setGameState(prev => ({ ...prev, settings: newSettings }));
-            
-            // 2. Emit to Server: Send the new settings to the backend for persistence
-            socketRef.current.emit('update-settings', { 
-                roomId: gameState.roomId, 
-                settings: newSettings 
-            });
-        }
-    }, [gameState.roomId]);
+  const updateSettings = useCallback(
+    (newSettings: GameSettings) => {
+      if (gameState.roomId && socketRef.current) {
+        // 1. Optimistic Update: Change the state locally for instant UI feedback
+        setGameState((prev) => ({ ...prev, settings: newSettings }));
+
+        // 2. Emit to Server: Send the new settings to the backend for persistence
+        socketRef.current.emit("update-settings", {
+          roomId: gameState.roomId,
+          settings: newSettings,
+        });
+      }
+    },
+    [gameState.roomId]
+  );
   // --- Action Handlers ---
   const createRoom = useCallback(
     (data: any) => socketRef.current?.emit("create-room", data),
@@ -204,7 +217,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     []
   );
   const requestNextQuestion = useCallback((roomId: number | null) => {
-    setUserSeleted(null); 
+    setUserSeleted(null);
     if (roomId) socketRef.current?.emit("request-next-question", roomId);
   }, []);
   const endGame = useCallback(() => {
@@ -214,12 +227,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     navigate("/dashboard");
   }, [gameState.roomId, navigate]);
 
-   const fetchFinalResults = useCallback(async (sessionId: string | null) => {
+  const fetchFinalResults = useCallback(async (sessionId: string | null) => {
     if (!sessionId) {
       return alert("Session ID is missing.");
     }
-    
-    const userId = sessionStorage.getItem("quizUserId"); 
+
+    const userId = sessionStorage.getItem("quizUserId");
     const guestName = sessionStorage.getItem("quizUserName");
 
     if (!userId && !guestName) {
@@ -227,21 +240,19 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      const response = await gameApi.getSessionResults(sessionId, { 
-        userId: userId || undefined, 
-        guestName: guestName || undefined 
+      const response = await gameApi.getSessionResults(sessionId, {
+        userId: userId || undefined,
+        guestName: guestName || undefined,
       });
-      
-      const data: ResultsPayload = response.data; 
+
+      const data: ResultsPayload = response.data;
 
       setGameState((prev) => ({ ...prev, finalResults: data }));
-
     } catch (error) {
       console.error("Failed to fetch final results:", error);
       alert("Could not load game results.");
     }
   }, []);
-
 
   const value = useMemo(
     () => ({
@@ -255,7 +266,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       fetchFinalResults,
       updateSettings,
       userSeleted,
-      setUserSeleted
+      setUserSeleted,
     }),
     [
       gameState,
@@ -268,7 +279,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       fetchFinalResults,
       updateSettings,
       userSeleted,
-      setUserSeleted
+      setUserSeleted,
     ]
   );
 
