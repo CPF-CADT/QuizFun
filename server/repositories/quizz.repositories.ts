@@ -5,12 +5,21 @@ import { GameSessionModel } from "../model/GameSession";
 import { GameHistoryModel } from "../model/GameHistory";
 export class QuizzRepositories {
 
-	static async getAllQuizzes(page: number, limit: number, sortBy: string = 'createdAt', sortOrder: string = 'desc', searchQuery?: string, tags?: string[]) {
+	static async getAllQuizzes(page: number, limit: number, sortBy: string = 'createdAt', sortOrder: string = 'desc', searchQuery?: string, tags?: string[],notOwnId?: string) {
 		const offset = (page - 1) * limit;
 
 		// Base filter
-		const filter: any = {};
+		  const filter: any = {
+    visibility: "public",
+  };
 		// Search across multiple fields
+		if (notOwnId) {
+    filter.$and = [
+      { creatorId: { $ne: notOwnId } },
+      { forkBy: { $ne: notOwnId } },
+    ];
+  }
+
 		if (searchQuery) {
 			filter.$or = [
 				{ title: { $regex: searchQuery, $options: 'i' } },
@@ -23,39 +32,39 @@ export class QuizzRepositories {
 			filter.tags = { $in: tags };
 		}
 
-		// Validate and apply sorting
-		const validSortFields = ["createdAt", "title", "updatedAt"];
-		const sort: any = {
-			[validSortFields.includes(sortBy) ? sortBy : "createdAt"]:
-				sortOrder === "asc" ? 1 : -1,
-		};
+    // Validate and apply sorting
+    const validSortFields = ["createdAt", "title", "updatedAt"];
+    const sort: any = {
+      [validSortFields.includes(sortBy) ? sortBy : "createdAt"]:
+        sortOrder === "asc" ? 1 : -1,
+    };
 
-		const [quizzes, total] = await Promise.all([
-			QuizModel.find(filter).sort(sort).skip(offset).limit(limit).lean(), // lean for faster queries
-			QuizModel.countDocuments(filter),
-		]);
+    const [quizzes, total] = await Promise.all([
+      QuizModel.find(filter).sort(sort).skip(offset).limit(limit).lean(), // lean for faster queries
+      QuizModel.countDocuments(filter),
+    ]);
 
-		return {
-			quizzes,
-			total,
-			page,
-			limit,
-			totalPages: Math.ceil(total / limit),
-			hasNext: page * limit < total,
-			hasPrev: page > 1,
-		};
-	}
-	static async getQuizz(qId: string) {
-		if (!Types.ObjectId.isValid(qId)) {
-			throw new Error("Invalid quiz ID");
-		}
-		return QuizModel.findById(qId).lean();
-	}
-	static async createQuizz(quizz: IQuiz): Promise<IQuiz | null> {
-		return QuizModel.create(quizz);
-	}
-	static async getQuizzByUser(userId?: string, page = 1, limit = 10) {
-		if (!userId) return { total: 0, quizzes: [] };
+    return {
+      quizzes,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      hasNext: page * limit < total,
+      hasPrev: page > 1,
+    };
+  }
+  static async getQuizz(qId: string) {
+    if (!Types.ObjectId.isValid(qId)) {
+      throw new Error("Invalid quiz ID");
+    }
+    return QuizModel.findById(qId).lean();
+  }
+  static async createQuizz(quizz: IQuiz): Promise<IQuiz | null> {
+    return QuizModel.create(quizz);
+  }
+  static async getQuizzByUser(userId?: string, page = 1, limit = 10) {
+    if (!userId) return { total: 0, quizzes: [] };
 
     const objectId = new Types.ObjectId(userId);
     const skip = (page - 1) * limit;

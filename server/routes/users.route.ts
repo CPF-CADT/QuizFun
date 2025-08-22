@@ -1,5 +1,6 @@
 import express from 'express'
-import {register,login,updateUserInfo,sendVerificationCode,verifyCode,refreshToken,logout,getAllUsers,getUsersByRole, getProfile, googleAuthenicate} from '../controller/user.controller'
+import {register,login,updateUserInfo,sendVerificationCode,verifyCode,refreshToken,logout,getAllUsers,getUsersByRole, getProfile, googleAuthenicate,UserController} from '../controller/user.controller'
+import { UserRepository } from '../repositories/users.repositories';
 import { authenticateToken, isEmailVerified } from '../middleware/authenicate.middleware';
 import { validationBody } from '../middleware/validation.middleware';
 import { userlogin, userRegister } from '../config/CheckValidation';
@@ -27,5 +28,5 @@ userRouter.post('/verify-otp',verifyCode);
 userRouter.post('/refresh-token',refreshToken);
 userRouter.post('/logout',logout);
 userRouter.post('/profile-detail',upload.single('image'),validateImage,handleImageUpload('user_ProfilePic'));
- 
+userRouter.get('/:id', UserController.getUserById);
 userRouter.get('/:userId/history', GameController.getUserHistory);

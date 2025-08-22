@@ -53,6 +53,7 @@ export interface IGetAllQuizzesParams {
   tags?: string; // e.g., "math,science"
   sortBy?: 'createdAt' | 'title' | 'updatedAt';
   sortOrder?: 'asc' | 'desc';
+    notOwnId?: string;
 }
 
 export interface IGetQuizzesByUserParams {
