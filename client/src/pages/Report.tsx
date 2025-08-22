@@ -99,9 +99,15 @@ const Report: React.FC = () => {
         return "bg-gray-100 text-gray-700";
     }
   };
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState("report"); // default active section
-  const currentTime = new Date();
+
+  // Returns a color class based on score value
+  const getScoreColor = (score: number) => {
+    if (score >= 90) return "text-blue-600";
+    if (score >= 80) return "text-green-600";
+    if (score >= 70) return "text-yellow-600";
+    return "text-red-600";
+  };
+  // Removed duplicate state and variable declarations
 
   return (
     <div className="flex min-h-screen">

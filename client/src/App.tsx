@@ -21,7 +21,6 @@ import HistoryPage from "./pages/History";
 import GamePage from "./pages/GamePage";
 import PerformanceDetailPage from "./pages/PerformanceDetailPage";
 import Report from "./pages/Report";
-import Library from "./pages/Library";
 import SettingsPage from "./pages/SettingsPage";
 import Library from "./pages/Library";
 
