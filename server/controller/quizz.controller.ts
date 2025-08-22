@@ -827,15 +827,17 @@ export async function deleteOption(req: Request, res: Response) {
  *       500:
  *         description: Internal server error
  */
-export async function deleteQuizz(req: Request, res: Response) {
+export async function deleteQuizz(req: Request, res: Response):Promise<Response> {
     const { quizzId } = req.params;
-
-
-    const deleted = await QuizzRepositories.deleteQuizz(quizzId);
+    const userId = req.user?.id
+    if(!userId){
+        return res.status(404).json({ message: 'User not found' });
+    }
+    const deleted = await QuizzRepositories.deleteQuizz(quizzId,userId);
     if (!deleted) {
         return res.status(404).json({ message: 'Quiz or Question not found' });
     }
-    res.status(200).json({ message: 'Question deleted successfully' });
+    return res.status(200).json({ message: 'Question deleted successfully' });
 }
 
 export async function getDashboardStats(req: Request, res: Response) {
