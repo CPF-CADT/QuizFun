@@ -28,4 +28,4 @@ quizzRouter.put('/:quizzId/question/:questionId/option/:optionId', updateOption)
 quizzRouter.delete('/:quizzId/question/:questionId', deleteQuestion);
 quizzRouter.delete('/:quizzId/question/:questionId/option/:optionId', deleteOption);
 
-quizzRouter.delete('/:quizzId', deleteQuizz);
+quizzRouter.delete('/:quizzId',authenticateToken, deleteQuizz);
