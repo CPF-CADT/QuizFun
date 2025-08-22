@@ -1,18 +1,13 @@
 import React, { useState } from "react";
 import { 
   Search, 
-  Star, 
-  TrendingUp, 
   BookOpen, 
   Users, 
   Clock, 
-  Play, 
   Award, 
-  Zap, 
   Menu,
   Calendar,
   Eye,
-  RotateCcw,
   Trophy,
   Target,
   ChevronDown
