@@ -12,10 +12,11 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.1.11",
     "axios": "^1.11.0",
+    "chrome": "^0.1.0",
     "dotenv": "^17.2.1",
     "history": "^5.3.0",
     "jwt-decode": "^4.0.0",
-    "lucide-react": "^0.539.0",
+    "lucide-react": "^0.540.0",
     "mongoose": "^8.17.1",
     "qrcode.react": "^4.2.0",
     "react": "^19.1.0",
