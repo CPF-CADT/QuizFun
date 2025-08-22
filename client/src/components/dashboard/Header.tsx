@@ -28,11 +28,11 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen, onNewQuizClick, onPDFIm
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
           <div>
             <h1 className="text-3xl lg:text-5xl font-bold mb-3">
-              <span className="bg-gradient-to-r from-gray-900 via-violet-900 to-purple-900 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-gray-900 via-white-900 to-purple-900 bg-clip-text text-transparent">
                 Dashboard
               </span>
             </h1>
-            <p className="text-gray-600 text-lg lg:text-xl">Ready to inspire minds today?</p>
+            <p className="text-white text-lg lg:text-xl">Ready to inspire minds today?</p>
           </div>
           
          
@@ -66,7 +66,7 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen, onNewQuizClick, onPDFIm
           <button className="px-6 lg:px-8 py-4 bg-white/80 backdrop-blur-xl border border-gray-200/50 text-gray-700 rounded-2xl font-semibold hover:border-violet-300 hover:text-violet-700 hover:shadow-lg hover:bg-white transform hover:scale-105 transition-all duration-300">
             <div className="flex items-center">
               <BarChart3 className="w-5 h-5 mr-2" />
-              Analytics
+             Report
             </div>
           </button>
           

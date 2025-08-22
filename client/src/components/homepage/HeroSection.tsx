@@ -1,5 +1,6 @@
 import React from 'react';
 import { FaPlus, FaHistory, FaChartLine, FaStar, FaUsers, FaTrophy, FaGamepad } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
 
 interface HeroSectionProps {
   handleProtectedRoute: (path: string) => void;
@@ -44,10 +45,9 @@ const HeroSection: React.FC<HeroSectionProps> = ({ handleProtectedRoute }) => {
             className="group flex items-center gap-2 bg-gradient-to-r from-emerald-400 to-teal-500 text-white font-bold px-8 py-4 rounded-xl hover:from-emerald-500 hover:to-teal-600 transition-all transform hover:scale-110 shadow-2xl border border-emerald-300">
             <FaPlus className="group-hover:rotate-90 transition-transform" /> Create Quiz
           </button>
-          <button onClick={() => handleProtectedRoute("/history")}
-            className="group flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold px-8 py-4 rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all transform hover:scale-110 shadow-2xl border border-indigo-400">
-            <FaHistory className="group-hover:rotate-12 transition-transform" /> Check History
-          </button>
+          <Link to="/history" className="group flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold px-8 py-4 rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all transform hover:scale-110 shadow-2xl border border-indigo-400">
+              <FaHistory className="group-hover:rotate-12 transition-transform" /> Check History
+          </Link>
           <button onClick={() => handleProtectedRoute("/Dashboard")}
             className="group flex items-center gap-2 bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold px-8 py-4 rounded-xl hover:from-pink-600 hover:to-rose-700 transition-all transform hover:scale-110 shadow-2xl border border-pink-400">
             <FaChartLine className="group-hover:bounce transition-transform" /> Reports

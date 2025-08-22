@@ -21,6 +21,7 @@ import HistoryPage from "./pages/History";
 import GamePage from "./pages/GamePage";
 import PerformanceDetailPage from "./pages/PerformanceDetailPage";
 import Report from "./pages/Report";
+import Library from "./pages/Library";
 import SettingsPage from "./pages/SettingsPage";
 
 const PrivateRoute: React.FC = () => {
@@ -75,6 +76,7 @@ function App() {
         <Route path="/explore" element={<Explore />} />
         <Route path="/quiz-editor/:quizId" element={<QuizEditorPage />} />
         <Route path="/report" element={<Report />} />
+        <Route path="/library" element={<Library />} />
         <Route
           path="/session/:sessionId/performance/:userId"
           element={<PerformanceDetailPage />}
