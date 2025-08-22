@@ -1,13 +1,13 @@
-
 // src/components/quiz/SidebarActions.tsx
-import { Plus, X, Save } from 'lucide-react';
+import { Plus, X, Trash } from "lucide-react";
 import { PDFImportForQuiz } from './PDFImportForQuiz';
 
 interface SidebarActionsProps {
-    onAddOrUpdate: () => void;
-    onCancelEdit: () => void;
-    isEditing: boolean;
-    isFormValid: boolean;
+  onAddOrUpdate: () => void;
+  onCancelEdit: () => void;
+  onHandleDeleteQuizz: () => void;
+  isEditing: boolean;
+  isFormValid: boolean;
     quizId?: string;
     onQuestionsImported?: () => void;
 }
@@ -18,7 +18,8 @@ export const SidebarActions: React.FC<SidebarActionsProps> = ({
     isEditing, 
     isFormValid, 
     quizId, 
-    onQuestionsImported 
+    onQuestionsImported ,
+    onHandleDeleteQuizz
 }) => (
     <div className='space-y-3'>
         <button
@@ -47,11 +48,11 @@ export const SidebarActions: React.FC<SidebarActionsProps> = ({
             />
         )}
 
-        <button className='w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 px-4 rounded-xl font-semibold transition-all shadow-xl transform hover:scale-105 flex items-center justify-center gap-2'>
-            <Save className='w-5 h-5' />
-            Save Quiz
-        </button>
-    </div>
+    <button className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white py-3 px-4 rounded-xl font-semibold transition-all shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+        onClick={onHandleDeleteQuizz}
+    >
+      <Trash className="w-5 h-5" />
+      Delete Quiz
+    </button>
+  </div>
 );
-
-

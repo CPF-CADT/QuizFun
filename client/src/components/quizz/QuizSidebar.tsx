@@ -10,6 +10,7 @@ interface QuizSidebarProps {
     questions: IQuestion[];
     editingQuestionId: string | null;
     onEditQuestion: (question: IQuestion) => void;
+    onHandleDeleteQuizz: () => void;
     onDeleteQuestion: (id: string) => void;
     onAddOrUpdate: () => void;
     onCancelEdit: () => void;
@@ -55,6 +56,7 @@ const QuizSidebar: React.FC<QuizSidebarProps> = (props) => {
                 onCancelEdit={props.onCancelEdit}
                 quizId={props.quizId}
                 onQuestionsImported={props.onQuestionsImported}
+                onHandleDeleteQuizz={props.onHandleDeleteQuizz}
             />
         </div>
     );
