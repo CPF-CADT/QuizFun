@@ -5,12 +5,21 @@ import { GameSessionModel } from "../model/GameSession";
 import { GameHistoryModel } from "../model/GameHistory";
 export class QuizzRepositories {
 
-	static async getAllQuizzes(page: number, limit: number, sortBy: string = 'createdAt', sortOrder: string = 'desc', searchQuery?: string, tags?: string[]) {
+	static async getAllQuizzes(page: number, limit: number, sortBy: string = 'createdAt', sortOrder: string = 'desc', searchQuery?: string, tags?: string[],notOwnId?: string) {
 		const offset = (page - 1) * limit;
 
 		// Base filter
-		const filter: any = {};
+		  const filter: any = {
+    visibility: "public",
+  };
 		// Search across multiple fields
+		if (notOwnId) {
+    filter.$and = [
+      { creatorId: { $ne: notOwnId } },
+      { forkBy: { $ne: notOwnId } },
+    ];
+  }
+
 		if (searchQuery) {
 			filter.$or = [
 				{ title: { $regex: searchQuery, $options: 'i' } },

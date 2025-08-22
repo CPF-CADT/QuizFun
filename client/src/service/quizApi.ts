@@ -52,6 +52,7 @@ export interface IGetAllQuizzesParams {
   tags?: string; // e.g., "math,science"
   sortBy?: 'createdAt' | 'title' | 'updatedAt';
   sortOrder?: 'asc' | 'desc';
+    notOwnId?: string;
 }
 
 export interface IGetQuizzesByUserParams {
@@ -97,8 +98,8 @@ export const quizApi = {
     return apiClient.delete<{ message: string }>(`/quizz/${quizId}`);
   },
   
- cloneQuiz: (quizId: string): Promise<AxiosResponse<IQuiz>> => {
-    return apiClient.post<IQuiz>(`/quizz/${quizId}/clone`);
+ cloneQuiz: (quizId: string, userId?: string): Promise<AxiosResponse<IQuiz>> => {
+    return apiClient.post<IQuiz>(`/quizz/${quizId}/clone`, { userId });
   },
 
   getQuizLeaderboard: (quizId: string) => {
