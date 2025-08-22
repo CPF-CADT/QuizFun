@@ -2,37 +2,26 @@ import { Types } from "mongoose";
 import { QuizModel, IQuestion, IQuiz, IOption } from "../model/Quiz";
 import { UserModel } from "../model/User";
 import { GameSessionModel } from "../model/GameSession";
+import { GameHistoryModel } from "../model/GameHistory";
 export class QuizzRepositories {
-  static async getAllQuizzes(
-    page: number,
-    limit: number,
-    sortBy: string = "createdAt",
-    sortOrder: string = "desc",
-    searchQuery?: string,
-    tags?: string[],
-    notOwnId?: string
-  ) {
-    const offset = (page - 1) * limit;
-    // Base filter
-    const filter: any = {};
-    if (notOwnId) {
-      filter.creatorId = { $ne: notOwnId };
-      filter.forkBy = { $ne: notOwnId };
-    }
 
-    filter.visibility = "public";
-    // Search across multiple fields
-    if (searchQuery) {
-      filter.$or = [
-        { title: { $regex: searchQuery, $options: "i" } },
-        { description: { $regex: searchQuery, $options: "i" } },
-      ];
-    }
+	static async getAllQuizzes(page: number, limit: number, sortBy: string = 'createdAt', sortOrder: string = 'desc', searchQuery?: string, tags?: string[]) {
+		const offset = (page - 1) * limit;
 
-    // Filter by tag if provided
-    if (tags && tags.length > 0) {
-      filter.tags = { $in: tags };
-    }
+		// Base filter
+		const filter: any = {};
+		// Search across multiple fields
+		if (searchQuery) {
+			filter.$or = [
+				{ title: { $regex: searchQuery, $options: 'i' } },
+				{ description: { $regex: searchQuery, $options: 'i' } }
+			];
+		}
+		
+		// Filter by tag if provided
+		if (tags && tags.length > 0) {
+			filter.tags = { $in: tags };
+		}
 
     // Validate and apply sorting
     const validSortFields = ["createdAt", "title", "updatedAt"];
@@ -241,12 +230,15 @@ export class QuizzRepositories {
     return clonedQuiz.toObject();
   }
 
-  static async getDashboardStats() {
-    const totalQuizzes = await QuizModel.countDocuments();
-    const totalStudents = await UserModel.countDocuments({ role: "player" });
-    const completedQuizzes = await GameSessionModel.countDocuments({
-      status: "completed",
-    });
+	static async getDashboardStats(userId:string) {
+
+		const totalQuizzes = await QuizModel.find({$or:[
+			{creatorId:new Types.ObjectId(userId)},
+			{forkBy:new Types.ObjectId(userId)}
+		]}).countDocuments();
+		const totalHostGame = await GameSessionModel.find({hostId:new Types.ObjectId(userId)});
+		const totalStudents = await GameHistoryModel.find({})
+		const completedQuizzes = await GameSessionModel.countDocuments({ status: 'completed' });
 
     const avgScoreAggregation = await GameSessionModel.aggregate([
       { $unwind: "$results" },
