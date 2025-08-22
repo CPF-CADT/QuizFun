@@ -203,7 +203,7 @@ const newNames = userResponses.reduce((acc, res) => {
   const handleForkQuiz = async (quizId: string) => {
     setForkingQuizId(quizId);
     try {
-      await quizApi.cloneQuiz(quizId, user?._id);
+      await quizApi.cloneQuiz(quizId);
       setQuizzes(prevQuizzes => prevQuizzes.filter(q => q.id !== quizId));
 
     } catch (error) {
@@ -223,7 +223,6 @@ const newNames = userResponses.reduce((acc, res) => {
   const getCategoryColor = (category: string) => {
     return categoryColors[category as keyof typeof categoryColors] || categoryColors.Default;
   };
-
   return (
     <div className="flex min-h-screen">
       <Sidebar 

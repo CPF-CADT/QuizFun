@@ -43,6 +43,7 @@ export interface ICreateQuizPayload {
   visibility: 'public' | 'private';
   dificulty: Dificulty;
   templateImgUrl?: string;
+  tags:string[];
 }
 
 export interface IGetAllQuizzesParams {
@@ -98,8 +99,8 @@ export const quizApi = {
     return apiClient.delete<{ message: string }>(`/quizz/${quizId}`);
   },
   
- cloneQuiz: (quizId: string, userId?: string): Promise<AxiosResponse<IQuiz>> => {
-    return apiClient.post<IQuiz>(`/quizz/${quizId}/clone`, { userId });
+ cloneQuiz: (quizId: string): Promise<AxiosResponse<IQuiz>> => {
+    return apiClient.post<IQuiz>(`/quizz/${quizId}/clone`);
   },
 
   getQuizLeaderboard: (quizId: string) => {
@@ -126,6 +127,6 @@ export const quizApi = {
     return apiClient.delete<{ message: string }>(`/quizz/${quizId}/question/${questionId}/option/${optionId}`);
   },
   getDashboardStats: () => {
-    return apiClient.get('/quizz/dashboard/stats');
+    return apiClient.get('/quizz/stats');
   }
 };
