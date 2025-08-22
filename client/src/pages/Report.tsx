@@ -13,6 +13,10 @@ import {
 import Sidebar from "../components/dashboard/Sidebar";
 const Report: React.FC = () => {
   const [selectedQuiz, setSelectedQuiz] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState("explore");
+  const currentTime = new Date();
+
   const quizzes = [
     {
       id: 1,
@@ -82,12 +86,6 @@ const Report: React.FC = () => {
   ];
 
   const currentQuiz = quizzes[selectedQuiz];
-
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return "text-emerald-600";
-    if (score >= 75) return "text-yellow-600";
-    return "text-red-500";
-  };
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {

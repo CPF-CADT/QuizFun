@@ -23,8 +23,9 @@ import PerformanceDetailPage from "./pages/PerformanceDetailPage";
 import Report from "./pages/Report";
 import Library from "./pages/Library";
 import SettingsPage from "./pages/SettingsPage";
+import Library from "./pages/Library";
 
-const PrivateRoute: React.FC = () => {
+const PrivateRoute: React.FC = () => {              
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) {
     return (
@@ -32,7 +33,7 @@ const PrivateRoute: React.FC = () => {
         Loading session...
       </div>
     );
-  }
+  }                                                               
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" />;
 };
 
