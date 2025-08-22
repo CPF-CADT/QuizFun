@@ -11,7 +11,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 // ---- Public ----
 quizzRouter.get('/', getAllQuizzes);
-quizzRouter.get('/stats', getDashboardStats);
+quizzRouter.get('/stats', authenticateToken,getDashboardStats);
 quizzRouter.get('/user/',authenticateToken, getQuizzByUser);
 quizzRouter.get('/:quizzId/leaderboard', getQuizLeaderboard);
 // ---- Single Quiz ----
