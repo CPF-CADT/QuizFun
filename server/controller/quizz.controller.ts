@@ -117,6 +117,11 @@ import { Types } from 'mongoose';
  *           type: string
  *         description: Filter by multiple tags (comma-separated)
  *       - in: query
+ *         name: notOwn
+ *         schema:
+ *           type: string
+ *         description: Filter by not my quizz by add my id
+ *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
@@ -181,6 +186,8 @@ export async function getAllQuizzes(req: Request, res: Response) {
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 10));
 
     const search = req.query.search as string | undefined;
+    const notOwn = req.query.notOwn as string | undefined;
+    console.log(notOwn)
 
     // Support multiple tags: ?tags=math,science
     const tags = req.query.tags
@@ -197,7 +204,8 @@ export async function getAllQuizzes(req: Request, res: Response) {
             sortBy,
             sortOrder,
             search,
-            tags
+            tags,
+            notOwn
         );
 
         res.status(200).json(result);
