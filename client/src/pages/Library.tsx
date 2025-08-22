@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { FaUser } from 'react-icons/fa';
 import Sidebar from '../components/dashboard/Sidebar';
+import { Link } from 'react-router-dom';
 
 // Mock quiz history data
 const mockQuizHistory = [
@@ -355,13 +356,6 @@ const Library: React.FC = () => {
                       {/* Category Gradient Bar */}
                       <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${categoryColors[quiz.category as keyof typeof categoryColors]}`}></div>
                       
-                      {/* Score Badge */}
-                      {/* <div className="absolute top-4 right-4">
-                        <div className={`flex items-center gap-1 bg-gradient-to-r ${getScoreGradient(quiz.score)} text-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg`}>
-                          <Award className="w-3 h-3" />
-                          {quiz.score}%
-                        </div>
-                      </div> */}
 
                       <div className="mb-4 mt-2">
                         <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-indigo-700 transition-colors">
@@ -381,21 +375,6 @@ const Library: React.FC = () => {
                            {quiz.difficulty}
                         </div>
                       </div>
-
-                      {/* Progress Bar */}
-                      <div className="mb-4">
-                        <div className="flex justify-between text-xs text-gray-500 mb-1">
-                          <span>Progress</span>
-                          <span>{quiz.score}%</span>
-                        </div>
-                        <div className="bg-gray-200 rounded-full h-2 overflow-hidden">
-                          <div 
-                            className={`h-full bg-gradient-to-r ${getScoreGradient(quiz.score)} rounded-full transition-all duration-500`}
-                            style={{ width: `${quiz.score}%` }}
-                          ></div>
-                        </div>
-                      </div>
-
                       <div className="flex justify-between items-center text-sm text-gray-500 mb-4">
                         <div className="flex items-center gap-4">
                           <span className="flex items-center gap-1">
@@ -415,10 +394,10 @@ const Library: React.FC = () => {
 
                       {/* Action Buttons */}
                       <div className="flex gap-2">
-                        <button className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-2.5 px-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-sm group-hover:shadow-lg">
+                        <Link to="/history" className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-2.5 px-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-sm group-hover:shadow-lg">
                           <Eye className="w-4 h-4" />
                           View Histroy
-                        </button>
+                        </Link>
                         <button className="flex-1 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white py-2.5 px-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-sm group-hover:shadow-lg">
                           <FaUser className="w-4 h-4" />
                           Top Performance
