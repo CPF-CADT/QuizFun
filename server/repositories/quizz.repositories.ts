@@ -171,13 +171,18 @@ export class QuizzRepositories {
 		return result.modifiedCount > 0;
 	}
 
-	static async deleteQuizz(quizzId: string): Promise<boolean> {
-		const result = await QuizModel.deleteOne(
-			{ $match: { _id: new Types.ObjectId(quizzId) } },
-		).exec();
+	static async deleteQuizz(quizzId: string, ownerId: string): Promise<boolean> {
+		const result = await QuizModel.deleteOne({
+			_id: new Types.ObjectId(quizzId),
+			$or: [
+				{ creatorId: ownerId },
+				{ forkBy: ownerId }
+			]
+		}).exec();
 
-		return result.deletedCount !== undefined && result.deletedCount > 0;
+		return result.deletedCount > 0;
 	}
+
 	static async updateQuizz(quizId: string, creatorId: string, updateData: Partial<IQuiz>): Promise<IQuiz | null> {
 		return await QuizModel.findOneAndUpdate(
 			{
