@@ -82,7 +82,7 @@ export interface GameState {
 }
 
 // --- CONSTANTS & INITIAL STATE ---
-const SERVER_URL = "http://localhost:3000";
+const SERVER_URL = import.meta.env.VITE_SOCKET_URL;
 const initialState: GameState = {
   sessionId: null,
   roomId: null,
