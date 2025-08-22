@@ -57,32 +57,32 @@ export class QuizzRepositories {
 	static async getQuizzByUser(userId?: string, page = 1, limit = 10) {
 		if (!userId) return { total: 0, quizzes: [] };
 
-		const objectId = new Types.ObjectId(userId);
-		const skip = (page - 1) * limit;
+    const objectId = new Types.ObjectId(userId);
+    const skip = (page - 1) * limit;
 
-		const result = await QuizModel.aggregate([
-			{
-				$match: {
-					$or: [{ forkBy: objectId }, { creatorId: objectId }],
-				},
-			},
-			{
-				$facet: {
-					total: [{ $count: "count" }],
-					quizzes: [
-						{ $sort: { createdAt: -1 } },
-						{ $skip: skip },
-						{ $limit: limit },
-					],
-				},
-			},
-		]).exec();
+    const result = await QuizModel.aggregate([
+      {
+        $match: {
+          $or: [{ forkBy: objectId }, { creatorId: objectId }],
+        },
+      },
+      {
+        $facet: {
+          total: [{ $count: "count" }],
+          quizzes: [
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+        },
+      },
+    ]).exec();
 
-		const total = result[0]?.total[0]?.count || 0;
-		const quizzes = result[0]?.quizzes || [];
+    const total = result[0]?.total[0]?.count || 0;
+    const quizzes = result[0]?.quizzes || [];
 
-		return { total, quizzes };
-	}
+    return { total, quizzes };
+  }
 
 	static async addQuestion(
 		quizId: string,
@@ -147,7 +147,7 @@ export class QuizzRepositories {
 			}
 		).exec();
 
-		if (!quiz) return null;
+    if (!quiz) return null;
 
 		const question = quiz.questions.find(
 			(q) => q._id.toString() === questionId
@@ -166,8 +166,8 @@ export class QuizzRepositories {
 			{ $pull: { questions: { _id: new Types.ObjectId(questionId) } } }
 		).exec();
 
-		return result.modifiedCount > 0;
-	}
+    return result.modifiedCount > 0;
+  }
 
 	static async deleteOption(
 		quizzId: string,
@@ -182,8 +182,8 @@ export class QuizzRepositories {
 			{ $pull: { "questions.$.options": { _id: optionId } } }
 		).exec();
 
-		return result.modifiedCount > 0;
-	}
+    return result.modifiedCount > 0;
+  }
 
 	static async deleteQuizz(quizzId: string, ownerId: string): Promise<boolean> {
 		const result = await QuizModel.deleteOne({
@@ -191,8 +191,8 @@ export class QuizzRepositories {
 			$or: [{ creatorId: ownerId }, { forkBy: ownerId }],
 		}).exec();
 
-		return result.deletedCount > 0;
-	}
+    return result.deletedCount > 0;
+  }
 
 	static async updateQuizz(
 		quizId: string,
@@ -222,13 +222,13 @@ export class QuizzRepositories {
 		}
 		const { _id, createdAt, updatedAt, ...quizData } = quizz;
 
-		const clonedQuiz = await QuizModel.create({
-			...quizData,
-			forkBy: new Types.ObjectId(userId),
-		});
+    const clonedQuiz = await QuizModel.create({
+      ...quizData,
+      forkBy: new Types.ObjectId(userId),
+    });
 
-		return clonedQuiz.toObject();
-	}
+    return clonedQuiz.toObject();
+  }
 
 
 	static async getDashboardStats(userId: string) {

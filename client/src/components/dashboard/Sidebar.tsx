@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Activity, BookOpen, Users, BarChart3, Settings, Compass, X, Star
+  Activity, BookOpen, BarChart3, Settings, Compass, X, Star
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 interface SidebarProps {
@@ -17,7 +17,6 @@ const sidebarItems = [
   { name: 'Explore', icon: Compass, section: 'explore', color: 'from-blue-500 to-cyan-500' },
   { name: 'My Library', icon: BookOpen, section: 'library', color: 'from-emerald-500 to-teal-600' },
   { name: 'Report', icon: BarChart3, section: 'report', color: 'from-orange-500 to-red-500' },
-  { name: 'Students', icon: Users, section: 'classes', color: 'from-pink-500 to-rose-600' },
   { name: 'Settings', icon: Settings, section: 'settings', color: 'from-slate-500 to-gray-600' }
 ];
 
