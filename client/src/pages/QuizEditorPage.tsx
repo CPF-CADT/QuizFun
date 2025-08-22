@@ -125,6 +125,8 @@ const QuizEditorPage: React.FC = () => {
                 onCancelEdit={resetForm}
                 onOpenSettings={() => setIsSettingsModalOpen(true)} // Open modal
                 isFormValid={isFormValid}
+                quizId={quizId}
+                onQuestionsImported={fetchQuizData}
             />
             <QuizMainContent
                 question={currentQuestion}

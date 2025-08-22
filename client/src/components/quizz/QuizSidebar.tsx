@@ -15,6 +15,8 @@ interface QuizSidebarProps {
     onCancelEdit: () => void;
     onOpenSettings: () => void; // Add this prop
     isFormValid: boolean;
+    quizId?: string;
+    onQuestionsImported?: () => void;
 }
 
 const QuizSidebar: React.FC<QuizSidebarProps> = (props) => {
@@ -51,6 +53,8 @@ const QuizSidebar: React.FC<QuizSidebarProps> = (props) => {
                 isFormValid={props.isFormValid}
                 onAddOrUpdate={props.onAddOrUpdate}
                 onCancelEdit={props.onCancelEdit}
+                quizId={props.quizId}
+                onQuestionsImported={props.onQuestionsImported}
             />
         </div>
     );
