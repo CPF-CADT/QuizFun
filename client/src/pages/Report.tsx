@@ -22,7 +22,7 @@ import {
 const Report: React.FC = () => {
   const [selectedQuiz, setSelectedQuiz] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState("explore");
+  const [activeSection, setActiveSection] = useState("report");
   const currentTime = new Date();
 
   const quizzes = [

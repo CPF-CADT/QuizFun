@@ -14,6 +14,7 @@ interface SidebarProps {
 
 const sidebarItems = [
   { name: 'Dashboard', icon: Activity, section: 'dashboard', color: 'from-violet-500 to-purple-600' },
+  { name: 'My Quizz', icon: Activity, section: 'my-quizz', color: 'from-green-500 to-green-300' },
   { name: 'Explore', icon: Compass, section: 'explore', color: 'from-blue-500 to-cyan-500' },
   { name: 'My Library', icon: BookOpen, section: 'library', color: 'from-emerald-500 to-teal-600' },
   { name: 'Report', icon: BarChart3, section: 'report', color: 'from-orange-500 to-red-500' },

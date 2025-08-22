@@ -23,6 +23,7 @@ import PerformanceDetailPage from "./pages/PerformanceDetailPage";
 import Report from "./pages/Report";
 import SettingsPage from "./pages/SettingsPage";
 import Library from "./pages/Library";
+import MyQuizz from "./pages/MyQuizz";
 
 const PrivateRoute: React.FC = () => {              
   const { isAuthenticated, isLoading } = useAuth();
@@ -73,6 +74,7 @@ function App() {
       </Route>
       <Route element={<PrivateRoute />}>
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/my-quizz" element={<MyQuizz />} />
         <Route path="/explore" element={<Explore />} />
         <Route path="/quiz-editor/:quizId" element={<QuizEditorPage />} />
         <Route path="/report" element={<Report />} />
