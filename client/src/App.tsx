@@ -1,3 +1,4 @@
+import React from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -13,10 +14,6 @@ import Homepage from "./pages/Homepage";
 import Joingame from "./pages/Joingame";
 import Dashboard from "./pages/Dashboard";
 import Explore from "./pages/Explore";
-import Game from './test/Quizz';
-import Report from './pages/Report';
-import DuringGamePlay from './pages/DuringGamePlay';
-import VerifyCode from "./pages/VerifyCode";
 import QuizEditorPage from "./pages/QuizEditorPage";
 import Game from "./test/Quizz";
 import VerifyCode from "./pages/VerifyCode";
@@ -25,8 +22,9 @@ import HistoryPage from "./pages/History";
 import GamePage from "./pages/GamePage";
 import PerformanceDetailPage from "./pages/PerformanceDetailPage";
 import Report from "./pages/Report";
+import Library from "./pages/Library";
 
-const PrivateRoute: React.FC = () => {
+const PrivateRoute: React.FC = () => {              
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) {
     return (
@@ -34,7 +32,7 @@ const PrivateRoute: React.FC = () => {
         Loading session...
       </div>
     );
-  }
+  }                                                               
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" />;
 };
 
@@ -78,6 +76,7 @@ function App() {
         <Route path="/explore" element={<Explore />} />
         <Route path="/quiz-editor/:quizId" element={<QuizEditorPage />} />
         <Route path="/report" element={<Report />} />
+        <Route path="/library" element={<Library />} />
         <Route
           path="/session/:sessionId/performance/:userId"
           element={<PerformanceDetailPage />}
@@ -85,10 +84,8 @@ function App() {
         <Route path="/history" element={<HistoryPage />} />
       </Route>
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
 
