@@ -2,6 +2,7 @@ import { Types } from "mongoose";
 import { QuizModel, IQuestion, IQuiz, IOption, } from "../model/Quiz";
 import { UserModel } from "../model/User";
 import { GameSessionModel } from "../model/GameSession";
+import { GameHistoryModel } from "../model/GameHistory";
 export class QuizzRepositories {
 
 	static async getAllQuizzes(page: number, limit: number, sortBy: string = 'createdAt', sortOrder: string = 'desc', searchQuery?: string, tags?: string[]) {
@@ -9,7 +10,6 @@ export class QuizzRepositories {
 
 		// Base filter
 		const filter: any = {};
-
 		// Search across multiple fields
 		if (searchQuery) {
 			filter.$or = [
@@ -17,7 +17,7 @@ export class QuizzRepositories {
 				{ description: { $regex: searchQuery, $options: 'i' } }
 			];
 		}
-
+		
 		// Filter by tag if provided
 		if (tags && tags.length > 0) {
 			filter.tags = { $in: tags };
@@ -212,9 +212,14 @@ export class QuizzRepositories {
 		return clonedQuiz.toObject();
 	}
 
-	static async getDashboardStats() {
-		const totalQuizzes = await QuizModel.countDocuments();
-		const totalStudents = await UserModel.countDocuments({ role: 'player' });
+	static async getDashboardStats(userId:string) {
+
+		const totalQuizzes = await QuizModel.find({$or:[
+			{creatorId:new Types.ObjectId(userId)},
+			{forkBy:new Types.ObjectId(userId)}
+		]}).countDocuments();
+		const totalHostGame = await GameSessionModel.find({hostId:new Types.ObjectId(userId)});
+		const totalStudents = await GameHistoryModel.find({})
 		const completedQuizzes = await GameSessionModel.countDocuments({ status: 'completed' });
 
 		const avgScoreAggregation = await GameSessionModel.aggregate([
