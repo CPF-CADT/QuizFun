@@ -50,11 +50,11 @@ export class QuizzRepositories {
 		};
 	}
 	static async getQuizz(qId: string) {
-			if (!Types.ObjectId.isValid(qId)) {
-				throw new Error("Invalid quiz ID");
-			}
-			return QuizModel.findById(qId).lean();
+		if (!Types.ObjectId.isValid(qId)) {
+			throw new Error("Invalid quiz ID");
 		}
+		return QuizModel.findById(qId).lean();
+	}
 	static async createQuizz(quizz: IQuiz): Promise<IQuiz | null> {
 		return QuizModel.create(quizz);
 	}
@@ -66,19 +66,19 @@ export class QuizzRepositories {
 
 		const result = await QuizModel.aggregate([
 			{
-			$match: {
-				$or: [{ forkBy: objectId }, { creatorId: objectId }],
-			},
+				$match: {
+					$or: [{ forkBy: objectId }, { creatorId: objectId }],
+				},
 			},
 			{
-			$facet: {
-				total: [{ $count: "count" }],
-				quizzes: [
-				{ $sort: { createdAt: -1 } },
-				{ $skip: skip },
-				{ $limit: limit },
-				],
-			},
+				$facet: {
+					total: [{ $count: "count" }],
+					quizzes: [
+						{ $sort: { createdAt: -1 } },
+						{ $skip: skip },
+						{ $limit: limit },
+					],
+				},
 			},
 		]).exec();
 
@@ -151,8 +151,8 @@ export class QuizzRepositories {
 
 	static async deleteQuestion(quizzId: string, questionId: string): Promise<boolean> {
 		const result = await QuizModel.updateOne(
-			{ $match: { _id: new Types.ObjectId(quizzId) } },
-			{ $pull: { questions: { _id: questionId } } }
+			{ _id: new Types.ObjectId(quizzId) },
+			{ $pull: { questions: { _id: new Types.ObjectId(questionId) } } }
 		).exec();
 
 		return result.modifiedCount > 0;
@@ -171,13 +171,31 @@ export class QuizzRepositories {
 		return result.modifiedCount > 0;
 	}
 
-	static async deleteQuizz(quizzId: string): Promise<boolean> {
-		const result = await QuizModel.deleteOne(
-			{ $match: { _id: new Types.ObjectId(quizzId) } },
-		).exec();
+	static async deleteQuizz(quizzId: string, ownerId: string): Promise<boolean> {
+		const result = await QuizModel.deleteOne({
+			_id: new Types.ObjectId(quizzId),
+			$or: [
+				{ creatorId: ownerId },
+				{ forkBy: ownerId }
+			]
+		}).exec();
 
-		return result.deletedCount !== undefined && result.deletedCount > 0;
+		return result.deletedCount > 0;
 	}
+
+	static async updateQuizz(quizId: string, creatorId: string, updateData: Partial<IQuiz>): Promise<IQuiz | null> {
+		return await QuizModel.findOneAndUpdate(
+			{
+				_id: new Types.ObjectId(quizId),
+				$or: [
+					{ creatorId: new Types.ObjectId(creatorId) },
+					{ forkBy: new Types.ObjectId(creatorId) }
+				]
+			},
+			{ $set: updateData },
+			{ new: true, runValidators: true }
+		).exec();
+	};
 	static async cloneQuizz(quizId: string, userId: string): Promise<IQuiz | null> {
 		const quizz = await QuizModel.findById(quizId).lean();
 		if (!quizz) return null;

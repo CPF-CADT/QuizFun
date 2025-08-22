@@ -1,4 +1,4 @@
-import React, {
+import {
   useState,
   useMemo,
   useCallback,
@@ -98,12 +98,17 @@ const initialState: GameState = {
   answerCounts: [],
   questionStartTime: undefined,
 };
-
+interface reconnectSelectedOption{
+  reconnect?:boolean;
+  option:number;
+  questionNo:number;
+}
 const GameContext = createContext<any>(null);
 
 export const GameProvider = ({ children }: { children: ReactNode }) => {
   const socketRef = useRef<Socket | null>(null);
   const [gameState, setGameState] = useState<GameState>(initialState);
+  const [userSeleted,setUserSeleted] = useState<reconnectSelectedOption | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -117,13 +122,14 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       const storedRoomId = sessionStorage.getItem("quizRoomId");
       const storedUserId = sessionStorage.getItem("quizUserId");
       if (storedRoomId && storedUserId) {
-        newSocket.emit("rejoin-game", {
+        newSocket.emit("join-room", {
           roomId: parseInt(storedRoomId),
           userId: storedUserId,
         });
+        
       }
     });
-
+    
     newSocket.on("game-update", (newState: Partial<GameState>) => {
       console.log("Received game-update. New gameState:", newState.gameState);
       setGameState((prev) => ({ ...prev, ...newState, error: undefined })); // Persist session info for potential reconnections
@@ -135,15 +141,26 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         sessionStorage.setItem("quizUserId", newState.yourUserId);
     });
 
-    newSocket.on("error-message", (message: string) => {
-      console.error(`Received error: ${message}`);
-      alert(`Error: ${message}`);
+    newSocket.on("error-message", () => {
       sessionStorage.clear();
       setGameState(initialState);
-      navigate("/join");
-    }); // No cleanup function needed here to avoid disconnecting on re-renders.
-    // The socket will persist for the lifetime of the provider.
+    });
   }, [navigate]);
+  
+  useEffect(() => {
+    if (!socketRef.current) return;
+    const socket = socketRef.current;
+    socket.on("your-selected", (data:reconnectSelectedOption) => {
+      console.log(data.reconnect,data.option,data.questionNo)
+      if(data.reconnect){
+        setUserSeleted({option:data.option,questionNo:data.questionNo,reconnect:data.reconnect});
+      }
+    });
+
+    return () => {
+      socket.off("your-selected");
+    };
+  }, []);
 
   // Effect for handling navigation after a new session is created
   useEffect(() => {
@@ -187,6 +204,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     []
   );
   const requestNextQuestion = useCallback((roomId: number | null) => {
+    setUserSeleted(null); 
     if (roomId) socketRef.current?.emit("request-next-question", roomId);
   }, []);
   const endGame = useCallback(() => {
@@ -235,7 +253,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       requestNextQuestion,
       endGame,
       fetchFinalResults,
-      updateSettings
+      updateSettings,
+      userSeleted,
+      setUserSeleted
     }),
     [
       gameState,
@@ -246,7 +266,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       requestNextQuestion,
       endGame,
       fetchFinalResults,
-      updateSettings
+      updateSettings,
+      userSeleted,
+      setUserSeleted
     ]
   );
 

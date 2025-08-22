@@ -8,6 +8,7 @@ import RecentQuizzes from "../components/dashboard/RecentQuizzes";
 import ActivityFeed from "../components/dashboard/ActivityFeed";
 import FeaturedQuiz from "../components/dashboard/FeaturedQuiz";
 import CreateQuizModal from "../components/dashboard/CreateQuizModal";
+import { PDFImportModal } from "../components/quizz/PDFImportModal";
 import { quizApi } from "../service/quizApi";
 import type { IQuiz } from "../types/quiz";
 
@@ -32,6 +33,7 @@ const DashboardPage: React.FC = () => {
 
   const [recentQuizzes, setRecentQuizzes] = useState<IQuiz[]>([]);
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
+  const [isPDFImportModalOpen, setPDFImportModalOpen] = useState(false);
 
   useEffect(() => {
     setIsLoaded(true);
@@ -75,7 +77,7 @@ const DashboardPage: React.FC = () => {
         <Header 
           setSidebarOpen={setSidebarOpen} 
           onNewQuizClick={() => setCreateModalOpen(true)} 
-          
+          onPDFImportClick={() => setPDFImportModalOpen(true)}
         />
         <main
           className={`mr-15 flex-1 p-4 lg:p-8 transition-all duration-1000 ${
@@ -99,6 +101,24 @@ const DashboardPage: React.FC = () => {
       <CreateQuizModal 
         isOpen={isCreateModalOpen}
         onClose={() => setCreateModalOpen(false)}
+      />
+
+      <PDFImportModal 
+        isOpen={isPDFImportModalOpen}
+        onClose={() => setPDFImportModalOpen(false)}
+        onImportSuccess={(quiz) => {
+          console.log('Quiz imported successfully:', quiz);
+          // Refresh the recent quizzes list
+          const fetchUserQuizzes = async () => {
+            try {
+              const response = await quizApi.getMyQuizzes({ limit: 4, page: 1 });
+              setRecentQuizzes(response.data.quizzes);
+            } catch (error) {
+              console.error("Error fetching user quizzes:", error);
+            }
+          };
+          fetchUserQuizzes();
+        }}
       />
     </div>
   );

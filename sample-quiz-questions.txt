@@ -1,0 +1,57 @@
+Sample Quiz Questions for PDF Import Testing
+
+Q1: What is the capital of France?
+A) London
+B) Paris
+C) Berlin
+D) Madrid
+Answer: B
+
+Q2: What is 2 + 2?
+A) 3
+B) 4
+C) 5
+D) 6
+Answer: B
+
+Q3: Which programming language is known for web development?
+A) Python
+B) JavaScript
+C) Java
+D) C++
+Answer: B
+
+Q4: What is the largest planet in our solar system?
+A) Earth
+B) Jupiter
+C) Mars
+D) Venus
+Answer: B
+
+Q5: What does HTML stand for?
+A) Hypertext Markup Language
+B) High Tech Modern Language
+C) Home Tool Markup Language
+D) Hyperlink and Text Markup Language
+Answer: A
+
+1. What is the chemical symbol for gold?
+a) Go
+b) Gd
+c) Au
+d) Ag
+Correct Answer: c
+
+2. What year did World War II end?
+a) 1944
+b) 1945
+c) 1946
+d) 1947
+Correct Answer: b
+
+3. Which ocean is the largest?
+a) Atlantic
+b) Indian
+c) Arctic
+d) Pacific
+Correct Answer: d
