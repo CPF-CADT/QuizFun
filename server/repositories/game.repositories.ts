@@ -383,7 +383,7 @@ export class GameRepository {
             return null;
         }
         const feedback = {
-            rating: Types.Decimal128.fromString(rating.toString()),
+            rating: rating,
             comment: comment,
         };
         return GameSessionModel.updateOne(

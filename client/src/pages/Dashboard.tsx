@@ -41,8 +41,9 @@ const DashboardPage: React.FC = () => {
 
     const fetchStats = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/api/quizz/stats");
+        const response = await quizApi.getDashboardStats();
         setStats(response.data);
+        console.log(response.data)
       } catch (error) {
         console.error("Error fetching dashboard stats:", error);
       }

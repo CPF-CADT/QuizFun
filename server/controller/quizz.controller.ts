@@ -205,7 +205,7 @@ export async function getAllQuizzes(req: Request, res: Response) {
             sortOrder,
             search,
             tags,
-            notOwn
+            // notOwn
         );
 
         res.status(200).json(result);

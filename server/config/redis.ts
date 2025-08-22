@@ -6,28 +6,37 @@ const redisClient = createClient({
   url: config.redisURL,
   socket: {
     reconnectStrategy: (retries) => {
-      return Math.min(retries * 50, 2000); // backoff
+      // retry with capped backoff
+      return Math.min(retries * 100, 2000);
     },
-    keepAlive: true,
   },
 });
 
 redisClient.on("ready", () => {
   console.log("Redis client connected successfully.");
-
-  if (process.env.NODE_ENV === "production") {
-    const PING_INTERVAL = 4 * 60 * 1000; // 4 min
-    setInterval(async () => {
-      try {
-        await redisClient.ping();
-        console.log("Redis PING successful");
-      } catch (err) {
-        console.error("Failed Redis PING:", err);
-      }
-    }, PING_INTERVAL);
-  }
 });
 
+redisClient.on("error", (err) => {
+  console.error("Redis Client Error:", err);
+});
+
+redisClient.on("end", () => {
+  console.warn("Redis connection closed.");
+});
+
+// keep connection alive with PING
+const PING_INTERVAL = 30 * 1000; // 30s
+setInterval(async () => {
+  if (redisClient.isOpen) {
+    try {
+      await redisClient.ping();
+    } catch (err) {
+      console.error("Failed Redis PING:", err);
+    }
+  }
+}, PING_INTERVAL);
+
+// connect once
 (async () => {
   if (!redisClient.isOpen) {
     await redisClient.connect();
@@ -35,4 +44,3 @@ redisClient.on("ready", () => {
 })();
 
 export default redisClient;
-

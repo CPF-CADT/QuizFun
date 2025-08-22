@@ -486,7 +486,7 @@ export class GameController {
             const { sessionId } = req.params;
             const { userId, rating, comment } = req.body;
 
-            if (!userId || !rating) {
+            if (!userId || isNaN(rating)) {
                 return res.status(400).json({ message: 'User ID and rating are required.' });
             }
 

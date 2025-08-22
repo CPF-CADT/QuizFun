@@ -1,7 +1,7 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
 export interface IFeedback{
-  rating:Types.Decimal128,
+  rating: number,
   comment: string
 }
 export interface IGameSessionParticipant {
@@ -23,7 +23,7 @@ export interface IGameSession extends Document {
   endedAt?: Date;
 }
 const  GameSessionFeedback = new Schema<IFeedback>({
-  rating:{type:Schema.Types.Decimal128},
+  rating:{type:Schema.Types.Number},
   comment:{type:String}
 })
 const GameSessionParticipantSchema = new Schema<IGameSessionParticipant>({
