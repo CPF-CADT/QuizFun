@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom"; // Import useSearchParams
 import { useAuth } from "../context/AuthContext";
 import { useQuizGame } from "../context/GameContext";
-import { FaUsers, FaArrowRight, FaGamepad } from "../components/common/Icons";
-
+import { useNavigate } from "react-router-dom";
+import { FaArrowLeft,FaStar,FaLightbulb,FaTrophy,FaRocket,FaPlay,FaGamepad,FaUsers, FaArrowRight, FaCrown  } from "react-icons/fa";
 // Helper function to generate a unique ID for guest users
 const generateGuestId = () => `guest_${Math.random().toString(36).substring(2, 10)}`;
-
 const Joingame: React.FC = () => {
+  const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const { joinRoom, gameState } = useQuizGame();
   const [searchParams] = useSearchParams(); // Hook to read URL query params
@@ -64,61 +64,174 @@ const Joingame: React.FC = () => {
   }, [gameState.error]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 text-white flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 shadow-2xl border border-white/20">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full mb-4">
-              <FaGamepad className="text-3xl text-white" />
-            </div>
-            <h1 className="text-4xl font-bold mb-2">Join the Fun!</h1>
-            <p className="text-white/80 text-lg">Enter game details to start</p>
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-100 flex items-center justify-center p-4">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-purple-200 to-pink-200 rounded-full mix-blend-multiply filter blur-xl opacity-60 animate-pulse"></div>
+        <div className="absolute top-3/4 right-1/4 w-80 h-80 bg-gradient-to-r from-cyan-200 to-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-gradient-to-r from-yellow-200 to-orange-200 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-pulse" style={{ animationDelay: '4s' }}></div>
+      </div>
+
+      {/* Floating Game Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-16 animate-bounce opacity-30" style={{ animationDelay: '0s' }}>
+          <div className="bg-gradient-to-r from-purple-400 to-pink-500 rounded-full p-4 shadow-lg">
+            <FaStar className="text-2xl text-white" />
+          </div>
+        </div>
+        <div className="absolute top-40 right-20 animate-bounce opacity-25" style={{ animationDelay: '1s' }}>
+          <div className="bg-gradient-to-r from-green-400 to-emerald-500 rounded-full p-4 shadow-lg">
+            <FaLightbulb className="text-2xl text-white" />
+          </div>
+        </div>
+        <div className="absolute bottom-32 left-12 animate-bounce opacity-30" style={{ animationDelay: '2s' }}>
+          <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full p-4 shadow-lg">
+            <FaTrophy className="text-2xl text-white" />
+          </div>
+        </div>
+        <div className="absolute bottom-16 right-16 animate-bounce opacity-25" style={{ animationDelay: '3s' }}>
+          <div className="bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full p-4 shadow-lg">
+            <FaRocket className="text-2xl text-white" />
+          </div>
+        </div>
+        <div className="absolute top-1/2 left-8 animate-bounce opacity-20" style={{ animationDelay: '1.5s' }}>
+          <div className="bg-gradient-to-r from-indigo-400 to-purple-500 rounded-full p-3 shadow-lg">
+            <FaCrown className="text-lg text-white" />
+          </div>
+        </div>
+        <div className="absolute top-3/4 right-8 animate-bounce opacity-25" style={{ animationDelay: '2.5s' }}>
+          <div className="bg-gradient-to-r from-pink-400 to-red-500 rounded-full p-3 shadow-lg">
+            <FaPlay className="text-lg text-white" />
+          </div>
+        </div>
+      </div>
+
+      {/* Back Button */}
+      <button 
+        onClick={() => navigate('/')}
+        className="absolute top-6 left-6 flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-all duration-300 hover:scale-105 z-20 group"
+      >
+        <div className="bg-white/80 backdrop-blur-sm rounded-full p-3 shadow-lg border border-gray-200 group-hover:bg-white group-hover:shadow-xl transition-all duration-300">
+          <FaArrowLeft className="text-lg" />
+        </div>
+        <span className="hidden sm:inline font-semibold">Back to Home</span>
+      </button>
+
+      <div className="w-full max-w-lg relative z-10">
+        {/* Main Card */}
+        <div className="bg-white/90 backdrop-blur-xl rounded-3xl p-10 shadow-2xl border border-white/50 relative overflow-hidden">
+          {/* Subtle Pattern */}
+          <div className="absolute inset-0 opacity-5">
+            <div 
+              className="w-full h-full"
+              style={{
+                backgroundImage: `radial-gradient(circle at 2px 2px, rgb(99, 102, 241) 1px, transparent 0)`,
+                backgroundSize: '24px 24px'
+              }}
+            ></div>
           </div>
 
-          <form onSubmit={handleManualJoin} className="space-y-6">
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-left">Game PIN</label>
-              <input
-                type="text"
-                value={gamePin}
-                onChange={(e) => setGamePin(e.target.value.replace(/\D/g, ""))}
-                placeholder="Enter PIN"
-                className="w-full px-4 py-4 rounded-xl text-gray-800 text-center text-2xl font-bold tracking-wider bg-white/95 outline-none focus:ring-4 focus:ring-yellow-400"
-                required
-              />
+          <div className="relative z-10">
+            {/* Header */}
+            <div className="text-center mb-10">
+              <div className="relative inline-block mb-6">
+                <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 rounded-3xl flex items-center justify-center shadow-2xl transform hover:rotate-6 transition-all duration-300">
+                  <FaGamepad className="text-5xl text-white" />
+                </div>
+                {/* Decorative Elements */}
+                <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full "></div>
+                <div className="absolute -bottom-2 -left-2 w-5 h-5 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full"></div>
+                <div className="absolute top-1 -right-4 w-3 h-3 bg-gradient-to-r from-pink-400 to-red-400 rounded-full animate-pulse"></div>
+              </div>
+              
+              <h1 className="text-5xl font-black mb-3 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Join the Fun!
+              </h1>
+              <p className="text-gray-600 text-xl font-medium">Enter game details to start your adventure</p>
+              
+              {/* Decorative Line */}
+              <div className="flex items-center justify-center mt-6">
+                <div className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent w-24"></div>
+                <div className="mx-4 text-2xl"></div>
+                <div className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent w-24"></div>
+              </div>
             </div>
 
-            {/* This input only shows if the user is NOT logged in */}
-            {!isAuthenticated && (
+            {/* Form */}
+            <div className="space-y-8">
+              {/* Game PIN */}
               <div>
-                <label className="block text-sm font-semibold mb-2 text-left">Your Name</label>
-                <input
-                  type="text"
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
-                  placeholder="Enter your nickname"
-                  className="w-full px-4 py-4 rounded-xl text-gray-800 text-center text-2xl font-bold bg-white/95 outline-none focus:ring-4 focus:ring-blue-400"
-                  required
-                />
+                <label className="block text-sm font-bold mb-4 text-gray-700 uppercase tracking-wider">
+                  Game PIN
+                </label>
+                <div className="relative group">
+                  <input
+                    type="text"
+                    value={gamePin}
+                    onChange={(e) => setGamePin(e.target.value.replace(/\D/g, ""))}
+                    placeholder="Enter PIN"
+                    className="w-full px-6 py-6 rounded-2xl text-gray-800 text-center text-3xl font-black tracking-[0.3em] bg-gray-50 outline-none focus:ring-4 focus:ring-purple-300/50 transition-all duration-300 border-2 border-gray-200 focus:border-purple-400 focus:bg-white shadow-lg"
+                    required
+                  />
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-100/50 via-pink-100/50 to-indigo-100/50 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                </div>
               </div>
-            )}
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-green-400 to-blue-500 disabled:from-gray-400 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center transition-transform transform hover:scale-105"
-            >
-              {isLoading ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              ) : (
-                <div className="flex items-center justify-center space-x-2">
-                  <FaUsers />
-                  <span>Join Game</span>
-                  <FaArrowRight />
+              {/* Player Name */}
+              {!isAuthenticated && (
+                <div>
+                  <label className="block text-sm font-bold mb-4 text-gray-700 uppercase tracking-wider">
+                    Your Nickname
+                  </label>
+                  <div className="relative group">
+                    <input
+                      type="text"
+                      value={playerName}
+                      onChange={(e) => setPlayerName(e.target.value)}
+                      placeholder="Enter your awesome name"
+                      className="w-full px-6 py-6 rounded-2xl text-gray-800 text-center text-2xl font-bold bg-gray-50 outline-none focus:ring-4 focus:ring-cyan-300/50 transition-all duration-300 border-2 border-gray-200 focus:border-cyan-400 focus:bg-white shadow-lg"
+                      required
+                    />
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-cyan-100/50 via-teal-100/50 to-emerald-100/50 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                  </div>
                 </div>
               )}
-            </button>
-          </form>
+
+              {/* Join Button */}
+              <button
+                onClick={handleManualJoin}
+                disabled={isLoading}
+                className="w-full relative overflow-hidden bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 disabled:from-gray-400 disabled:via-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-black py-6 px-8 rounded-2xl shadow-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-3xl active:scale-95 group"
+              >
+                {/* Button Shine Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 transform translate-x-full group-hover:translate-x-[-200%] transition-transform duration-1000"></div>
+                
+                <div className="relative flex items-center justify-center space-x-4">
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-7 w-7 border-4 border-white border-t-transparent"></div>
+                      <span className="text-xl font-bold">Joining Game...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaUsers className="text-2xl group-hover:animate-pulse" />
+                      <span className="text-2xl font-black tracking-wide">JOIN GAME</span>
+                      <FaArrowRight className="text-xl group-hover:translate-x-2 transition-transform duration-300" />
+                    </>
+                  )}
+                </div>
+              </button>
+            </div>
+
+            {/* Bottom Info */}
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <div className="text-center">
+                <p className="text-gray-500 text-sm font-medium">
+                 <span className="text-purple-600 font-bold">Pro Tip:</span> Get ready for some brain-teasing challenges!
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

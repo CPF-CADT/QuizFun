@@ -54,7 +54,7 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen, onNewQuizClick }) => {
           <button className="px-6 lg:px-8 py-4 bg-white/80 backdrop-blur-xl border border-gray-200/50 text-gray-700 rounded-2xl font-semibold hover:border-violet-300 hover:text-violet-700 hover:shadow-lg hover:bg-white transform hover:scale-105 transition-all duration-300">
             <div className="flex items-center">
               <BarChart3 className="w-5 h-5 mr-2" />
-              Analytics
+             Report
             </div>
           </button>
           
