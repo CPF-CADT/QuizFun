@@ -930,13 +930,13 @@ export async function deleteQuizz(req: Request, res: Response):Promise<Response>
     return res.status(200).json({ message: 'Question deleted successfully' });
 }
 
-export async function getDashboardStats(req: Request, res: Response) {
-    try {
-        const stats = await QuizzRepositories.getDashboardStats();
-        res.status(200).json(stats);
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching dashboard stats', error });
+export async function getDashboardStats(req: Request, res: Response):Promise<Response> {
+    const userId = req.user?.id;
+    if(!userId){
+        return res.status(403).json({message:'Invalid User'});
     }
+    const stats = await QuizzRepositories.getDashboardStats(userId);
+    return res.status(200).json(stats);
 }
 
 export async function handleUpdateQuiz (req: Request, res: Response):Promise<Response>{
