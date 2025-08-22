@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom"; // Import useSearchParams
 import { useAuth } from "../context/AuthContext";
 import { useQuizGame } from "../context/GameContext";
 import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { FaArrowLeft,FaStar,FaLightbulb,FaTrophy,FaRocket,FaPlay,FaGamepad,FaUsers, FaArrowRight, FaCrown  } from "react-icons/fa";
 // Helper function to generate a unique ID for guest users
 const generateGuestId = () => `guest_${Math.random().toString(36).substring(2, 10)}`;
@@ -64,62 +65,64 @@ const Joingame: React.FC = () => {
   }, [gameState.error]);
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-100 flex items-center justify-center p-4">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-purple-200 to-pink-200 rounded-full mix-blend-multiply filter blur-xl opacity-60 animate-pulse"></div>
-        <div className="absolute top-3/4 right-1/4 w-80 h-80 bg-gradient-to-r from-cyan-200 to-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-pulse" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-gradient-to-r from-yellow-200 to-orange-200 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-pulse" style={{ animationDelay: '4s' }}></div>
+<div 
+  className="min-h-screen flex items-center justify-center relative overflow-hidden p-4"
+  style={{ 
+    background: 'linear-gradient(135deg, #8B5CF6 0%, #A855F7 25%, #C084FC 50%, #9b92c6ff 75%, #8B5CF6 100%)',
+  }}
+>
+  {/* Floating Game Elements */}
+  <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div className="absolute top-20 left-16 animate-bounce opacity-30" style={{ animationDelay: '0s' }}>
+      <div className="bg-gradient-to-r from-purple-400 to-pink-500 rounded-full p-4 shadow-lg">
+        <FaStar className="text-2xl text-white" />
       </div>
-
-      {/* Floating Game Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-16 animate-bounce opacity-30" style={{ animationDelay: '0s' }}>
-          <div className="bg-gradient-to-r from-purple-400 to-pink-500 rounded-full p-4 shadow-lg">
-            <FaStar className="text-2xl text-white" />
-          </div>
-        </div>
-        <div className="absolute top-40 right-20 animate-bounce opacity-25" style={{ animationDelay: '1s' }}>
-          <div className="bg-gradient-to-r from-green-400 to-emerald-500 rounded-full p-4 shadow-lg">
-            <FaLightbulb className="text-2xl text-white" />
-          </div>
-        </div>
-        <div className="absolute bottom-32 left-12 animate-bounce opacity-30" style={{ animationDelay: '2s' }}>
-          <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full p-4 shadow-lg">
-            <FaTrophy className="text-2xl text-white" />
-          </div>
-        </div>
-        <div className="absolute bottom-16 right-16 animate-bounce opacity-25" style={{ animationDelay: '3s' }}>
-          <div className="bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full p-4 shadow-lg">
-            <FaRocket className="text-2xl text-white" />
-          </div>
-        </div>
-        <div className="absolute top-1/2 left-8 animate-bounce opacity-20" style={{ animationDelay: '1.5s' }}>
-          <div className="bg-gradient-to-r from-indigo-400 to-purple-500 rounded-full p-3 shadow-lg">
-            <FaCrown className="text-lg text-white" />
-          </div>
-        </div>
-        <div className="absolute top-3/4 right-8 animate-bounce opacity-25" style={{ animationDelay: '2.5s' }}>
-          <div className="bg-gradient-to-r from-pink-400 to-red-500 rounded-full p-3 shadow-lg">
-            <FaPlay className="text-lg text-white" />
-          </div>
-        </div>
+    </div>
+    <div className="absolute top-40 right-20 animate-bounce opacity-25" style={{ animationDelay: '1s' }}>
+      <div className="bg-gradient-to-r from-green-400 to-emerald-500 rounded-full p-4 shadow-lg">
+        <FaLightbulb className="text-2xl text-white" />
       </div>
+    </div>
+    <div className="absolute bottom-32 left-12 animate-bounce opacity-30" style={{ animationDelay: '2s' }}>
+      <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full p-4 shadow-lg">
+        <FaTrophy className="text-2xl text-white" />
+      </div>
+    </div>
+    <div className="absolute bottom-16 right-16 animate-bounce opacity-25" style={{ animationDelay: '3s' }}>
+      <div className="bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full p-4 shadow-lg">
+        <FaRocket className="text-2xl text-white" />
+      </div>
+    </div>
+    <div className="absolute top-1/2 left-8 animate-bounce opacity-20" style={{ animationDelay: '1.5s' }}>
+      <div className="bg-gradient-to-r from-indigo-400 to-purple-500 rounded-full p-3 shadow-lg">
+        <FaCrown className="text-lg text-white" />
+      </div>
+    </div>
+    <div className="absolute top-3/4 right-8 animate-bounce opacity-25" style={{ animationDelay: '2.5s' }}>
+      <div className="bg-gradient-to-r from-pink-400 to-red-500 rounded-full p-3 shadow-lg">
+        <FaPlay className="text-lg text-white" />
+      </div>
+    </div>
+  </div>
 
-      {/* Back Button */}
-      <button 
-        onClick={() => navigate('/')}
-        className="absolute top-6 left-6 flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-all duration-300 hover:scale-105 z-20 group"
-      >
-        <div className="bg-white/80 backdrop-blur-sm rounded-full p-3 shadow-lg border border-gray-200 group-hover:bg-white group-hover:shadow-xl transition-all duration-300">
-          <FaArrowLeft className="text-lg" />
-        </div>
-        <span className="hidden sm:inline font-semibold">Back to Home</span>
-      </button>
+  {/* Back Button */}
+  <button 
+    onClick={() => navigate('/')}
+    className="absolute top-6 left-6 flex items-center space-x-2 text-white hover:text-yellow-300 transition-all duration-300 hover:scale-105 z-20"
+  >
+    <div className="bg-white/20 backdrop-blur-sm rounded-full p-2">
+      <FaArrowLeft />
+    </div>
+    <span className="hidden sm:inline font-medium">Back to Home</span>
+  </button>
 
+  {/* Rest of your content goes here... */}
       <div className="w-full max-w-lg relative z-10">
         {/* Main Card */}
-        <div className="bg-white/90 backdrop-blur-xl rounded-3xl p-10 shadow-2xl border border-white/50 relative overflow-hidden">
+        <div className="bg-gradient-to-br from-purple-600/90 via-purple-500/90 to-indigo-800/90 
+                backdrop-blur-xl w-full max-w-md mx-4 p-8 rounded-3xl shadow-2xl 
+                border border-white/20 relative z-10 transform hover:scale-[1.02] 
+                transition-all duration-300">
           {/* Subtle Pattern */}
           <div className="absolute inset-0 opacity-5">
             <div 
@@ -135,19 +138,21 @@ const Joingame: React.FC = () => {
             {/* Header */}
             <div className="text-center mb-10">
               <div className="relative inline-block mb-6">
-                <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 rounded-3xl flex items-center justify-center shadow-2xl transform hover:rotate-6 transition-all duration-300">
-                  <FaGamepad className="text-5xl text-white" />
+                <Link to="/">
+                <div className="w-24 h-24 rounded-3xl flex items-center justify-center shadow-2xl transform hover:rotate-6 transition-all duration-300 bg-white">
+                  <img src="/image/logo1.png" alt="Logo" className="w-22 h-22" />
                 </div>
+                </Link>
                 {/* Decorative Elements */}
                 <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full "></div>
                 <div className="absolute -bottom-2 -left-2 w-5 h-5 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full"></div>
                 <div className="absolute top-1 -right-4 w-3 h-3 bg-gradient-to-r from-pink-400 to-red-400 rounded-full animate-pulse"></div>
               </div>
               
-              <h1 className="text-5xl font-black mb-3 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <h1 className="text-5xl font-black mb-3 text-white">
                 Join the Fun!
               </h1>
-              <p className="text-gray-600 text-xl font-medium">Enter game details to start your adventure</p>
+              <p className="text-gray-300 text-xl font-medium">Enter game details to start your adventure</p>
               
               {/* Decorative Line */}
               <div className="flex items-center justify-center mt-6">
@@ -161,7 +166,7 @@ const Joingame: React.FC = () => {
             <div className="space-y-8">
               {/* Game PIN */}
               <div>
-                <label className="block text-sm font-bold mb-4 text-gray-700 uppercase tracking-wider">
+                <label className="block text-sm font-bold mb-4 text-white uppercase tracking-wider">
                   Game PIN
                 </label>
                 <div className="relative group">
@@ -180,7 +185,7 @@ const Joingame: React.FC = () => {
               {/* Player Name */}
               {!isAuthenticated && (
                 <div>
-                  <label className="block text-sm font-bold mb-4 text-gray-700 uppercase tracking-wider">
+                  <label className="block text-sm font-bold mb-4 text-white uppercase tracking-wider">
                     Your Nickname
                   </label>
                   <div className="relative group">
@@ -226,8 +231,8 @@ const Joingame: React.FC = () => {
             {/* Bottom Info */}
             <div className="mt-8 pt-6 border-t border-gray-200">
               <div className="text-center">
-                <p className="text-gray-500 text-sm font-medium">
-                 <span className="text-purple-600 font-bold">Pro Tip:</span> Get ready for some brain-teasing challenges!
+                <p className="text-white text-sm font-medium">
+                 <span className="text-purple-900 font-bold">Pro Tip:</span> Get ready for some brain-teasing challenges!
                 </p>
               </div>
             </div>
