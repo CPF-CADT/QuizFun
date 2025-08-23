@@ -32,10 +32,13 @@ const hasNext = paginationData && currentPage < paginationData.totalPages;
     const fetchQuizzes = async (pageToFetch: number) => {
       setIsLoading(true);
       try {
-        const response = await quizApi.getMyQuizzes({ 
+        const response = await quizApi.getAllQuizzes({ 
           page: pageToFetch, 
           limit: itemsPerPage,
           search: debouncedSearchTerm,
+          owner:'me',
+          sortBy:'createdAt',
+          sortOrder:"desc",
         });
         
         setQuizzes(response.data.quizzes);

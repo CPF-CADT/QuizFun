@@ -9,13 +9,13 @@ import ActivityFeed from "../components/dashboard/ActivityFeed";
 import FeaturedQuiz from "../components/dashboard/FeaturedQuiz";
 import CreateQuizModal from "../components/dashboard/CreateQuizModal";
 import { PDFImportModal } from "../components/quizz/PDFImportModal";
-import { QuizCard, type CardAction } from "../components/quizz/QuizzCard"; 
+import { QuizCard, type CardAction } from "../components/quizz/QuizzCard";
 import { TemplateLibraryModal } from "../components/dashboard/TemplateLibraryModal";
 
 // --- Services & Hooks ---
 import { quizApi } from "../service/quizApi";
-import { useQuizGame } from '../context/GameContext';
-import { useAuth } from '../context/AuthContext';
+import { useQuizGame } from "../context/GameContext";
+import { useAuth } from "../context/AuthContext";
 
 // --- Types & Icons ---
 import type { IQuiz } from "../types/quiz";
@@ -32,13 +32,18 @@ const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { createRoom } = useQuizGame();
   const { user } = useAuth();
-  
+
   // --- State Management ---
   const [isLoaded, setIsLoaded] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [stats, setStats] = useState<QuizStats>({ totalQuizzes: 0, totalStudents: 0, completedQuizzes: 0, averageScore: 0 });
+  const [stats, setStats] = useState<QuizStats>({
+    totalQuizzes: 0,
+    totalStudents: 0,
+    completedQuizzes: 0,
+    averageScore: 0,
+  });
   const [recentQuizzes, setRecentQuizzes] = useState<IQuiz[]>([]);
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [isPDFImportModalOpen, setPDFImportModalOpen] = useState(false);
@@ -47,14 +52,19 @@ const DashboardPage: React.FC = () => {
   // --- Data Fetching ---
   const fetchUserQuizzes = async () => {
     try {
-      const response = await quizApi.getMyQuizzes({ limit: 4, page: 1 });
+      const response = await quizApi.getAllQuizzes({
+        limit: 4,
+        owner: "me",
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      });
       const quizData = response.data.quizzes;
       setRecentQuizzes(quizData);
     } catch (error) {
       console.error("Error fetching user quizzes:", error);
     }
   };
-  
+
   useEffect(() => {
     setIsLoaded(true);
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -73,7 +83,7 @@ const DashboardPage: React.FC = () => {
 
     return () => clearInterval(timer);
   }, []);
-  
+
   // --- Action Handlers ---
   const handleEditQuiz = (quizId: string) => {
     navigate(`/quiz-editor/${quizId}`);
@@ -88,37 +98,58 @@ const DashboardPage: React.FC = () => {
       quizId: quizId,
       hostName: user.name,
       userId: user._id,
-      settings: { autoNext: true, allowAnswerChange: true }
+      settings: { autoNext: true, allowAnswerChange: true },
     });
   };
 
   const cardActions: CardAction[] = [
-    { label: 'Edit', icon: Edit, onClick: handleEditQuiz, style: 'bg-gray-100 hover:bg-violet-100 text-gray-800' },
-    { label: 'Launch Game', icon: Play, onClick: handleLaunchGame, style: 'bg-gradient-to-r from-emerald-500 to-green-500 text-white' },
+    {
+      label: "Edit",
+      icon: Edit,
+      onClick: handleEditQuiz,
+      style: "bg-gray-100 hover:bg-violet-100 text-gray-800",
+    },
+    {
+      label: "Launch Game",
+      icon: Play,
+      onClick: handleLaunchGame,
+      style: "bg-gradient-to-r from-emerald-500 to-green-500 text-white",
+    },
   ];
 
   return (
     <div className="flex min-h-screen relative overflow-hidden">
       <Sidebar
-        activeSection={activeSection} setActiveSection={setActiveSection}
-        sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}
+        activeSection={activeSection}
+        setActiveSection={setActiveSection}
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
         currentTime={currentTime}
       />
       <div className="flex-1 flex flex-col ml-2.5 mt-7 min-h-screen">
-        <Header 
-          setSidebarOpen={setSidebarOpen} 
-          onNewQuizClick={() => setCreateModalOpen(true)} 
+        <Header
+          setSidebarOpen={setSidebarOpen}
+          onNewQuizClick={() => setCreateModalOpen(true)}
           onPDFImportClick={() => setPDFImportModalOpen(true)}
           onShowTemplatesClick={() => setIsTemplateModalOpen(true)} // <-- Pass the new handler
         />
-        <main className={`mr-15 flex-1 p-4 lg:p-8 transition-all duration-1000 ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+        <main
+          className={`mr-15 flex-1 p-4 lg:p-8 transition-all duration-1000 ${
+            isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          }`}
+        >
           <StatCardGrid stats={stats} />
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
             <div className="xl:col-span-2">
               <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-xl">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Your Latest Quizzes</h2>
-                  <Link to="/my-quizz" className="flex items-center text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    Your Latest Quizzes
+                  </h2>
+                  <Link
+                    to="/my-quizz"
+                    className="flex items-center text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+                  >
                     View All
                     <ChevronRight className="w-4 h-4 ml-1" />
                   </Link>
@@ -149,9 +180,19 @@ const DashboardPage: React.FC = () => {
         </main>
       </div>
 
-      <CreateQuizModal isOpen={isCreateModalOpen} onClose={() => setCreateModalOpen(false)} />
-      <PDFImportModal isOpen={isPDFImportModalOpen} onClose={() => setPDFImportModalOpen(false)} onImportSuccess={() => fetchUserQuizzes()} />
-      <TemplateLibraryModal isOpen={isTemplateModalOpen} onClose={() => setIsTemplateModalOpen(false)} />
+      <CreateQuizModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+      />
+      <PDFImportModal
+        isOpen={isPDFImportModalOpen}
+        onClose={() => setPDFImportModalOpen(false)}
+        onImportSuccess={() => fetchUserQuizzes()}
+      />
+      <TemplateLibraryModal
+        isOpen={isTemplateModalOpen}
+        onClose={() => setIsTemplateModalOpen(false)}
+      />
     </div>
   );
 };

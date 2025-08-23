@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom"; // Import useSearchParams
 import { TrendingUp, Target, Search } from "lucide-react";
 import Sidebar from "../components/dashboard/Sidebar";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
-import { quizApi, type IQuiz } from "../service/quizApi"; // UPDATED: Import from quizApi
+import { quizApi, type IQuiz } from "../service/quizApi";
 import { reportApi, type IQuizAnalytics } from "../service/reportApi";
 import { FeelingRating } from '../components/common/FeelingRating';
-import { useDebounce } from '../hook/useDebounce';
+import { useDebounce } from '../hook/useDebounce'; // Assuming you have this custom hook
 
 const Report: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("report");
-  const [quizList, setQuizList] = useState<IQuiz[]>([]); // UPDATED: State now uses the IQuiz type
+  const [quizList, setQuizList] = useState<IQuiz[]>([]);
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
   const [reportData, setReportData] = useState<IQuizAnalytics | null>(null);
   const [isLoadingList, setIsLoadingList] = useState(true);
@@ -19,17 +20,35 @@ const Report: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
+  // Hook to read URL query parameters
+  const [searchParams] = useSearchParams();
+
+  // Effect to handle initial selection from URL
+  useEffect(() => {
+    const quizIdFromUrl = searchParams.get('quizId');
+    if (quizIdFromUrl && !selectedQuizId) {
+      setSelectedQuizId(quizIdFromUrl);
+    }
+  }, [searchParams, selectedQuizId]);
+
+  // Effect to fetch the list of user's quizzes (for selection)
   useEffect(() => {
     const fetchQuizList = async () => {
       setIsLoadingList(true);
       setError(null);
       try {
-        // UPDATED: API call now uses quizApi.getMyQuizzes
-        const response = await quizApi.getMyQuizzes({ search: debouncedSearchTerm });
-        // UPDATED: Set state from response.data.quizzes
+        // Use getMyQuizzes to fetch only the user's own quizzes for reporting
+        const response = await quizApi.getAllQuizzes({ 
+                  limit: 5,
+                  search: debouncedSearchTerm,
+                  owner:'me',
+                  sortBy:'createdAt',
+                  sortOrder:"desc",
+                });
         setQuizList(response.data.quizzes);
       } catch (err) {
         setError("Failed to load your quizzes.");
+        setQuizList([]); // Clear list on error
       } finally {
         setIsLoadingList(false);
       }
@@ -37,6 +56,7 @@ const Report: React.FC = () => {
     fetchQuizList();
   }, [debouncedSearchTerm]);
 
+  // Effect to fetch the detailed analytics report when a quiz is selected
   useEffect(() => {
     if (!selectedQuizId) {
       setReportData(null);
@@ -44,12 +64,13 @@ const Report: React.FC = () => {
     }
     const fetchReportData = async () => {
       setIsLoadingReport(true);
-      setError(null);
+      setError(null); // Clear previous errors
       try {
         const response = await reportApi.getQuizAnalytics(selectedQuizId);
         setReportData(response.data);
       } catch (err) {
         setError(`Failed to load report for this quiz.`);
+        setReportData(null); // Clear data on error
       } finally {
         setIsLoadingReport(false);
       }
@@ -72,15 +93,16 @@ const Report: React.FC = () => {
       averageScore: reportData.averageQuizScore,
       completionRate: reportData.playerPerformance.averageCompletionRate,
       attempts: reportData.totalSessions,
-      highestScore: 0,
   } : null;
 
   const pieData = currentQuizData ? [
     { name: "Unique Players", value: currentQuizData.totalPlayers },
     { name: "Total Sessions", value: currentQuizData.attempts },
-    { name: "Avg Completion %", value: currentQuizData.completionRate },
+    { name: "Avg Completion %", value: Math.round(currentQuizData.completionRate) },
   ] : [];
+
   const COLORS = ["#6366f1", "#f97316", "#22c55e"];
+  
   const lineData = currentQuizData ? [
     { name: "Metric A", Avg: currentQuizData.averageScore, Attempts: currentQuizData.attempts, Completion: currentQuizData.completionRate },
     { name: "Metric B", Avg: currentQuizData.averageScore + 5, Attempts: currentQuizData.attempts + 10, Completion: currentQuizData.completionRate - 2 },
@@ -116,27 +138,27 @@ const Report: React.FC = () => {
                error && !reportData ? <p className="text-red-500">{error}</p> :
                quizList.length === 0 ? <p className="text-center py-4">No quizzes found.</p> :
                (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                   {quizList.map((quiz) => (
                     <button key={quiz._id} onClick={() => setSelectedQuizId(quiz._id)} className={`p-4 rounded-xl border-2 transition-all duration-300 text-left ${selectedQuizId === quiz._id ? "border-purple-500 bg-purple-50 shadow-lg" : "border-white/20 bg-white/60 hover:border-purple-300 hover:bg-purple-25"}`}>
                       <div className="flex justify-between items-start mb-2"><h3 className="font-semibold text-gray-800 text-sm leading-tight">{quiz.title}</h3><span className={`text-xs px-2 py-1 rounded-full ${getDifficultyColor(quiz.dificulty)}`}>{quiz.dificulty}</span></div>
                       <p className="text-xs text-gray-500 mb-1">Created: {new Date(quiz.createdAt).toLocaleDateString()}</p>
                     </button>
                   ))}
-                </div>
-              )}
+                 </div>
+               )}
             </div>
             
             {isLoadingReport ? <div className="text-center p-8">Loading Report...</div> : 
-             error && !currentQuizData ? <div className="text-center p-8 text-red-500">{error}</div> :
-             !reportData || !currentQuizData ? <div className="text-center p-8 text-gray-500">Please select a quiz to view analytics.</div> : 
-             (
+             !selectedQuizId ? <div className="text-center p-8 text-gray-500">Please select a quiz to view analytics.</div> :
+             error ? <div className="text-center p-8 text-red-500">{error}</div> :
+             reportData && currentQuizData && (
               <div className="animate-fade-in space-y-8">
                 <div className="bg-white/70 backdrop-blur-md border border-white/20 shadow-xl rounded-2xl p-6">
                   <h3 className="text-lg font-semibold text-gray-800 mb-6">Key Metrics Overview for "{reportData.quizTitle}"</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="w-full h-80"><ResponsiveContainer><PieChart><Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>{pieData.map((_entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><Tooltip /><Legend /></PieChart></ResponsiveContainer></div>
-                    <div className="w-full h-80"><ResponsiveContainer><LineChart data={lineData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" /><XAxis dataKey="name" /><YAxis /><Tooltip /><Legend /><Line type="monotone" dataKey="Avg" stroke="#3b82f6" strokeWidth={2} /><Line type="monotone" dataKey="Attempts" stroke="#22c55e" strokeWidth={2} /><Line type="monotone" dataKey="Completion" stroke="#a855f7" strokeWidth={2} /></LineChart></ResponsiveContainer></div>
+                    <div className="w-full h-80"><ResponsiveContainer><LineChart data={lineData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" /><XAxis dataKey="name" /><YAxis /><Tooltip /><Legend /><Line type="monotone" dataKey="Avg" name="Avg Score %" stroke="#3b82f6" strokeWidth={2} /><Line type="monotone" dataKey="Attempts" name="Sessions" stroke="#22c55e" strokeWidth={2} /><Line type="monotone" name="Completion %" dataKey="Completion" stroke="#a855f7" strokeWidth={2} /></LineChart></ResponsiveContainer></div>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -160,7 +182,7 @@ const Report: React.FC = () => {
                   </div>
                 </div>
               </div>
-            )}
+             )}
           </div>
         </div>
       </div>

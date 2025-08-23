@@ -36,6 +36,20 @@ export interface IQuizAnalytics {
     };
 }
 
+export interface IActivitySession {
+  _id: string;
+  quizTitle: string;
+  quizzId:string;
+  endedAt: string;
+  role: 'host' | 'player';
+  playerCount?: number;
+  averageScore?: number;
+  playerResult?: {
+    finalScore: number;
+    finalRank: number;
+  };
+}
+
 
 export const reportApi = {
 
@@ -46,4 +60,8 @@ export const reportApi = {
     getQuizAnalytics: (quizId: string): Promise<AxiosResponse<IQuizAnalytics>> => {
         return apiClient.get(`/reports/quiz/${quizId}`);
     },
+    getUserActivityFeed: (): Promise<AxiosResponse<IActivitySession[]>> => {
+        return apiClient.get<IActivitySession[]>('/reports/activity-feed');
+    },
+
 };

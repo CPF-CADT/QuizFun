@@ -77,10 +77,10 @@ function App() {
         <Route path="/my-quizz" element={<MyQuizz />} />
         <Route path="/explore" element={<Explore />} />
         <Route path="/quiz-editor/:quizId" element={<QuizEditorPage />} />
-        <Route path="/report" element={<Report />} />
+        <Route path="/report/" element={<Report />} />
         <Route path="/library" element={<Library />} />
         <Route
-          path="/session/:sessionId/performance/:userId"
+          path="/session/:sessionId/performance"
           element={<PerformanceDetailPage />}
         />
         <Route path="/history" element={<HistoryPage />} />

@@ -102,6 +102,23 @@ export class ReportController {
       return res.status(500).json({ message: "Server error generating quiz analytics." });
     }
   }
+
+
+    static async getUserActivityFeed(req: Request, res: Response): Promise<Response> {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                return res.status(401).json({ message: 'Unauthorized' });
+            }
+
+            // Fetch the last 10 activities
+            const activities = await ReportRepository.fetchUserActivityFeed(userId, 10);
+            return res.status(200).json(activities);
+        } catch (error) {
+            console.error("Error fetching user activity feed:", error);
+            return res.status(500).json({ message: 'Server error fetching activity feed.' });
+        }
+    }
 }
 
 /**
