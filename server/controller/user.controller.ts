@@ -14,6 +14,7 @@ import jwt from "jsonwebtoken";
 import redisClient from "../config/redis";
 import { OAuth2Client } from "google-auth-library";
 import { config } from "../config/config";
+import { Types } from 'mongoose';
 
 const REFRESH_TOKEN_EXPIRATION_SECONDS = 7 * 24 * 60 * 60;
 const REFRESH_TOKEN_COOKIE_EXPIRATION_MS =
@@ -619,7 +620,7 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       `refreshToken:${decodedUser.id}`,
       newTokens.refreshToken,
       {
-        EX: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
+        PX: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
       }
     );
 
@@ -1055,3 +1056,54 @@ export async function googleAuthenicate(req: Request, res: Response) {
     res.status(401).json({ message: "Invalid token or authentication failed" });
   }
 }
+/* ----------------------- GET USER BY ID ----------------------- */
+/**
+ * @swagger
+ * /api/user/{id}:
+ *   get:
+ *     summary: Get a single user by ID
+ *     tags: [User]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ObjectId of the user
+ *     responses:
+ *       200:
+ *         description: User data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Invalid user ID format
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
+ */
+  export async function getUserById(req: Request, res: Response) {
+    try {
+      const { id } = req.params; 
+
+      
+      if (!Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: 'Invalid user ID format.' });
+      }
+
+      
+      const user = await UserRepository.findById(id);
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found.' });
+      }
+
+      return res.status(200).json(user);
+
+    } catch (error) {
+      console.error('Error fetching user by ID:', error);
+      return res.status(500).json({ message: 'Internal server error.' });
+    }
+  }

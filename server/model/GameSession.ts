@@ -1,57 +1,57 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
-export interface IFeedback{
-  rating:Types.Decimal128,
-  comment: string
+// Interface for a single feedback entry
+export interface IFeedback {
+  rating: number;
+  comment?: string;
 }
+
+// Interface for a participant in a game session
 export interface IGameSessionParticipant {
   userId: Types.ObjectId;
   nickname: string;
-  finalScore?: number;
+  finalScore: number; 
   finalRank?: number;
-  feedback?: IFeedback[]
+  feedback?: IFeedback; 
 }
 
+// Main interface for the Game Session document
 export interface IGameSession extends Document {
   _id: Types.ObjectId;
   quizId: Types.ObjectId;
   hostId: Types.ObjectId;
   joinCode: number;
   status: 'waiting' | 'in_progress' | 'completed';
-  results?: IGameSessionParticipant[];
+  results: IGameSessionParticipant[];
   startedAt?: Date;
   endedAt?: Date;
 }
-const  GameSessionFeedback = new Schema<IFeedback>({
-  rating:{type:Schema.Types.Decimal128},
-  comment:{type:String}
-})
+
+const GameSessionFeedbackSchema = new Schema<IFeedback>({
+  rating: { type: Number, required: true, min: 1, max: 5 },
+  comment: { type: String, trim: true, maxLength: 500 } // Added maxLength
+}, { _id: false });
+
 const GameSessionParticipantSchema = new Schema<IGameSessionParticipant>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   nickname: { type: String, required: true },
-  finalScore: { type: Number, required: true },
-  finalRank: { type: Number, required: true },
-  feedback:[GameSessionFeedback]
+  finalScore: { type: Number, required: true, default: 0 }, // Made required
+  finalRank: { type: Number },
+  feedback: { type: GameSessionFeedbackSchema, required: false }
 }, { _id: false });
 
 const GameSessionSchema = new Schema<IGameSession>({
-  quizId: { type: Schema.Types.ObjectId, ref: 'Quiz', required: true },
-  hostId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  joinCode: { type: Number, required: true },
+  quizId: { type: Schema.Types.ObjectId, ref: 'Quiz', required: true, index: true },
+  hostId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  joinCode: { type: Number, required: true, unique: true },
   status: {
     type: String,
     enum: ['waiting', 'in_progress', 'completed'],
     default: 'waiting',
   },
-  results: [GameSessionParticipantSchema],
+  results: { type: [GameSessionParticipantSchema], default: [] }, // Added default
   startedAt: { type: Date },
   endedAt: { type: Date },
-}, { timestamps: true ,collection:'gamesessions'});
-
-//index for quizId
-GameSessionSchema.index({quizId: 1});
-
-//index for hostId
-GameSessionSchema.index({hostId: 1});
+}, { timestamps: true, collection: 'gamesessions' });
 
 export const GameSessionModel = model<IGameSession>('GameSession', GameSessionSchema);

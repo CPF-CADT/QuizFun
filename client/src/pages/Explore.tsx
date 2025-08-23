@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import Sidebar from '../components/dashboard/Sidebar';
 import { quizApi} from '../service/quizApi';
 import type { IQuiz} from '../service/quizApi';
+import { useAuth } from '../context/AuthContext';
+import { userApi } from '../service/userApi';
 
 import {
   Search,
@@ -28,6 +30,7 @@ interface QuizPreview {
   participants: number;
   lastUpdated: string;
   description: string;
+  creatorId: string;
 }
 
 
@@ -88,11 +91,14 @@ const mapApiQuizToPreview = (apiQuiz: IQuiz): QuizPreview => ({
   rating: 4.5,
   popularity: Math.floor(Math.random() * 1500),
   participants: Math.floor(Math.random() * 500),
+  creatorId: apiQuiz.creatorId.toString(),
 });
 
 const Explore: React.FC = () => {
   const [quizzes, setQuizzes] = useState<QuizPreview[]>([]);
   const [allCategories, setAllCategories] = useState<string[]>([]);
+  const { user } = useAuth();
+  const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
   
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -105,7 +111,6 @@ const Explore: React.FC = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [forkingQuizId, setForkingQuizId] = useState<string | null>(null);
-  const [myQuizTitles, setMyQuizTitles] = useState<Set<string>>(new Set());
 
   const [sidebarOpen, setSidebarOpen] = useState(false);  
   const [activeSection, setActiveSection] = useState('explore');
@@ -116,38 +121,27 @@ const Explore: React.FC = () => {
     setCurrentPage(1);
   };
 
- useEffect(() => {
-    const fetchAndFilterQuizzes = async () => {
+  useEffect(() => {
+    const fetchQuizzes = async () => {
       const isNewSearch = currentPage === 1;
       if (isNewSearch) setLoading(true);
       else setLoadingMore(true);
       setError(null);
 
       try {
-        const [publicQuizzesResponse, myQuizzesResponse] = await Promise.all([
-          quizApi.getAllQuizzes({ page: currentPage, limit: 9, search: searchQuery, tags: selectedCategory }),
-          isNewSearch ? quizApi.getMyQuizzes({ limit: 500 }) : Promise.resolve(null)
-        ]);
-        
-        const publicQuizzesData = publicQuizzesResponse.data;
-        let finalMyQuizTitles = myQuizTitles;
+        const response = await quizApi.getAllQuizzes({
+          page: currentPage,
+          limit: 9,
+          search: searchQuery,
+          tags: selectedCategory,
+          notOwnId: user?._id,
+        });
 
-        if (myQuizzesResponse) {
-          const titles = new Set(
-            myQuizzesResponse.data.quizzes.map((q) => q.title)
-          );
-          setMyQuizTitles(titles);
-          finalMyQuizTitles = titles;
-        }
+        const { data } = response;
+        const mappedQuizzes = data.quizzes.map(mapApiQuizToPreview);
 
-        const filteredPublicQuizzes = publicQuizzesData.quizzes.filter(
-          quiz => !finalMyQuizTitles.has(quiz.title)
-        );
-
-        const mappedQuizzes = filteredPublicQuizzes.map(mapApiQuizToPreview);
-        
         setQuizzes(prev => isNewSearch ? mappedQuizzes : [...prev, ...mappedQuizzes]);
-        setHasNextPage(publicQuizzesData.hasNext);
+        setHasNextPage(data.hasNext);
 
       } catch (err) {
         setError('Failed to fetch quizzes. Please try again later.');
@@ -157,9 +151,46 @@ const Explore: React.FC = () => {
         setLoadingMore(false);
       }
     };
-    fetchAndFilterQuizzes();
-  }, [searchQuery, selectedCategory, currentPage]);
+
+    if (user) {
+      fetchQuizzes();
+    }
+  }, [searchQuery, selectedCategory, currentPage, user]);
   
+  useEffect(() => {
+    const fetchCreatorNames = async () => {
+      const newCreatorIds = quizzes
+        .map(q => q.creatorId)
+        .filter(id => !creatorNames[id]);
+      
+      if (newCreatorIds.length === 0) return;
+
+      const uniqueCreatorIds = [...new Set(newCreatorIds)];
+      
+      try {
+        // const namePromises = uniqueCreatorIds.map(id => userApi.getUserById(id));
+        const userResponses = await Promise.all(uniqueCreatorIds.map(id => userApi.getUserById(id)));
+        
+const newNames = userResponses.reduce((acc, res) => {
+  // Adjust based on API response structure
+  const user = res.data?.data || res.data; // maybe it's nested under 'data'
+  if (user?._id && user.name) {
+    acc[user._id.toString()] = user.name; // convert _id to string to match creatorId
+  }
+  return acc;
+}, {} as Record<string, string>);
+
+   setCreatorNames(prev => ({ ...prev, ...newNames }));
+      } catch (error) {
+        console.error("Failed to fetch creator names", error);
+      }
+    };
+
+    if (quizzes.length > 0) {
+      fetchCreatorNames();
+    }
+  }, [quizzes]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedCategory]);
@@ -168,12 +199,13 @@ const Explore: React.FC = () => {
     const categories = [...new Set(quizzes.map(quiz => quiz.category))];
     setAllCategories(categories);
   }, [quizzes]);
-  const handleForkQuiz = async (quizId: string, quizTitle: string) => {
+
+  const handleForkQuiz = async (quizId: string) => {
     setForkingQuizId(quizId);
     try {
       await quizApi.cloneQuiz(quizId);
-      setMyQuizTitles(prevTitles => new Set(prevTitles).add(quizTitle));
       setQuizzes(prevQuizzes => prevQuizzes.filter(q => q.id !== quizId));
+
     } catch (error) {
       console.error("Failed to fork quiz:", error);
       alert("Could not fork the quiz. Please try again.");
@@ -273,12 +305,19 @@ const Explore: React.FC = () => {
                   {quizzes.map((quiz, index) => (
                     <div key={`${quiz.id}-${index}`} className="group relative bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-lg border border-white/20 hover:shadow-2xl hover:scale-105 transform transition-all duration-500 overflow-hidden">
                       <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${getCategoryColor(quiz.category)}`}></div>
-                      {quiz.popularity > 1000 && (
-                        <div className="absolute top-4 right-4 flex items-center gap-1 bg-gradient-to-r from-orange-500 to-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
-                          <TrendingUp className="w-3 h-3" /> Hot
-                        </div>
-                      )}
-                      <div className="mb-4">
+                      
+                      <div className="absolute top-4 right-4 text-right">
+                        {quiz.popularity > 1000 && (
+                          <div className="inline-flex items-center gap-1 bg-gradient-to-r from-orange-500 to-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold mb-1">
+                            <TrendingUp className="w-3 h-3" /> Hot
+                          </div>
+                        )}
+                        <p className="text-xs text-gray-600 bg-white/60 backdrop-blur-sm px-2 py-1 rounded-full">
+                          By: {creatorNames[quiz.creatorId] || '...'}
+                        </p>
+                      </div>
+
+                      <div className="mb-4 pt-8">
                         <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-violet-700 transition-colors">{quiz.title}</h3>
                         <p className="text-gray-600 text-sm leading-relaxed">{quiz.description}</p>
                       </div>
@@ -301,7 +340,7 @@ const Explore: React.FC = () => {
                         <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{quiz.lastUpdated}</span>
                       </div>
                       <button 
-                        onClick={() => handleForkQuiz(quiz.id, quiz.title)}
+                        onClick={() => handleForkQuiz(quiz.id)}
                         disabled={forkingQuizId === quiz.id}
                         className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white py-3 px-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 group-hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
                       >

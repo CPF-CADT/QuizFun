@@ -20,8 +20,10 @@ const GamePage: React.FC = () => {
     const me = useMemo(() => 
         gameState.participants.find((p: Participant) => p.user_id === gameState.yourUserId),
     [gameState.participants, gameState.yourUserId]);
+
     const reconnectedAnswer = useMemo(() => {
-        if (userSeleted && userSeleted.questionNo === gameState.currentQuestionIndex) {
+        if ((userSeleted) && userSeleted.questionNo === gameState.currentQuestionIndex) {
+            console.log('reonn',userSeleted.option)
             return userSeleted.option;
         }
         return null;
@@ -95,6 +97,8 @@ const GamePage: React.FC = () => {
                     isHost={me?.role === 'host'} 
                     onFetchResults={() => fetchFinalResults(gameState.sessionId)} 
                     onViewMyPerformance={handleViewMyPerformance}
+                    sessionId={gameState.sessionId}
+                    userId={gameState.yourUserId}
                 />;
             default:
                 return <div className="text-2xl font-bold animate-pulse">Connecting...</div>;
