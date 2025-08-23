@@ -186,10 +186,8 @@ export async function getAllQuizzes(req: Request, res: Response) {
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 10));
 
     const search = req.query.search as string | undefined;
-    const notOwn = req.query.notOwn as string | undefined;
-    console.log(notOwn)
+    const notOwnId = req.query.notOwnId as string | undefined;
 
-    // Support multiple tags: ?tags=math,science
     const tags = req.query.tags
         ? (req.query.tags as string).split(',').map(tag => tag.trim()).filter(Boolean)
         : undefined;
@@ -205,7 +203,7 @@ export async function getAllQuizzes(req: Request, res: Response) {
             sortOrder,
             search,
             tags,
-            notOwn
+            notOwnId
         );
 
         res.status(200).json(result);
