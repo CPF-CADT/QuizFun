@@ -3,12 +3,13 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './service/swaggerConfig';
-import { userRouter } from './routes/users.route';
-import { quizzRouter } from './routes/quizz.route';
+import userRouter from './routes/users.route';
+import quizzRouter from './routes/quizz.route';
 import { errHandle } from './middleware/errHandle.middleware';
 import { serviceRouter } from './routes/service.route';
 // import { runSeed } from './config/seed'; 
 import {gameRouter} from './routes/game.route';
+import { reportRouter } from './routes/report.route';
 const app = express();
 
 app.use(cors({
@@ -28,6 +29,7 @@ app.use('/api/quizz', quizzRouter);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/service',serviceRouter)
 app.use('/api/session',gameRouter)
+app.use('/api/reports',reportRouter)
 
 app.use(errHandle)
 // runSeed();   

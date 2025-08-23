@@ -620,7 +620,7 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       `refreshToken:${decodedUser.id}`,
       newTokens.refreshToken,
       {
-        EX: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
+        PX: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
       }
     );
 
@@ -1084,8 +1084,7 @@ export async function googleAuthenicate(req: Request, res: Response) {
  *       500:
  *         description: Internal server error
  */
-export class UserController {
-  static async getUserById(req: Request, res: Response) {
+  export async function getUserById(req: Request, res: Response) {
     try {
       const { id } = req.params; 
 
@@ -1108,4 +1107,3 @@ export class UserController {
       return res.status(500).json({ message: 'Internal server error.' });
     }
   }
-}

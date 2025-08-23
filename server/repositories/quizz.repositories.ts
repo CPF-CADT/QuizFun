@@ -83,18 +83,24 @@ export class QuizzRepositories {
 	static async createQuizz(quizz: IQuiz): Promise<IQuiz | null> {
 		return QuizModel.create(quizz);
 	}
-	static async getQuizzByUser(userId?: string, page = 1, limit = 10) {
+	static async getQuizzByUser(userId?: string, page = 1, limit = 10, search?: string) {
 		if (!userId) return { total: 0, quizzes: [] };
 
 		const objectId = new Types.ObjectId(userId);
 		const skip = (page - 1) * limit;
 
+		// Base query to find quizzes created or forked by the user
+		const matchQuery: any = {
+			$or: [{ forkBy: objectId }, { creatorId: objectId }],
+		};
+
+		// If a search term is provided, add a case-insensitive regex search on the title
+		if (search && search.trim() !== '') {
+			matchQuery.title = { $regex: search, $options: 'i' };
+		}
+
 		const result = await QuizModel.aggregate([
-			{
-				$match: {
-					$or: [{ forkBy: objectId }, { creatorId: objectId }],
-				},
-			},
+			{ $match: matchQuery },
 			{
 				$facet: {
 					total: [{ $count: "count" }],

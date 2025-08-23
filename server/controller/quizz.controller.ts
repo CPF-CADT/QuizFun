@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
 import { IQuiz, IQuestion, IOption } from '../model/Quiz';
 import { QuizzRepositories } from '../repositories/quizz.repositories';
-import { FileUploadModel } from '../model/FileUpload';
-import { uploadImage } from '../service/FileUpload';
 import { GameRepository } from '../repositories/game.repositories';
 import { Types } from 'mongoose';
 
@@ -182,18 +180,15 @@ import { Types } from 'mongoose';
 
 
 export async function getAllQuizzes(req: Request, res: Response) {
-    const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 10));
-
-    const search = req.query.search as string | undefined;
-    const notOwnId = req.query.notOwnId as string | undefined;
-
-    const tags = req.query.tags
-        ? (req.query.tags as string).split(',').map(tag => tag.trim()).filter(Boolean)
-        : undefined;
-
-    const sortBy = (req.query.sortBy as string) || 'createdAt';
-    const sortOrder = (req.query.sortOrder as 'asc' | 'desc') || 'desc';
+    const { 
+        page, 
+        limit, 
+        sortBy, 
+        sortOrder, 
+        search, 
+        tags, // This is now a string | undefined
+        notOwnId 
+    } = req.validated!.query!;
 
     try {
         const result = await QuizzRepositories.getAllQuizzes(
@@ -202,9 +197,10 @@ export async function getAllQuizzes(req: Request, res: Response) {
             sortBy,
             sortOrder,
             search,
-            tags,
+            tags, // Pass the string directly
             notOwnId
         );
+
 
         res.status(200).json(result);
     } catch (error) {
@@ -325,31 +321,32 @@ export async function getQuizzById(req: Request, res: Response) {
  *         description: Internal server error
  */
 
-export async function getQuizzByUser(req: Request, res: Response) { 
-    const userId = req.user?.id;
-    if (!userId) {
-        return res.status(400).json({ message: 'User ID is missing.' });
-    }
-    const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 10));
-    try {
-        const { total, quizzes } = await QuizzRepositories.getQuizzByUser(userId, page, limit);
+export async function getQuizzByUser(req: Request, res: Response) {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(400).json({ message: 'User ID is missing.' });
+  }
 
-        if (quizzes.length === 0) {
-            return res.status(404).json({ message: 'No quizzes found for this user.' });
-        }
-        res.status(200).json({
-            page,
-            limit,
-            total,
-            quizzes
-        });
-    } catch (error) {
-        res.status(500).json({ 
-            message: 'Failed to fetch user quizzes', 
-            error: error instanceof Error ? error.message : 'Unknown error' 
-        });
-    }
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 10));
+  const search = req.query.search as string | undefined;
+
+  try {
+    const { total, quizzes } = await QuizzRepositories.getQuizzByUser(userId, page, limit, search);
+
+    res.status(200).json({
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      quizzes
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to fetch user quizzes',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 }
 
 

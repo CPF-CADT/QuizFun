@@ -1,15 +1,16 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
-export interface IFeedback{
-  rating: number,
-  comment: string
+export interface IFeedback {
+  rating: number;
+  comment?: string;
 }
+
 export interface IGameSessionParticipant {
   userId: Types.ObjectId;
   nickname: string;
   finalScore?: number;
   finalRank?: number;
-  feedback?: IFeedback[]
+  feedback?: IFeedback;
 }
 
 export interface IGameSession extends Document {
@@ -22,22 +23,24 @@ export interface IGameSession extends Document {
   startedAt?: Date;
   endedAt?: Date;
 }
-const  GameSessionFeedback = new Schema<IFeedback>({
-  rating:{type:Schema.Types.Number},
-  comment:{type:String}
-})
+
+const GameSessionFeedbackSchema = new Schema<IFeedback>({
+  rating: { type: Number, required: true, min: 1, max: 5 },
+  comment: { type: String, trim: true }
+}, { _id: false });
+
 const GameSessionParticipantSchema = new Schema<IGameSessionParticipant>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   nickname: { type: String, required: true },
-  finalScore: { type: Number, required: true },
-  finalRank: { type: Number, required: true },
-  feedback:[GameSessionFeedback]
+  finalScore: { type: Number, default: 0 },
+  finalRank: { type: Number },
+  feedback: { type: GameSessionFeedbackSchema, required: false }
 }, { _id: false });
 
 const GameSessionSchema = new Schema<IGameSession>({
-  quizId: { type: Schema.Types.ObjectId, ref: 'Quiz', required: true },
-  hostId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  joinCode: { type: Number, required: true },
+  quizId: { type: Schema.Types.ObjectId, ref: 'Quiz', required: true, index: true },
+  hostId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  joinCode: { type: Number, required: true, unique: true },
   status: {
     type: String,
     enum: ['waiting', 'in_progress', 'completed'],
@@ -46,12 +49,6 @@ const GameSessionSchema = new Schema<IGameSession>({
   results: [GameSessionParticipantSchema],
   startedAt: { type: Date },
   endedAt: { type: Date },
-}, { timestamps: true ,collection:'gamesessions'});
-
-//index for quizId
-GameSessionSchema.index({quizId: 1});
-
-//index for hostId
-GameSessionSchema.index({hostId: 1});
+}, { timestamps: true, collection: 'gamesessions' });
 
 export const GameSessionModel = model<IGameSession>('GameSession', GameSessionSchema);

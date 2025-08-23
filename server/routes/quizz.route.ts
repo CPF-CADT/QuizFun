@@ -1,36 +1,51 @@
-import express from 'express'
-import {addQuestionForQuizz,createQuizz, deleteOption, deleteQuestion, getAllQuizzes, getQuizzById, getQuizzByUser, updateOption, updateQuestion,deleteQuizz, getDashboardStats, cloneQuizz, getQuizLeaderboard, handleUpdateQuiz, createQuizzFromImport} from '../controller/quizz.controller'
-import { validationBody } from '../middleware/validation.middleware';
-import { quizzCreate } from '../config/CheckValidation';
+import express from 'express';
 import multer from 'multer';
-import { handleImageUpload } from '../controller/service.controller';
 import { authenticateToken } from '../middleware/authenicate.middleware';
+import { validate } from '../middleware/validate';
+import { quizSchemas } from '../validations/quiz.schemas';
+import { 
+    getAllQuizzes, 
+    getDashboardStats, 
+    getQuizzByUser, 
+    getQuizLeaderboard,
+    getQuizzById,
+    cloneQuizz,
+    handleUpdateQuiz,
+    createQuizz,
+    createQuizzFromImport,
+    deleteQuizz,
+    addQuestionForQuizz,
+    updateQuestion,
+    deleteQuestion,
+    updateOption,
+    deleteOption
+} from '../controller/quizz.controller';
 import { importPDFQuiz } from '../controller/pdfImport.controller';
-export const quizzRouter = express.Router();
-const storage = multer.memoryStorage(); 
-const upload = multer({ storage });
-// ---- Public ----
-quizzRouter.get('/', getAllQuizzes);
-quizzRouter.get('/stats', authenticateToken,getDashboardStats);
-quizzRouter.get('/user/',authenticateToken, getQuizzByUser);
-quizzRouter.get('/:quizzId/leaderboard', getQuizLeaderboard);
-// ---- Single Quiz ----
-quizzRouter.get('/:quizzId', getQuizzById);
-quizzRouter.post('/:quizzId/clone', authenticateToken,cloneQuizz);
-quizzRouter.put('/:quizId',authenticateToken, handleUpdateQuiz);
+const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
-// quizzRouter.post('/',upload.single('image'),handleImageUpload('quizz_Image'),validationBody(quizzCreate),createQuizz);
-quizzRouter.post('/',authenticateToken,createQuizz);
-quizzRouter.post('/create-from-import', authenticateToken, createQuizzFromImport);
+// --- PUBLIC & GENERAL QUIZ ROUTES ---
+router.get('/', validate(quizSchemas.getAllQuizzes) ,getAllQuizzes);
+router.get('/user', authenticateToken, getQuizzByUser);
+router.get('/stats', authenticateToken, getDashboardStats);
+router.get('/:quizzId/leaderboard', validate(quizSchemas.quizzIdParam), getQuizLeaderboard);
 
-// ---- PDF Import ----
-quizzRouter.post('/import-pdf', authenticateToken, upload.single('pdf'), importPDFQuiz);
+// --- QUIZ CRUD & ACTIONS ---
+router.post('/', authenticateToken, validate(quizSchemas.createQuiz), createQuizz);
+router.post('/create-from-import', authenticateToken, validate(quizSchemas.createQuizFromImport), createQuizzFromImport);
+router.post('/import-pdf', authenticateToken, upload.single('pdf'), importPDFQuiz);
+router.post('/:quizzId/clone', authenticateToken, validate(quizSchemas.quizzIdParam), cloneQuizz);
+router.get('/:quizzId', validate(quizSchemas.quizzIdParam), getQuizzById);
+router.put('/:quizId', authenticateToken, validate(quizSchemas.quizIdParam), validate(quizSchemas.updateQuiz), handleUpdateQuiz);
+router.delete('/:quizzId', authenticateToken, validate(quizSchemas.quizzIdParam), deleteQuizz);
 
-// ---- Questions ----
-quizzRouter.post('/question', addQuestionForQuizz);
-quizzRouter.put('/:quizzId/question/:questionId', updateQuestion);
-quizzRouter.put('/:quizzId/question/:questionId/option/:optionId', updateOption);
-quizzRouter.delete('/:quizzId/question/:questionId', deleteQuestion);
-quizzRouter.delete('/:quizzId/question/:questionId/option/:optionId', deleteOption);
+// --- QUESTION ROUTES ---
+router.post('/question', authenticateToken, validate(quizSchemas.addQuestion), addQuestionForQuizz);
+router.put('/:quizzId/question/:questionId', authenticateToken, validate(quizSchemas.questionParams), validate(quizSchemas.updateQuestion), updateQuestion);
+router.delete('/:quizzId/question/:questionId', authenticateToken, validate(quizSchemas.questionParams), deleteQuestion);
 
-quizzRouter.delete('/:quizzId',authenticateToken, deleteQuizz);
+// --- OPTION ROUTES ---
+router.put('/:quizzId/question/:questionId/option/:optionId', authenticateToken, validate(quizSchemas.optionParams), validate(quizSchemas.updateOption), updateOption);
+router.delete('/:quizzId/question/:questionId/option/:optionId', authenticateToken, validate(quizSchemas.optionParams), deleteOption);
+
+export default router;
