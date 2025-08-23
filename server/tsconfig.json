@@ -139,5 +139,11 @@
   "include": [
      "**/*.ts" ,
      "**/*express.d.ts"
-  ] /* Specify which files to include in the compilation. */
+  ] /* Specify which files to include in the compilation. */,
+   "exclude": [
+    "node_modules"
+  ],
+  "files": [
+    "./types/express.d.ts"
+  ]
 }

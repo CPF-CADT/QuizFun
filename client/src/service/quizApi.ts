@@ -59,6 +59,7 @@ export interface IGetAllQuizzesParams {
 export interface IGetQuizzesByUserParams {
   page?: number;
   limit?: number;
+  search?: string;
 }
 
 export interface IQuizPaginatedResponse {

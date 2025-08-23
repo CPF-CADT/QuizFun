@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { PaginationHelper } from '../utils/pagination';
+import { PaginationHelper } from '../service/pagination';
 
 export interface PaginatedRequest extends Request {
   pagination?: {

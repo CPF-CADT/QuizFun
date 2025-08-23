@@ -1,48 +1,10 @@
+// middleware/auth.ts
 import { Request, Response, NextFunction } from 'express';
-import {JWT }from '../service/JWT';
-import { JwtPayload } from 'jsonwebtoken';
-import { UserRepository } from '../repositories/users.repositories';
+import { JWT } from '../service/JWT';
+import { Role } from '../types/auth';
+import { UserPayload } from '../types/express';
 
-type Role = 'admin' | 'user' | 'guest';
-
-interface UserPayload extends JwtPayload {
-  id: string;
-  phone_number: string;
-  name: string;
-  profile_img_path: string;
-  role: Role;
-}
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: UserPayload;
-    }
-  }
-}
-
-export async function isEmailVerified(req: Request, res: Response, next: NextFunction) {
-  const { email } = req.body;
-
-  try {
-    const user = await UserRepository.findByEmail(email);
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    if (!user.isVerified) {
-      return res.status(403).json({ message: 'Email not verified' });
-    }
-
-    next(); 
-  } catch (err) {
-    return res.status(500).json({
-      message: (err as Error).message || 'Internal server error while checking email verification'
-    });
-  }
-}
-
+// --- Auth middleware ---
 export function authenticateToken(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers['authorization'];
 
@@ -55,13 +17,7 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
   try {
     const decoded = JWT.verifyAccessToken(token) as UserPayload;
 
-    req.user = {
-      id: decoded.id,
-      phone_number: decoded.phone_number,
-      name: decoded.name,
-      profile_img_path: decoded.profile_img_path,
-      role: decoded.role,
-    };
+    req.user = decoded;
 
     next();
   } catch (err: any) {
@@ -69,6 +25,7 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
   }
 }
 
+// --- Role authorization ---
 export function authorize(...allowedRoles: Role[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     const user = req.user;
@@ -77,7 +34,7 @@ export function authorize(...allowedRoles: Role[]) {
       return res.status(401).json({ message: 'Unauthorized: User not authenticated' });
     }
 
-    if (!allowedRoles.includes(user.role)) {
+    if (user.role && !allowedRoles.includes(user.role as Role)) {
       return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
     }
 
