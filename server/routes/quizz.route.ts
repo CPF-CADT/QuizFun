@@ -6,7 +6,6 @@ import { quizSchemas } from '../validations/quiz.schemas';
 import { 
     getAllQuizzes, 
     getDashboardStats, 
-    getQuizzByUser, 
     getQuizLeaderboard,
     getQuizzById,
     cloneQuizz,
@@ -25,8 +24,7 @@ const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 // --- PUBLIC & GENERAL QUIZ ROUTES ---
-router.get('/', validate(quizSchemas.getAllQuizzes) ,getAllQuizzes);
-router.get('/user', authenticateToken, getQuizzByUser);
+router.get('/', validate(quizSchemas.getAllQuizzes),authenticateToken ,getAllQuizzes);
 router.get('/stats', authenticateToken, getDashboardStats);
 router.get('/:quizzId/leaderboard', validate(quizSchemas.quizzIdParam), getQuizLeaderboard);
 

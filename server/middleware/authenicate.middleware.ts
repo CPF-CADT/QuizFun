@@ -37,7 +37,6 @@ export function authorize(...allowedRoles: Role[]) {
     if (user.role && !allowedRoles.includes(user.role as Role)) {
       return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
     }
-
     next();
   };
 }

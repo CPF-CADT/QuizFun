@@ -128,4 +128,92 @@ export class ReportRepository {
             }
         };
     }
+
+    static async fetchUserActivityFeed(userId: string, limit: number) {
+        const userObjectId = new Types.ObjectId(userId);
+
+        const sessions = await GameSessionModel.aggregate([
+            // Stage 1: Find relevant completed sessions
+            {
+                $match: {
+                    status: 'completed',
+                    $or: [
+                        { hostId: userObjectId },
+                        { 'results.userId': userObjectId }
+                    ]
+                }
+            },
+            // Stage 2: Sort by most recent
+            { $sort: { endedAt: -1 } },
+            { $limit: limit },
+
+            // Stage 3: Get quiz details to calculate max score
+            {
+                $lookup: {
+                    from: 'quizzes',
+                    localField: 'quizId',
+                    foreignField: '_id',
+                    as: 'quiz'
+                }
+            },
+            { $unwind: '$quiz' },
+
+            // Stage 4: Add a field for the maximum possible score of the quiz
+            {
+                $addFields: {
+                    maxPossibleScore: { $sum: '$quiz.questions.point' }
+                }
+            },
+
+            // Stage 5: Reshape the data for the frontend with CORRECTED average score
+            {
+                $project: {
+                    _id: 1,
+                    quizTitle: '$quiz.title',
+                    endedAt: 1,
+                    role: {
+                        $cond: { if: { $eq: ['$hostId', userObjectId] }, then: 'host', else: 'player' }
+                    },
+                    playerCount: { $size: '$results' },
+
+                    // --- NEW AVERAGE SCORE LOGIC ---
+                    averageScore: {
+                        // Prevent division by zero if a quiz has no points
+                        $cond: {
+                            if: { $gt: ['$maxPossibleScore', 0] },
+                            then: {
+                                // Calculate the average of each player's percentage score
+                                $avg: {
+                                    $map: {
+                                        input: '$results',
+                                        as: 'r',
+                                        in: {
+                                            $multiply: [
+                                                { $divide: ['$$r.finalScore', '$maxPossibleScore'] },
+                                                100
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            else: 0 // If max score is 0, average is 0
+                        }
+                    },
+
+                    // This part for individual players remains the same
+                    playerResult: {
+                        $first: {
+                            $filter: {
+                                input: '$results',
+                                as: 'result',
+                                cond: { $eq: ['$$result.userId', userObjectId] }
+                            }
+                        }
+                    }
+                }
+            }
+        ]);
+
+        return sessions;
+    }
 }

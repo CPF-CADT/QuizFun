@@ -15,16 +15,19 @@ export class QuizzRepositories {
 		sortOrder: string = "desc",
 		searchQuery?: string,
 		tags?: string[],
-		notOwnId?: string
+		userId?: string,
+		owner?: string
 	) {
 		const offset = (page - 1) * limit;
 		const filter: any = { visibility: "public" };
 
-		if (notOwnId) {
-			filter.$and = [
-				{ creatorId: { $ne: notOwnId } },
-				{ forkBy: { $ne: notOwnId } },
-			];
+		if (owner === "me" && userId) {
+			filter.$or = [
+				{creatorId : new Types.ObjectId(userId)},
+				{forkBy: new Types.ObjectId(userId)}
+			]
+		} else if (owner === "others" && userId) {
+			filter.creatorId = { $ne: new Types.ObjectId(userId) }; 
 		}
 
 		if (searchQuery) {

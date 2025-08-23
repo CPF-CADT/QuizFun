@@ -7,3 +7,4 @@ export const reportRouter = express.Router();
 // Routes for reporting and analytics
 reportRouter.get("/my-quizzes", authenticateToken,ReportController.getMyQuizzesForReport);
 reportRouter.get("/quiz/:quizId", authenticateToken,ReportController.getQuizAnalytics);
+reportRouter.get("/activity-feed", authenticateToken,ReportController.getUserActivityFeed);

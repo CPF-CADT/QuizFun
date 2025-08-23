@@ -53,7 +53,7 @@ export interface IGetAllQuizzesParams {
   tags?: string; // e.g., "math,science"
   sortBy?: 'createdAt' | 'title' | 'updatedAt';
   sortOrder?: 'asc' | 'desc';
-  notOwnId?: string;
+  owner?: 'me' | 'other' | 'all';
 }
 
 export interface IGetQuizzesByUserParams {
@@ -94,10 +94,6 @@ export const quizApi = {
 
   getQuizById: (quizId: string) => {
     return apiClient.get<IQuiz>(`/quizz/${quizId}`);
-  },
-
-  getMyQuizzes: (params: IGetQuizzesByUserParams): Promise<AxiosResponse<IQuizPaginatedResponse>> => {
-    return apiClient.get<IQuizPaginatedResponse>('/quizz/user/', { params });
   },
 
   createQuiz: (quizData: ICreateQuizPayload) => {

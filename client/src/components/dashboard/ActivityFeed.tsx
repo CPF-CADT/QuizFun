@@ -1,38 +1,89 @@
-// src/components/ActivityFeed.tsx
-import React from 'react';
-import { Globe } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Activity, Loader, AlertCircle, Inbox } from 'lucide-react';
+import { reportApi, type IActivitySession } from '../../service/reportApi';
+import { HostSessionCard } from './HostSessionCard';
+import { PlayerSessionCard } from './PlayerSessionCard';
 
 const ActivityFeed: React.FC = () => {
-  const overviewStats = [
-    { label: "Quizzes Taken", value: "23", color: "bg-emerald-400" },
-    { label: "New Students", value: "5", color: "bg-blue-400" },
-    { label: "Avg. Score", value: "84%", color: "bg-purple-400" },
-    { label: "Total Points", value: "2,847", color: "bg-amber-400" },
-  ];
+    const [activities, setActivities] = useState<IActivitySession[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const navigate = useNavigate();
 
-  return (
-    <div className="bg-white/90 backdrop-blur-xl rounded-2xl border border-gray-200/50 p-6 shadow-xl hover:shadow-2xl transition-shadow duration-300 ml-5">
-      <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
-        <Globe className="w-5 h-5 mr-2 text-blue-500" />
-        Today's Overview
-      </h3>
-      <div className="space-y-5">
-        {overviewStats.map((stat, idx) => (
-          <div
-            key={idx}
-            className="flex items-center justify-between p-3 bg-white/60 rounded-xl hover:bg-white/90 transition-colors duration-200"
-          >
-            <div className="flex items-center">
-              <span className="text-gray-700 text-sm font-medium">{stat.label}</span>
+    useEffect(() => {
+        const fetchActivities = async () => {
+            setLoading(true);
+            try {
+                const response = await reportApi.getUserActivityFeed();
+                setActivities(response.data);
+            } catch (err) {
+                setError("Couldn't load your recent activity.");
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchActivities();
+    }, []);
+
+    const handleViewResults = (sessionId: string) => {
+        navigate(`/session/${sessionId}/performance`);
+    };
+    
+    const handleViewReport = (quizId: string) => {
+        navigate(`/report?quizId=${quizId}`);
+    };
+
+    const renderContent = () => {
+        if (loading) {
+            return (
+                <div className="flex flex-col items-center justify-center h-48 text-gray-500">
+                    <Loader className="w-8 h-8 animate-spin" />
+                    <p className="mt-2">Loading Activity...</p>
+                </div>
+            );
+        }
+
+        if (error) {
+            return (
+                <div className="flex flex-col items-center justify-center h-48 text-red-500">
+                    <AlertCircle className="w-8 h-8" />
+                    <p className="mt-2">{error}</p>
+                </div>
+            );
+        }
+
+        if (activities.length === 0) {
+            return (
+                <div className="flex flex-col items-center justify-center h-48 text-gray-500">
+                    <Inbox className="w-8 h-8" />
+                    <p className="mt-2 text-center">No recent activity found. <br /> Play or host a quiz to see it here!</p>
+                </div>
+            );
+        }
+
+        return (
+            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                {activities.map(session => (
+                    session.role === 'host'
+                        ? <HostSessionCard key={session._id} session={session} onViewReport={handleViewReport} />
+                        : <PlayerSessionCard key={session._id} session={session} onViewResults={handleViewResults} />
+                ))}
             </div>
-            <span className={`text-gray-900 font-bold text-sm px-3 py-1 rounded-lg ${stat.color} text-white`}>
-              {stat.value}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+        );
+    };
+
+    return (
+        <div className="bg-white/90 backdrop-blur-xl rounded-2xl border border-gray-200/50 p-6 shadow-xl hover:shadow-2xl transition-shadow duration-300 ml-5">
+            <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
+                <Activity className="w-5 h-5 mr-2 text-indigo-500" />
+                My Recent Activity
+            </h3>
+            {renderContent()}
+        </div>
+    );
 };
 
 export default ActivityFeed;

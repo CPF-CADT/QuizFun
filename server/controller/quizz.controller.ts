@@ -105,6 +105,17 @@ import { Types } from 'mongoose';
  *           maximum: 100
  *         description: Number of quizzes per page (max 100)
  *       - in: query
+ *         name: owner
+ *         schema:
+ *           type: string
+ *           enum: [me, others, all]
+ *           default: all
+ *         description: |
+ *           Filter quizzes by ownership:
+ *             - `me`: only quizzes created by the current user
+ *             - `others`: only quizzes created by other users
+ *             - `all`: (default) all visible quizzes (public or owned)
+ *       - in: query
  *         name: search
  *         schema:
  *           type: string
@@ -114,11 +125,6 @@ import { Types } from 'mongoose';
  *         schema:
  *           type: string
  *         description: Filter by multiple tags (comma-separated)
- *       - in: query
- *         name: notOwn
- *         schema:
- *           type: string
- *         description: Filter by not my quizz by add my id
  *       - in: query
  *         name: sortBy
  *         schema:
@@ -186,10 +192,10 @@ export async function getAllQuizzes(req: Request, res: Response) {
         sortBy, 
         sortOrder, 
         search, 
-        tags, // This is now a string | undefined
-        notOwnId 
+        tags, 
+        owner
     } = req.validated!.query!;
-
+    const userId = req.user?.id;
     try {
         const result = await QuizzRepositories.getAllQuizzes(
             page,
@@ -197,11 +203,10 @@ export async function getAllQuizzes(req: Request, res: Response) {
             sortBy,
             sortOrder,
             search,
-            tags, // Pass the string directly
-            notOwnId
+            tags, 
+            userId,
+            owner
         );
-
-
         res.status(200).json(result);
     } catch (error) {
         res.status(500).json({
@@ -261,94 +266,6 @@ export async function getQuizzById(req: Request, res: Response) {
     }
     res.status(200).json(quiz);
 }
-
-/**
- * @swagger
- * /api/quizz/user/:
- *   get:
- *     summary: Get all quizzes created by a specific user with pagination
- *     tags: [Quiz]
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *         description: Page number
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 10
- *           maximum: 100
- *         description: Number of quizzes per page (max 100)
- *       - in: query
- *         name: visibility
- *         schema:
- *           type: string
- *           enum: [public, private]
- *         description: Filter by quiz visibility
- *     responses:
- *       200:
- *         description: List of quizzes created by the user with pagination info
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 total:
- *                   type: integer
- *                   example: 25
- *                 page:
- *                   type: integer
- *                   example: 1
- *                 totalPages:
- *                   type: integer
- *                   example: 3
- *                 hasNext:
- *                   type: boolean
- *                   example: true
- *                 hasPrev:
- *                   type: boolean
- *                   example: false
- *                 quizzes:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Quiz'
- *       404:
- *         description: No quizzes found for the user
- *       500:
- *         description: Internal server error
- */
-
-export async function getQuizzByUser(req: Request, res: Response) {
-  const userId = req.user?.id;
-  if (!userId) {
-    return res.status(400).json({ message: 'User ID is missing.' });
-  }
-
-  const page = Math.max(1, parseInt(req.query.page as string) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 10));
-  const search = req.query.search as string | undefined;
-
-  try {
-    const { total, quizzes } = await QuizzRepositories.getQuizzByUser(userId, page, limit, search);
-
-    res.status(200).json({
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-      quizzes
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: 'Failed to fetch user quizzes',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-}
-
 
 /**
  * @swagger
