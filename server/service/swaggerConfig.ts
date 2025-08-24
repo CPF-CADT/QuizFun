@@ -154,6 +154,7 @@ const swaggerDefinition = {
 
 const options = {
   swaggerDefinition,
+  persistAuthorization: true,
   apis: [
     './controller/*.ts',
     './routes/*.ts',

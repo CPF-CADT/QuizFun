@@ -24,9 +24,9 @@ const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 // --- PUBLIC & GENERAL QUIZ ROUTES ---
-router.get('/', validate(quizSchemas.getAllQuizzes),authenticateToken ,getAllQuizzes);
+router.get('/',authenticateToken, validate(quizSchemas.getAllQuizzes) ,getAllQuizzes);
 router.get('/stats', authenticateToken, getDashboardStats);
-router.get('/:quizzId/leaderboard', validate(quizSchemas.quizzIdParam), getQuizLeaderboard);
+router.get('/:quizzId/leaderboard', authenticateToken,validate(quizSchemas.quizzIdParam), getQuizLeaderboard);
 
 // --- QUIZ CRUD & ACTIONS ---
 router.post('/', authenticateToken, validate(quizSchemas.createQuiz), createQuizz);
