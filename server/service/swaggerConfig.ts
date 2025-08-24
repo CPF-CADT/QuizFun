@@ -21,7 +21,7 @@ const swaggerDefinition = {
       description: 'Development server',
     },
     {
-      url: 'https://api.quizfun.com',
+      url: 'https://quizfun.onrender.com',
       description: 'Production server',
     }
   ],
