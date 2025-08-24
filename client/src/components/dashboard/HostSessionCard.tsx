@@ -4,10 +4,10 @@ import type { IActivitySession } from '../../service/reportApi';
 
 interface HostSessionCardProps {
     session: IActivitySession;
-    onViewReport: (quizId: string) => void;
+    onViewResult: (sessionId: string) => void; 
 }
 
-export const HostSessionCard: React.FC<HostSessionCardProps> = ({ session, onViewReport }) => {
+export const HostSessionCard: React.FC<HostSessionCardProps> = ({ session, onViewResult }) => {
     return (
         <div className="bg-white/60 p-4 rounded-xl border border-gray-200/80 hover:bg-white/90 transition-all duration-200 group">
             <div className="flex justify-between items-start">
@@ -20,11 +20,11 @@ export const HostSessionCard: React.FC<HostSessionCardProps> = ({ session, onVie
                     <p className="text-xs text-gray-500 mt-1">{new Date(session.endedAt).toLocaleString()}</p>
                 </div>
                 <button
-                    onClick={() => onViewReport(session._id)}
+                    onClick={() => onViewResult(session._id)}
                     className="flex items-center gap-1 text-xs font-semibold text-purple-600 bg-purple-100 px-3 py-1 rounded-full hover:bg-purple-200 transition-colors"
                 >
                     <Eye className="w-3 h-3" />
-                    Report
+                    Results 
                 </button>
             </div>
             <div className="flex items-center justify-start gap-6 mt-3 pt-3 border-t border-gray-200/80 text-sm">

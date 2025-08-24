@@ -24,6 +24,7 @@ import Report from "./pages/Report";
 import SettingsPage from "./pages/SettingsPage";
 import Library from "./pages/Library";
 import MyQuizz from "./pages/MyQuizz";
+import ResultPage from "./pages/Result";
 
 const PrivateRoute: React.FC = () => {              
   const { isAuthenticated, isLoading } = useAuth();
@@ -85,6 +86,7 @@ function App() {
         />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/result/:sessionId" element={<ResultPage />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />

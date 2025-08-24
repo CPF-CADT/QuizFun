@@ -128,92 +128,140 @@ export class ReportRepository {
             }
         };
     }
-
-    static async fetchUserActivityFeed(userId: string, limit: number) {
+    static async fetchUserActivityFeed(userId: string, page: number, limit: number) {
         const userObjectId = new Types.ObjectId(userId);
+        const skip = (page - 1) * limit;
 
-        const sessions = await GameSessionModel.aggregate([
-            // Stage 1: Find relevant completed sessions
-            {
-                $match: {
-                    status: 'completed',
-                    $or: [
-                        { hostId: userObjectId },
-                        { 'results.userId': userObjectId }
-                    ]
-                }
-            },
-            // Stage 2: Sort by most recent
-            { $sort: { endedAt: -1 } },
-            { $limit: limit },
+        const [sessions, total] = await Promise.all([
+            GameSessionModel.aggregate([
+                // 1. Initial match for the user's sessions
+                {
+                    $match: {
+                        status: "completed",
+                        $or: [{ hostId: userObjectId }, { "results.userId": userObjectId }]
+                    }
+                },
+                // 2. Sort and Paginate
+                { $sort: { endedAt: -1 } },
+                { $skip: skip },
+                { $limit: limit },
 
-            // Stage 3: Get quiz details to calculate max score
-            {
-                $lookup: {
-                    from: 'quizzes',
-                    localField: 'quizId',
-                    foreignField: '_id',
-                    as: 'quiz'
-                }
-            },
-            { $unwind: '$quiz' },
+                // 3. Deconstruct the results array to process each participant individually
+                { $unwind: "$results" },
 
-            // Stage 4: Add a field for the maximum possible score of the quiz
-            {
-                $addFields: {
-                    maxPossibleScore: { $sum: '$quiz.questions.point' }
-                }
-            },
-
-            // Stage 5: Reshape the data for the frontend with CORRECTED average score
-            {
-                $project: {
-                    _id: 1,
-                    quizTitle: '$quiz.title',
-                    endedAt: 1,
-                    role: {
-                        $cond: { if: { $eq: ['$hostId', userObjectId] }, then: 'host', else: 'player' }
-                    },
-                    playerCount: { $size: '$results' },
-
-                    // --- NEW AVERAGE SCORE LOGIC ---
-                    averageScore: {
-                        // Prevent division by zero if a quiz has no points
-                        $cond: {
-                            if: { $gt: ['$maxPossibleScore', 0] },
-                            then: {
-                                // Calculate the average of each player's percentage score
-                                $avg: {
-                                    $map: {
-                                        input: '$results',
-                                        as: 'r',
-                                        in: {
-                                            $multiply: [
-                                                { $divide: ['$$r.finalScore', '$maxPossibleScore'] },
-                                                100
-                                            ]
-                                        }
+                // 4. Lookup each participant's correct answers from the gamehistories collection
+                {
+                    $lookup: {
+                        from: "gamehistories",
+                        let: { sessionId: "$_id", participantId: "$results.userId" },
+                        pipeline: [
+                            {
+                                $match: {
+                                    $expr: {
+                                        $and: [
+                                            { $eq: ["$gameSessionId", "$$sessionId"] },
+                                            { $eq: ["$userId", "$$participantId"] },
+                                            { $eq: ["$isUltimatelyCorrect", true] }
+                                        ]
                                     }
                                 }
                             },
-                            else: 0 // If max score is 0, average is 0
-                        }
-                    },
+                            { $count: "count" }
+                        ],
+                        as: "correctAnswersLookup"
+                    }
+                },
 
-                    // This part for individual players remains the same
-                    playerResult: {
-                        $first: {
-                            $filter: {
-                                input: '$results',
-                                as: 'result',
-                                cond: { $eq: ['$$result.userId', userObjectId] }
+                // 5. Add the count of correct answers to each participant's data
+                {
+                    $addFields: {
+                        "results.correctAnswers": {
+                            $ifNull: [{ $first: "$correctAnswersLookup.count" }, 0]
+                        }
+                    }
+                },
+
+                // 6. Group the participants back into a single session document
+                {
+                    $group: {
+                        _id: "$_id",
+                        hostId: { $first: "$hostId" },
+                        quizId: { $first: "$quizId" },
+                        endedAt: { $first: "$endedAt" },
+                        results: { $push: "$results" }
+                    }
+                },
+
+                // 7. Now, lookup the quiz details (like before)
+                {
+                    $lookup: {
+                        from: "quizzes",
+                        localField: "quizId",
+                        foreignField: "_id",
+                        as: "quiz"
+                    }
+                },
+                { $unwind: "$quiz" },
+                {
+                    $addFields: {
+                        totalQuestions: { $size: "$quiz.questions" }
+                    }
+                },
+
+                // 8. Final projection with the correct data
+                {
+                    $project: {
+                        _id: 1,
+                        quizTitle: "$quiz.title",
+                        quizzId: "$quiz._id",
+                        endedAt: 1,
+                        role: { $cond: { if: { $eq: ["$hostId", userObjectId] }, then: "host", else: "player" } },
+                        playerCount: { $size: "$results" },
+                        averageScore: {
+                            $cond: {
+                                if: { $and: [{ $gt: ["$totalQuestions", 0] }, { $gt: [{ $size: "$results" }, 0] }] },
+                                then: {
+                                    $avg: {
+                                        $map: {
+                                            input: "$results",
+                                            as: "r",
+                                            in: {
+                                                $multiply: [{ $divide: ["$$r.correctAnswers", "$totalQuestions"] }, 100]
+                                            }
+                                        }
+                                    }
+                                },
+                                else: 0
+                            }
+                        },
+                        playerResult: {
+                            $first: {
+                                $map: {
+                                    input: { $filter: { input: "$results", as: "r", cond: { $eq: ["$$r.userId", userObjectId] } } },
+                                    as: "self",
+                                    in: {
+                                        finalScore: "$$self.finalScore",
+                                        finalRank: "$$self.finalRank"
+                                    }
+                                }
                             }
                         }
                     }
                 }
-            }
+            ]),
+            // Total count for pagination
+            GameSessionModel.countDocuments({
+                status: "completed",
+                $or: [{ hostId: userObjectId }, { "results.userId": userObjectId }]
+            })
         ]);
 
-        return sessions;
+        return {
+            sessions,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit),
+            hasNext: page * limit < total
+        };
     }
 }
