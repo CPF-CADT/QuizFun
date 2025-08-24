@@ -51,17 +51,31 @@ export interface IActivitySession {
 }
 
 
+export interface IActivityFeedResponse {
+  activities: IActivitySession[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
 export const reportApi = {
+  getMyQuizzesForReport: (): Promise<AxiosResponse<IReportQuizListItem[]>> => {
+    return apiClient.get('/reports/my-quizzes');
+  },
 
-    getMyQuizzesForReport: (): Promise<AxiosResponse<IReportQuizListItem[]>> => {
-        return apiClient.get('/reports/my-quizzes');
-    },
-
-    getQuizAnalytics: (quizId: string): Promise<AxiosResponse<IQuizAnalytics>> => {
-        return apiClient.get(`/reports/quiz/${quizId}`);
-    },
-    getUserActivityFeed: (): Promise<AxiosResponse<IActivitySession[]>> => {
-        return apiClient.get<IActivitySession[]>('/reports/activity-feed');
-    },
-
+  getQuizAnalytics: (quizId: string): Promise<AxiosResponse<IQuizAnalytics>> => {
+    return apiClient.get(`/reports/quiz/${quizId}`);
+  },
+  
+  getUserActivityFeed: (
+    page: number = 1,
+    limit: number = 5
+  ): Promise<AxiosResponse<IActivityFeedResponse>> => {
+    return apiClient.get<IActivityFeedResponse>(
+      `/reports/activity-feed?page=${page}&limit=${limit}`
+    );
+  },
 };

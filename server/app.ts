@@ -7,13 +7,13 @@ import userRouter from './routes/users.route';
 import quizzRouter from './routes/quizz.route';
 import { errHandle } from './middleware/errHandle.middleware';
 import { serviceRouter } from './routes/service.route';
-// import { runSeed } from './config/seed'; 
 import {gameRouter} from './routes/game.route';
 import { reportRouter } from './routes/report.route';
+import { config } from './config/config';
 const app = express();
 
 app.use(cors({
-    origin:"http://localhost:5173",
+    origin:config.frontEndUrl,
     credentials: true
 }));
 app.use(express.json());
@@ -31,6 +31,5 @@ app.use('/api/service',serviceRouter)
 app.use('/api/session',gameRouter)
 app.use('/api/reports',reportRouter)
 
-app.use(errHandle)
-// runSeed();   
+app.use(errHandle)  
 export default app;

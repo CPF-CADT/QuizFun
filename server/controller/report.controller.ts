@@ -103,22 +103,75 @@ export class ReportController {
     }
   }
 
+/**
+ * @swagger
+ * /api/reports/activity-feed:
+ *   get:
+ *     summary: Get paginated user activity feed (sessions played/hosted)
+ *     tags: [Reports]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *     responses:
+ *       200:
+ *         description: Paginated user activity feed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 activities:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ActivitySession'
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 totalPages:
+ *                   type: integer
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
 
-    static async getUserActivityFeed(req: Request, res: Response): Promise<Response> {
-        try {
-            const userId = req.user?.id;
-            if (!userId) {
-                return res.status(401).json({ message: 'Unauthorized' });
-            }
+  static async getUserActivityFeed(req: Request, res: Response): Promise<Response> {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
 
-            // Fetch the last 10 activities
-            const activities = await ReportRepository.fetchUserActivityFeed(userId, 10);
-            return res.status(200).json(activities);
-        } catch (error) {
-            console.error("Error fetching user activity feed:", error);
-            return res.status(500).json({ message: 'Server error fetching activity feed.' });
-        }
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 5;
+
+      const { sessions, total } = await ReportRepository.fetchUserActivityFeed(userId, page, limit);
+
+      return res.status(200).json({
+        activities: sessions,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      });
+    } catch (error) {
+      console.error("Error fetching user activity feed:", error);
+      return res.status(500).json({ message: "Server error fetching activity feed." });
     }
+  }
 }
 
 /**
