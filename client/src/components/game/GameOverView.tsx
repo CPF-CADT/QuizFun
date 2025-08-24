@@ -1,6 +1,6 @@
 import { Home } from 'lucide-react';
 import React, { useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { FeedbackModal } from '../ui/FeedbackModal'; 
 import { gameApi } from '../../service/gameApi';
 import type { IFeedbackRequest } from '../../service/gameApi'; 
