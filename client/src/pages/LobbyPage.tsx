@@ -32,7 +32,7 @@ const LobbyPage: React.FC = () => {
 
     const me = participants.find(p => p.user_id === yourUserId);
     const isHost = me?.role === 'host';
-    const host = participants.find(p => p.role === 'host');
+    // const host = participants.find(p => p.role === 'host');
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 text-white font-sans flex items-center justify-center p-4">

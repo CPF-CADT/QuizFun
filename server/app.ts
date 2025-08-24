@@ -12,9 +12,23 @@ import { reportRouter } from './routes/report.route';
 import { config } from './config/config';
 const app = express();
 
+const allowedOrigins = [
+  config.frontEndUrl,         
+  'http://localhost:3000',    
+  'http://localhost:5173',    
+  'https://quizfun.onrender.com'
+];
+
 app.use(cors({
-    origin:config.frontEndUrl,
-    credentials: true
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
 }));
 app.use(express.json());
 app.use(cookieParser());

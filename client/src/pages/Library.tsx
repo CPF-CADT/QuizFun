@@ -137,12 +137,12 @@ const categoryColors = {
   Technology: 'from-violet-500 to-purple-500',
 };
 
-const getScoreGradient = (score: number) => {
-  if (score >= 90) return "from-green-400 to-green-600";
-  if (score >= 75) return "from-blue-400 to-blue-600";
-  if (score >= 60) return "from-yellow-400 to-yellow-600";
-  return "from-red-400 to-red-600";
-};
+// const getScoreGradient = (score: number) => {
+//   if (score >= 90) return "from-green-400 to-green-600";
+//   if (score >= 75) return "from-blue-400 to-blue-600";
+//   if (score >= 60) return "from-yellow-400 to-yellow-600";
+//   return "from-red-400 to-red-600";
+// };
 
 const Library: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
