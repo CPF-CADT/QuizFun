@@ -1,7 +1,7 @@
 // FILE: src/components/report/FeedbackModal.tsx
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { reportApi, type IFeedback, type IFeedbackResponse } from '../../service/reportApi';
+import { reportApi, type IFeedback } from '../../service/reportApi';
 import { FeelingRating } from '../common/FeelingRating';
 import { X, Loader, Inbox } from 'lucide-react';
 
