@@ -1,7 +1,8 @@
+import { extend } from 'joi';
 import { Schema, model, Document, Types } from 'mongoose';
 
 // Interface for a single feedback entry
-export interface IFeedback {
+export interface IFeedback extends Document {
   rating: number;
   comment?: string;
 }
@@ -12,7 +13,6 @@ export interface IGameSessionParticipant {
   nickname: string;
   finalScore: number; 
   finalRank?: number;
-  feedback?: IFeedback; 
 }
 
 // Main interface for the Game Session document
@@ -23,6 +23,7 @@ export interface IGameSession extends Document {
   joinCode: number;
   status: 'waiting' | 'in_progress' | 'completed';
   results: IGameSessionParticipant[];
+  feedback?: IFeedback; 
   startedAt?: Date;
   endedAt?: Date;
 }
@@ -37,7 +38,6 @@ const GameSessionParticipantSchema = new Schema<IGameSessionParticipant>({
   nickname: { type: String, required: true },
   finalScore: { type: Number, required: true, default: 0 }, // Made required
   finalRank: { type: Number },
-  feedback: { type: GameSessionFeedbackSchema, required: false }
 }, { _id: false });
 
 const GameSessionSchema = new Schema<IGameSession>({
@@ -49,6 +49,7 @@ const GameSessionSchema = new Schema<IGameSession>({
     enum: ['waiting', 'in_progress', 'completed'],
     default: 'waiting',
   },
+  feedback: { type: [GameSessionFeedbackSchema], default: [] },
   results: { type: [GameSessionParticipantSchema], default: [] }, // Added default
   startedAt: { type: Date },
   endedAt: { type: Date },

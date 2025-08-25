@@ -25,7 +25,7 @@ const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 // --- PUBLIC & GENERAL QUIZ ROUTES ---
-router.get('/', validate(quizSchemas.getAllQuizzes),authenticateToken ,globalRateLimit,getAllQuizzes);
+router.get('/', authenticateToken,validate(quizSchemas.getAllQuizzes),authenticateToken ,globalRateLimit,getAllQuizzes);
 router.get('/stats', authenticateToken,globalRateLimit, getDashboardStats);
 router.get('/:quizzId/leaderboard', validate(quizSchemas.quizzIdParam),globalRateLimit, getQuizLeaderboard);
 

@@ -378,17 +378,14 @@ export class GameRepository {
     }
 
 
-    static async addFeedback(sessionId: string, userId: string, rating: number, comment: string) {
-        if (!Types.ObjectId.isValid(sessionId) || !Types.ObjectId.isValid(userId)) {
-            return null;
-        }
+    static async addFeedback(sessionId: string, rating: number, comment: string) {
         const feedback = {
             rating: rating,
             comment: comment,
         };
         return GameSessionModel.updateOne(
-            { _id: new Types.ObjectId(sessionId), 'results.userId': new Types.ObjectId(userId) },
-            { $push: { 'results.$.feedback': feedback } }
+            { _id: new Types.ObjectId(sessionId) },
+            { $push: { feedback } }
         );
     }
 

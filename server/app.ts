@@ -10,6 +10,7 @@ import { serviceRouter } from './routes/service.route';
 import {gameRouter} from './routes/game.route';
 import { reportRouter } from './routes/report.route';
 import { config } from './config/config';
+import { authenticateToken } from './middleware/authenicate.middleware';
 const app = express();
 
 // const allowedOrigins = [   

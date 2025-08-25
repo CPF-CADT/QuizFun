@@ -52,7 +52,6 @@ export class ReportRepository {
             }
         ]);
 
-        // Aggregate data from GameSessions
         const sessionAggregation = await GameSessionModel.aggregate([
             { $match: { quizId: quizObjectId, status: 'completed' } },
             {
@@ -79,10 +78,7 @@ export class ReportRepository {
                     ],
                     "feedback": [
                         { $unwind: "$results" },
-                        // FIX: Add a second $unwind stage for the feedback array itself.
-                        // This correctly filters out players with empty feedback arrays.
                         { $unwind: "$results.feedback" },
-                        // Now, $replaceRoot will only receive actual feedback objects.
                         { $replaceRoot: { newRoot: "$results.feedback" } }
                     ]
                 }
@@ -263,5 +259,37 @@ export class ReportRepository {
             totalPages: Math.ceil(total / limit),
             hasNext: page * limit < total
         };
+    }
+    static async fetchUserFeedBackOnQuizz(
+        quizzId: string,
+        page: number,
+        limit: number
+    ): Promise<{ feedbacks: IFeedback[]; total: number }> {
+        // Fetch sessions with feedback
+        const sessions = await GameSessionModel.find({
+            quizId: new Types.ObjectId(quizzId),
+            status: "completed",
+            "feedback.0": { $exists: true }, // make sure at least one feedback exists
+        })
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit)
+            .lean();
+
+        if (!sessions || sessions.length === 0) {
+            return { feedbacks: [], total: 0 };
+        }
+
+        // Flatten all feedback arrays from sessions
+        const feedbacks: IFeedback[] = sessions.flatMap((session) => session.feedback ?? []);
+
+        // Count total feedback entries across all completed sessions
+        const total = await GameSessionModel.aggregate([
+            { $match: { quizId: new Types.ObjectId(quizzId), status: "completed" } },
+            { $unwind: "$feedback" },
+            { $count: "total" },
+        ]);
+
+        return { feedbacks, total: total[0]?.total || 0 };
     }
 }

@@ -28,18 +28,13 @@ export class GameController {
      *     FeedbackRequest:
      *       type: object
      *       required:
-     *         - userId
      *         - rating
      *       properties:
-     *         userId:
-     *           type: string
-     *           pattern: "^[a-fA-F0-9]{24}$"
-     *           description: The ID of the user submitting the feedback.
      *         rating:
      *           type: number
      *           format: float
      *           description: A numerical rating (e.g., 1-5).
-     *           example: 4.5
+     *           example: 4
      *         comment:
      *           type: string
      *           description: An optional text comment.
@@ -198,9 +193,8 @@ export class GameController {
 
     static async getSessions(req: Request, res: Response): Promise<Response> {
         try {
-            const page = parseInt(req.query.page as string) || 1;
-            const limit = parseInt(req.query.limit as string) || 10;
-            const sessions = await GameRepository.fetchGameSessions(page, limit);
+            const { page, limit } = req.query;
+            const sessions = await GameRepository.fetchGameSessions(Number(page), Number(limit));
             return res.status(200).json(sessions);
         } catch (error) {
             return res.status(500).json({ message: 'Server error retrieving game sessions.' });
@@ -336,7 +330,7 @@ export class GameController {
         */
 
 
-    static async getUserHistory(req: Request, res: Response): Promise<Response> {
+     static async getUserHistory(req: Request, res: Response): Promise<Response> {
         try {
             const { userId } = req.params;
             const history = await GameRepository.fetchUserGameHistory(userId);
@@ -414,7 +408,6 @@ export class GameController {
             if (!performanceDetails || performanceDetails.length === 0) {
                 return res.status(404).json({ message: 'No performance history found for this user in the specified session.' });
             }
-
             return res.status(200).json({
                 userId,
                 username: user.name,
@@ -484,13 +477,9 @@ export class GameController {
     static async addFeedbackToSession(req: Request, res: Response): Promise<Response> {
         try {
             const { sessionId } = req.params;
-            const { userId, rating, comment } = req.body;
-
-            if (!userId || isNaN(rating)) {
-                return res.status(400).json({ message: 'User ID and rating are required.' });
-            }
-
-            const result = await GameRepository.addFeedback(sessionId, userId, rating, comment);
+            // Manual validation is no longer needed
+            const { rating, comment } = req.body;
+            const result = await GameRepository.addFeedback(sessionId, rating, comment);
 
             if (!result || result.modifiedCount === 0) {
                 return res.status(404).json({ message: 'Could not find the specified user in this game session to add feedback.' });
@@ -608,13 +597,9 @@ export class GameController {
     static async getSessionResults(req: Request, res: Response): Promise<Response> {
         try {
             const { sessionId } = req.params;
+            // Manual check is no longer needed
             const { userId, guestName } = req.query as { userId?: string; guestName?: string };
 
-            if (!userId && !guestName) {
-                return res.status(400).json({ message: 'A userId or guestName query parameter is required.' });
-            }
-
-            // The repository will handle the logic of determining the role and fetching data
             const resultsPayload = await GameRepository.fetchFinalResults(sessionId, { userId, guestName });
 
             if (!resultsPayload) {
@@ -688,13 +673,10 @@ export class GameController {
     static async getGuestPerformanceInSession(req: Request, res: Response): Promise<Response> {
         try {
             const { sessionId } = req.params;
-            let { name } = req.query as { name?: string };
-            if (!name) {
-                return res.status(400).json({ message: 'Guest name query parameter is required.' });
-            }
-            console.log(sessionId, name)
+            const { name } = req.query as { name: string };
+
             const performance = await GameRepository.fetchGuestPerformanceInSession(sessionId, name);
-            console.log(performance)
+
             if (!performance || performance.length === 0) {
                 return res.status(404).json({ message: 'No history found for this guest.' });
             }

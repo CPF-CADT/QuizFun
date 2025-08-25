@@ -1,7 +1,6 @@
 import { apiClient } from './api';
 
 export interface IFeedbackRequest {
-  userId: string;
   rating: number;
   comment?: string;
 }

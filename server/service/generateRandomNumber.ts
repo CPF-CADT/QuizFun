@@ -1,3 +1,5 @@
+import cryptoObj from "crypto";
+
 export function generateRandomNumber(digits: number): number {
   if (digits < 1) {
     throw new Error("Number of digits must be at least 1");
@@ -17,10 +19,6 @@ export function generatePassword(length: number = 128): string {
   const chars =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?/~`";
   let result = "";
-  const array = new Uint32Array(length);
-
-  // Use crypto for strong randomness
-  const cryptoObj = require("crypto");
   const randomValues = new Uint32Array(length);
   cryptoObj.webcrypto.getRandomValues(randomValues);
 
