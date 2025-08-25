@@ -20,11 +20,12 @@ import {
     deleteOption
 } from '../controller/quizz.controller';
 import { importPDFQuiz } from '../controller/pdfImport.controller';
+import { globalRateLimit ,quizRateLimit} from '../middleware/ratelimit.middleware';
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 // --- PUBLIC & GENERAL QUIZ ROUTES ---
-router.get('/', validate(quizSchemas.getAllQuizzes),authenticateToken ,getAllQuizzes);
+router.get('/', validate(quizSchemas.getAllQuizzes),authenticateToken ,quizRateLimit,getAllQuizzes);
 router.get('/stats', authenticateToken, getDashboardStats);
 router.get('/:quizzId/leaderboard', validate(quizSchemas.quizzIdParam), getQuizLeaderboard);
 
