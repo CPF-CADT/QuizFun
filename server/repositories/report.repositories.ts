@@ -2,7 +2,30 @@ import { Types } from 'mongoose';
 import { GameSessionModel } from '../model/GameSession';
 import { GameHistoryModel } from '../model/GameHistory';
 import { QuizModel } from '../model/Quiz';
-import { IReportQuizListItem, IQuizAnalytics, IFeedback } from '../dto/ReportDTOs';
+import { IReportQuizListItem, IQuizAnalytics, IFeedback, IFeedbackResponse } from '../dto/ReportDTOs';
+export interface IActivitySession {
+    _id: Types.ObjectId;
+    quizTitle: string;
+    quizzId: Types.ObjectId;
+    endedAt: Date;
+    role: 'host' | 'player';
+    playerCount: number;
+    averageScore: number;
+    playerResult?: {
+        finalScore: number;
+        finalRank: number;
+    };
+}
+
+export interface IActivityFeedResponse {
+    activities: IActivitySession[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+}
 
 export class ReportRepository {
 
@@ -25,13 +48,11 @@ export class ReportRepository {
         const quizObjectId = new Types.ObjectId(quizId);
         const creatorObjectId = new Types.ObjectId(creatorId);
 
-        // First, verify the user owns the quiz
         const quiz = await QuizModel.findOne({ _id: quizObjectId, creatorId: creatorObjectId }).lean();
         if (!quiz) {
-            return null; // Or throw an error for "not found or not authorized"
+            return null;
         }
 
-        // Aggregate data from GameHistory
         const historyAggregation = await GameHistoryModel.aggregate([
             { $match: { quizId: quizObjectId } },
             {
@@ -57,7 +78,6 @@ export class ReportRepository {
             {
                 $facet: {
                     "summary": [
-                        // This part is correct and remains unchanged
                         { $unwind: "$results" },
                         {
                             $group: {
@@ -75,32 +95,22 @@ export class ReportRepository {
                                 averageScore: { $ifNull: ["$averageScore", 0] }
                             }
                         }
-                    ],
-                    "feedback": [
-                        { $unwind: "$results" },
-                        { $unwind: "$results.feedback" },
-                        { $replaceRoot: { newRoot: "$results.feedback" } }
                     ]
                 }
             }
         ]);
 
-
         const summaryData = sessionAggregation[0]?.summary;
         const summary = (summaryData && summaryData.length > 0)
             ? summaryData[0]
             : { totalPlayers: 0, totalSessions: 0, averageScore: 0 };
-        const feedback: IFeedback[] = sessionAggregation[0]?.feedback || [];
 
-        let below50 = 0;
-        let between50and70 = 0;
-        let above70 = 0;
+        let below50 = 0, between50and70 = 0, above70 = 0;
         historyAggregation.forEach(p => {
             if (p.correctnessPercentage < 50) below50++;
             else if (p.correctnessPercentage <= 70) between50and70++;
             else above70++;
         });
-
         const totalParticipantsWithHistory = historyAggregation.length;
 
         return {
@@ -109,7 +119,6 @@ export class ReportRepository {
             totalSessions: summary.totalSessions,
             totalUniquePlayers: summary.totalPlayers,
             averageQuizScore: Math.round(summary.averageScore),
-
             playerPerformance: {
                 averageCompletionRate: totalParticipantsWithHistory > 0 ? Math.round(historyAggregation.reduce((acc, p) => acc + p.correctnessPercentage, 0) / totalParticipantsWithHistory) : 0,
                 correctnessDistribution: {
@@ -118,34 +127,31 @@ export class ReportRepository {
                     above70Percent: totalParticipantsWithHistory > 0 ? Math.round((above70 / totalParticipantsWithHistory) * 100) : 0,
                 }
             },
-
-            recommendations: {
-                feedback
-            }
         };
     }
-    static async fetchUserActivityFeed(userId: string, page: number, limit: number) {
+
+    static async fetchUserActivityFeed(userId: string, page: number, limit: number): Promise<IActivityFeedResponse> {
         const userObjectId = new Types.ObjectId(userId);
         const skip = (page - 1) * limit;
 
         const [sessions, total] = await Promise.all([
             GameSessionModel.aggregate([
-                // 1. Initial match for the user's sessions
+                // 1. Match completed sessions for the user
                 {
                     $match: {
                         status: "completed",
                         $or: [{ hostId: userObjectId }, { "results.userId": userObjectId }]
                     }
                 },
-                // 2. Sort and Paginate
+                // 2. Sort by most recent and paginate
                 { $sort: { endedAt: -1 } },
                 { $skip: skip },
                 { $limit: limit },
 
-                // 3. Deconstruct the results array to process each participant individually
+                // 3. Unwind results to process each participant
                 { $unwind: "$results" },
 
-                // 4. Lookup each participant's correct answers from the gamehistories collection
+                // 4. Lookup correct answer count for each participant
                 {
                     $lookup: {
                         from: "gamehistories",
@@ -168,7 +174,7 @@ export class ReportRepository {
                     }
                 },
 
-                // 5. Add the count of correct answers to each participant's data
+                // 5. Add correct answer count to results
                 {
                     $addFields: {
                         "results.correctAnswers": {
@@ -177,7 +183,7 @@ export class ReportRepository {
                     }
                 },
 
-                // 6. Group the participants back into a single session document
+                // 6. Group participants back into session documents
                 {
                     $group: {
                         _id: "$_id",
@@ -187,8 +193,11 @@ export class ReportRepository {
                         results: { $push: "$results" }
                     }
                 },
+                
+                // 7. Re-sort after grouping to guarantee chronological order
+                { $sort: { endedAt: -1 } },
 
-                // 7. Now, lookup the quiz details (like before)
+                // 8. Lookup quiz details
                 {
                     $lookup: {
                         from: "quizzes",
@@ -204,7 +213,7 @@ export class ReportRepository {
                     }
                 },
 
-                // 8. Final projection with the correct data
+                // 9. Project the final shape for the activity feed
                 {
                     $project: {
                         _id: 1,
@@ -214,16 +223,14 @@ export class ReportRepository {
                         role: { $cond: { if: { $eq: ["$hostId", userObjectId] }, then: "host", else: "player" } },
                         playerCount: { $size: "$results" },
                         averageScore: {
-                            $cond: {
+                             $cond: {
                                 if: { $and: [{ $gt: ["$totalQuestions", 0] }, { $gt: [{ $size: "$results" }, 0] }] },
                                 then: {
                                     $avg: {
                                         $map: {
                                             input: "$results",
                                             as: "r",
-                                            in: {
-                                                $multiply: [{ $divide: ["$$r.correctAnswers", "$totalQuestions"] }, 100]
-                                            }
+                                            in: { $multiply: [{ $divide: ["$$r.correctAnswers", "$totalQuestions"] }, 100] }
                                         }
                                     }
                                 },
@@ -245,51 +252,61 @@ export class ReportRepository {
                     }
                 }
             ]),
-            // Total count for pagination
+            // Get the total count of matching documents for pagination
             GameSessionModel.countDocuments({
                 status: "completed",
                 $or: [{ hostId: userObjectId }, { "results.userId": userObjectId }]
             })
         ]);
 
+        // Construct the full response object with all pagination details
+        const totalPages = Math.ceil(total / limit);
         return {
-            sessions,
+            activities: sessions,
             total,
             page,
-            totalPages: Math.ceil(total / limit),
-            hasNext: page * limit < total
+            limit,
+            totalPages,
+            hasNext: page < totalPages,
+            hasPrev: page > 1
         };
     }
-    static async fetchUserFeedBackOnQuizz(
-        quizzId: string,
+    static async fetchQuizFeedback(
+        quizId: string,
         page: number,
         limit: number
-    ): Promise<{ feedbacks: IFeedback[]; total: number }> {
-        // Fetch sessions with feedback
-        const sessions = await GameSessionModel.find({
-            quizId: new Types.ObjectId(quizzId),
-            status: "completed",
-            "feedback.0": { $exists: true }, // make sure at least one feedback exists
-        })
-            .sort({ createdAt: -1 })
-            .skip((page - 1) * limit)
-            .limit(limit)
-            .lean();
+    ): Promise<IFeedbackResponse> {
+        const quizObjectId = new Types.ObjectId(quizId);
+        const skip = (page - 1) * limit;
 
-        if (!sessions || sessions.length === 0) {
-            return { feedbacks: [], total: 0 };
-        }
-
-        // Flatten all feedback arrays from sessions
-        const feedbacks: IFeedback[] = sessions.flatMap((session) => session.feedback ?? []);
-
-        // Count total feedback entries across all completed sessions
-        const total = await GameSessionModel.aggregate([
-            { $match: { quizId: new Types.ObjectId(quizzId), status: "completed" } },
-            { $unwind: "$feedback" },
-            { $count: "total" },
+        const [pagedFeedbacks, totalResult] = await Promise.all([
+            GameSessionModel.aggregate([
+                { $match: { quizId: quizObjectId, status: "completed", "feedback.0": { $exists: true } } },
+                { $sort: { createdAt: -1 } },
+                { $project: { feedback: 1, _id: 0 } },
+                { $unwind: "$feedback" },
+                { $replaceRoot: { newRoot: "$feedback" } },
+                { $skip: skip },
+                { $limit: limit }
+            ]),
+            GameSessionModel.aggregate([
+                { $match: { quizId: quizObjectId, status: "completed", "feedback.0": { $exists: true } } },
+                { $unwind: "$feedback" },
+                { $count: "total" }
+            ])
         ]);
 
-        return { feedbacks, total: total[0]?.total || 0 };
+        const total = totalResult[0]?.total || 0;
+        const totalPages = Math.ceil(total / limit);
+
+        return {
+            feedbacks: pagedFeedbacks,
+            total,
+            page,
+            limit,
+            totalPages,
+            hasNext: page < totalPages,
+            hasPrev: page > 1,
+        };
     }
 }

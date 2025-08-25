@@ -35,7 +35,7 @@ app.use('/api/quizz', quizzRouter);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/service',serviceRouter)
 app.use('/api/session',gameRouter)
-app.use('/api/reports',reportRouter)
+app.use('/api/reports',authenticateToken,reportRouter)
 
 app.use(errHandle)  
 export default app;

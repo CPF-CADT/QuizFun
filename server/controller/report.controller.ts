@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ReportRepository } from "../repositories/report.repositories";
+import { IActivityFeedResponse, ReportRepository } from "../repositories/report.repositories";
 
 /**
  * @swagger
@@ -90,11 +90,13 @@ export class ReportController {
   static async getQuizAnalytics(req: Request, res: Response): Promise<Response> {
     try {
       const { quizId } = req.params;
-      const creatorId = (req as any).user?.id;
+      const creatorId = req.user?.id;
       if (!creatorId) return res.status(401).json({ message: "Unauthorized" });
 
       const report = await ReportRepository.getQuizAnalytics(quizId, creatorId);
-      if (!report) return res.status(404).json({ message: "Report not found or access denied" });
+      if (!report) {
+        return res.status(404).json({ message: "Report not found or access denied" });
+      }
 
       return res.status(200).json(report);
     } catch (error) {
@@ -148,25 +150,29 @@ export class ReportController {
 
   static async getUserActivityFeed(req: Request, res: Response): Promise<Response> {
     try {
+      // 1. Authenticate the user (this part is good)
       const userId = req.user?.id;
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 5;
+      // 2. Sanitize and validate query parameters
+      let page = parseInt(req.query.page as string, 10);
+      let limit = parseInt(req.query.limit as string, 10);
 
-      const { sessions, total } = await ReportRepository.fetchUserActivityFeed(userId, page, limit);
+      // Set default values and ensure they are positive
+      if (isNaN(page) || page < 1) {
+        page = 1;
+      }
+      if (isNaN(limit) || limit < 1 || limit > 50) { // Added a max limit
+        limit = 5;
+      }
 
-      return res.status(200).json({
-        activities: sessions,
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-        hasNext: page * limit < total,
-        hasPrev: page > 1
-      });
+      const activityFeedData: IActivityFeedResponse = await ReportRepository.fetchUserActivityFeed(userId, page, limit);
+
+      // 4. Simply return the data from the repository
+      return res.status(200).json(activityFeedData);
+
     } catch (error) {
       console.error("Error fetching user activity feed:", error);
       return res.status(500).json({ message: "Server error fetching activity feed." });
@@ -249,29 +255,15 @@ export class ReportController {
   static async getQuizFeedback(req: Request, res: Response): Promise<Response> {
     try {
       const { quizId } = req.params;
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 5;
+      let page = parseInt(req.query.page as string, 10) || 1;
+      let limit = parseInt(req.query.limit as string, 10) || 5;
 
-      const { feedbacks, total } = await ReportRepository.fetchUserFeedBackOnQuizz(
-        quizId,
-        page,
-        limit
-      );
+      const feedbackData = await ReportRepository.fetchQuizFeedback(quizId, page, limit);
 
-      return res.status(200).json({
-        feedbacks,
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-        hasNext: page * limit < total,
-        hasPrev: page > 1,
-      });
+      return res.status(200).json(feedbackData);
     } catch (error) {
       console.error("Error fetching user feedback:", error);
-      return res
-        .status(500)
-        .json({ message: "Server error fetching feedback." });
+      return res.status(500).json({ message: "Server error fetching feedback." });
     }
   }
 }
