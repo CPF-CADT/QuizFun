@@ -14,6 +14,7 @@ const requiredEnvVars = [
   "JWT_SECRET_RESET_PASSWORD",
   "EMAIL_USER",
   "EMAIL_PASSWORD",
+  "FRONT_END_URL"
 ];
 
 const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
@@ -40,4 +41,5 @@ export const config = {
   jwtSecretResetPassword: process.env.JWT_SECRET_RESET_PASSWORD!,
   emailUser: process.env.EMAIL_USER!,
   emailPassword: process.env.EMAIL_PASSWORD!,
+  frontEndUrl:process.env.FRONT_END_URL
 };

@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useQuizGame } from "../context/GameContext";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
-import { FaArrowLeft,FaStar,FaLightbulb,FaTrophy,FaRocket,FaPlay,FaGamepad,FaUsers, FaArrowRight, FaCrown  } from "react-icons/fa";
+import { FaArrowLeft,FaStar,FaLightbulb,FaTrophy,FaRocket,FaPlay,FaUsers, FaArrowRight, FaCrown  } from "react-icons/fa";
 // Helper function to generate a unique ID for guest users
 const generateGuestId = () => `guest_${Math.random().toString(36).substring(2, 10)}`;
 const Joingame: React.FC = () => {

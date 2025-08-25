@@ -134,7 +134,7 @@ const Explore: React.FC = () => {
           limit: 9,
           search: searchQuery,
           tags: selectedCategory,
-          notOwnId: user?._id,
+          owner: 'other',
         });
 
         const { data } = response;

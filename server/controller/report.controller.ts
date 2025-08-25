@@ -103,23 +103,179 @@ export class ReportController {
     }
   }
 
+  /**
+   * @swagger
+   * /api/reports/activity-feed:
+   *   get:
+   *     summary: Get paginated user activity feed (sessions played/hosted)
+   *     tags: [Reports]
+   *     parameters:
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *           default: 1
+   *         description: Page number for pagination
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           default: 10
+   *         description: Number of items per page
+   *     responses:
+   *       200:
+   *         description: Paginated user activity feed
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 activities:
+   *                   type: array
+   *                   items:
+   *                     $ref: '#/components/schemas/ActivitySession'
+   *                 total:
+   *                   type: integer
+   *                 page:
+   *                   type: integer
+   *                 totalPages:
+   *                   type: integer
+   *       401:
+   *         description: Unauthorized
+   *       500:
+   *         description: Server error
+   */
 
-    static async getUserActivityFeed(req: Request, res: Response): Promise<Response> {
-        try {
-            const userId = req.user?.id;
-            if (!userId) {
-                return res.status(401).json({ message: 'Unauthorized' });
-            }
+  static async getUserActivityFeed(req: Request, res: Response): Promise<Response> {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
 
-            // Fetch the last 10 activities
-            const activities = await ReportRepository.fetchUserActivityFeed(userId, 10);
-            return res.status(200).json(activities);
-        } catch (error) {
-            console.error("Error fetching user activity feed:", error);
-            return res.status(500).json({ message: 'Server error fetching activity feed.' });
-        }
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 5;
+
+      const { sessions, total } = await ReportRepository.fetchUserActivityFeed(userId, page, limit);
+
+      return res.status(200).json({
+        activities: sessions,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      });
+    } catch (error) {
+      console.error("Error fetching user activity feed:", error);
+      return res.status(500).json({ message: "Server error fetching activity feed." });
     }
+  }
+
+  /**
+ * @swagger
+ * /api/reports/quiz/{quizId}/feedback:
+ *   get:
+ *     summary: Get paginated feedback for a quiz
+ *     tags: [Reports]
+ *     parameters:
+ *       - in: path
+ *         name: quizId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the quiz
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 5
+ *         description: Number of items per page
+ *     responses:
+ *       200:
+ *         description: Paginated quiz feedback
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 feedbacks:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Feedback'
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 limit:
+ *                   type: integer
+ *                 totalPages:
+ *                   type: integer
+ *                 hasNext:
+ *                   type: boolean
+ *                 hasPrev:
+ *                   type: boolean
+ *       404:
+ *         description: Quiz not found or no feedback
+ *       500:
+ *         description: Server error
+ */
+
+  /**
+   * @swagger
+   * components:
+   *   schemas:
+   *     Feedback:
+   *       type: object
+   *       properties:
+   *         rating:
+   *           type: integer
+   *           minimum: 1
+   *           maximum: 5
+   *           example: 4
+   *         comment:
+   *           type: string
+   *           example: "Great quiz, but some questions were tricky!"
+   */
+
+
+  static async getQuizFeedback(req: Request, res: Response): Promise<Response> {
+    try {
+      const { quizId } = req.params;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 5;
+
+      const { feedbacks, total } = await ReportRepository.fetchUserFeedBackOnQuizz(
+        quizId,
+        page,
+        limit
+      );
+
+      return res.status(200).json({
+        feedbacks,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1,
+      });
+    } catch (error) {
+      console.error("Error fetching user feedback:", error);
+      return res
+        .status(500)
+        .json({ message: "Server error fetching feedback." });
+    }
+  }
 }
+
 
 /**
  * @swagger

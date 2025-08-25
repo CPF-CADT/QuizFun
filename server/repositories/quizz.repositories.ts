@@ -1,6 +1,5 @@
 import { Types } from "mongoose";
 import { QuizModel, IQuestion, IQuiz, IOption } from "../model/Quiz";
-import { UserModel } from "../model/User";
 import { GameSessionModel } from "../model/GameSession";
 import { GameHistoryModel } from "../model/GameHistory";
 import fuzzysort from "fuzzysort";
@@ -19,27 +18,52 @@ export class QuizzRepositories {
 		owner?: string
 	) {
 		const offset = (page - 1) * limit;
-		const filter: any = { visibility: "public" };
+		const filter: any = {};
 
 		if (owner === "me" && userId) {
-			filter.$or = [
-				{creatorId : new Types.ObjectId(userId)},
-				{forkBy: new Types.ObjectId(userId)}
-			]
+			filter.$and = [
+				{
+					$or: [
+						{ creatorId: new Types.ObjectId(userId) },
+						{ forkBy: new Types.ObjectId(userId) }
+					]
+				},
+				{
+					visibility: { $in: ["public", "private"] }
+				}
+			];
 		} else if (owner === "others" && userId) {
-			filter.creatorId = { $ne: new Types.ObjectId(userId) }; 
+			filter.$and = [
+				{ creatorId: { $ne: new Types.ObjectId(userId) } },
+				{ visibility: "public" }
+			];
+		} else {
+			filter.visibility = "public"; 
 		}
 
 		if (searchQuery) {
 			const safeQuery = escapeRegex(searchQuery);
-			filter.$or = [
-				{ title: { $regex: safeQuery, $options: "i" } },
-				{ description: { $regex: safeQuery, $options: "i" } },
-			];
+			const searchFilter = {
+				$or: [
+					{ title: { $regex: safeQuery, $options: "i" } },
+					{ description: { $regex: safeQuery, $options: "i" } }
+				]
+			};
+
+			if (filter.$and) {
+				filter.$and.push(searchFilter);
+			} else {
+				filter.$and = [searchFilter];
+			}
 		}
 
-		if (tags) {
-			filter.tags = { $in: tags };
+		if (tags && tags.length > 0) {
+			const tagFilter = { tags: { $in: tags } };
+			if (filter.$and) {
+				filter.$and.push(tagFilter);
+			} else {
+				filter.$and = [tagFilter];
+			}
 		}
 
 		const validSortFields = ["createdAt", "title", "updatedAt"];
@@ -75,6 +99,7 @@ export class QuizzRepositories {
 			hasPrev: page > 1,
 		};
 	}
+
 
 
 	static async getQuizz(qId: string) {
