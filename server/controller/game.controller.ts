@@ -28,18 +28,13 @@ export class GameController {
      *     FeedbackRequest:
      *       type: object
      *       required:
-     *         - userId
      *         - rating
      *       properties:
-     *         userId:
-     *           type: string
-     *           pattern: "^[a-fA-F0-9]{24}$"
-     *           description: The ID of the user submitting the feedback.
      *         rating:
      *           type: number
      *           format: float
      *           description: A numerical rating (e.g., 1-5).
-     *           example: 4.5
+     *           example: 4
      *         comment:
      *           type: string
      *           description: An optional text comment.
@@ -483,9 +478,8 @@ export class GameController {
         try {
             const { sessionId } = req.params;
             // Manual validation is no longer needed
-            const { userId, rating, comment } = req.body;
-
-            const result = await GameRepository.addFeedback(sessionId, userId, rating, comment);
+            const { rating, comment } = req.body;
+            const result = await GameRepository.addFeedback(sessionId, rating, comment);
 
             if (!result || result.modifiedCount === 0) {
                 return res.status(404).json({ message: 'Could not find the specified user in this game session to add feedback.' });

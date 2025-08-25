@@ -265,9 +265,11 @@ export class ReportRepository {
         page: number,
         limit: number
     ): Promise<{ feedbacks: IFeedback[]; total: number }> {
+        // Fetch sessions with feedback
         const sessions = await GameSessionModel.find({
             quizId: new Types.ObjectId(quizzId),
             status: "completed",
+            "feedback.0": { $exists: true }, // make sure at least one feedback exists
         })
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
@@ -278,19 +280,13 @@ export class ReportRepository {
             return { feedbacks: [], total: 0 };
         }
 
-        const feedbacks: IFeedback[] = [];
-        sessions.forEach((session) => {
-            session.results.forEach((p) => {
-                if (p.feedback) {
-                    feedbacks.push(p.feedback);
-                }
-            });
-        });
+        // Flatten all feedback arrays from sessions
+        const feedbacks: IFeedback[] = sessions.flatMap((session) => session.feedback ?? []);
 
+        // Count total feedback entries across all completed sessions
         const total = await GameSessionModel.aggregate([
             { $match: { quizId: new Types.ObjectId(quizzId), status: "completed" } },
-            { $unwind: "$results" },
-            { $match: { "results.feedback": { $exists: true } } },
+            { $unwind: "$feedback" },
             { $count: "total" },
         ]);
 
