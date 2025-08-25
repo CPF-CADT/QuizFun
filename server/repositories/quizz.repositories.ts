@@ -88,7 +88,7 @@ export class QuizzRepositories {
 			candidates = fuzzyResults.map(r => r.obj);
 			total = candidates.length;
 		}
-
+		
 		return {
 			quizzes: candidates,
 			total,
