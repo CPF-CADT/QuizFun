@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Calendar, Clock, Users } from "lucide-react";
-// import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom"; 
 import Sidebar from "../components/dashboard/Sidebar";
 
 const History: React.FC = () => {
@@ -8,7 +8,7 @@ const History: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("history");
   const currentTime = new Date();
-
+  const navigate = useNavigate();
   // Dummy quiz history data
   const quizHistory = [
     { id: 1, date: "May 15, 2025", score: 85, timeTaken: "3m 42s", players: 120, status: "Completed" },
@@ -85,7 +85,7 @@ const History: React.FC = () => {
                       </td>
                       <td className="px-10 py-4">
                         <button
-                          onClick={() => navigate(`/history/${quiz.id}`)}
+                          onClick={() =>navigate(`/history/${quiz.id}`)}
                           className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded-lg text-sm font-medium transition-all duration-300"
                         >
                           View Detail
