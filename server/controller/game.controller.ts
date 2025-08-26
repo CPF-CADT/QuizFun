@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
-import { GameRepository } from '../repositories/game.repositories';
+import { GameRepository, IParticipantResult } from '../repositories/game.repositories';
 import { UserModel } from '../model/User';
+import redisClient from '../config/redis';
+import { GameSessionModel } from '../model/GameSession';
+import { Types } from 'mongoose';
 
 export class GameController {
 
@@ -28,18 +31,13 @@ export class GameController {
      *     FeedbackRequest:
      *       type: object
      *       required:
-     *         - userId
      *         - rating
      *       properties:
-     *         userId:
-     *           type: string
-     *           pattern: "^[a-fA-F0-9]{24}$"
-     *           description: The ID of the user submitting the feedback.
      *         rating:
      *           type: number
      *           format: float
      *           description: A numerical rating (e.g., 1-5).
-     *           example: 4.5
+     *           example: 4
      *         comment:
      *           type: string
      *           description: An optional text comment.
@@ -405,6 +403,28 @@ export class GameController {
     static async getUserPerformanceInSession(req: Request, res: Response): Promise<Response> {
         try {
             const { userId, sessionId } = req.params;
+            
+            const cacheKey = `session-results:${sessionId}`;
+            const cachedData = await redisClient.get(cacheKey);
+
+            if (cachedData) {
+                // --- CACHE HIT ---
+                console.log(`[Cache] HIT for user performance: ${userId} in session ${sessionId}`);
+                const fullResults: IParticipantResult[] = JSON.parse(cachedData);
+                const userResult = fullResults.find(p => p.participantId === userId);
+
+                if (!userResult) {
+                    return res.status(404).json({ message: 'Performance data not found for this user in the cached session results.' });
+                }
+
+                return res.status(200).json({
+                    userId: userResult.participantId,
+                    username: userResult.name,
+                    performance: userResult.detailedPerformance,
+                });
+            }
+
+            console.log(`[Cache] MISS for user performance: ${userId}. Falling back to DB.`);
             const user = await UserModel.findById(userId).select('name');
             if (!user) {
                 return res.status(404).json({ message: 'User not found.' });
@@ -418,6 +438,7 @@ export class GameController {
                 username: user.name,
                 performance: performanceDetails
             });
+
         } catch (error) {
             console.error("Error fetching user session performance:", error);
             return res.status(500).json({ message: 'Server error retrieving detailed user performance.' });
@@ -483,9 +504,8 @@ export class GameController {
         try {
             const { sessionId } = req.params;
             // Manual validation is no longer needed
-            const { userId, rating, comment } = req.body;
-
-            const result = await GameRepository.addFeedback(sessionId, userId, rating, comment);
+            const { rating, comment } = req.body;
+            const result = await GameRepository.addFeedback(sessionId, rating, comment);
 
             if (!result || result.modifiedCount === 0) {
                 return res.status(404).json({ message: 'Could not find the specified user in this game session to add feedback.' });
@@ -603,21 +623,52 @@ export class GameController {
     static async getSessionResults(req: Request, res: Response): Promise<Response> {
         try {
             const { sessionId } = req.params;
-            // Manual check is no longer needed
-            const { userId, guestName } = req.query as { userId?: string; guestName?: string };
+            const { userId, guestName, view } = req.query as { userId?: string, guestName?: string, view?: 'summary' };
 
+            if (!Types.ObjectId.isValid(sessionId)) {
+                return res.status(400).json({ message: 'Invalid session ID.' });
+            }
+
+            const cacheKey = `session-results:${sessionId}`;
+            const cachedData = await redisClient.get(cacheKey);
+
+            if (cachedData) {
+                console.log(`[Cache] HIT for session results: ${sessionId}`);
+                const fullResults: IParticipantResult[] = JSON.parse(cachedData);
+                
+                const session = await GameSessionModel.findById(sessionId).select('hostId').lean();
+                if (!session) return res.status(404).json({ message: "Session not found." });
+
+                const isHost = !!(userId && session.hostId.equals(userId));
+                const viewType = isHost ? 'host' : (guestName ? 'guest' : 'player');
+
+                const finalResults = fullResults.map(result => {
+                    if (view === 'summary') {
+                        const { detailedPerformance, ...leaderboardData } = result;
+                        return leaderboardData;
+                    }
+                    const isSelf = (userId && result.participantId?.toString() === userId) || (guestName && result.name === guestName);
+                    if (isHost || isSelf) return result;
+                    const { detailedPerformance, ...leaderboardData } = result;
+                    return leaderboardData;
+                });
+                
+                return res.status(200).json({ viewType, results: finalResults });
+            }
+
+            console.log(`[Cache] MISS for session results: ${sessionId}. Falling back to DB.`);
             const resultsPayload = await GameRepository.fetchFinalResults(sessionId, { userId, guestName });
-
             if (!resultsPayload) {
                 return res.status(404).json({ message: 'Results for this game session could not be found.' });
             }
-
             return res.status(200).json(resultsPayload);
+
         } catch (error) {
             console.error("Error fetching session results:", error);
             return res.status(500).json({ message: 'Server error retrieving session results.' });
         }
     }
+
 
     /**
      * @swagger
@@ -676,13 +727,32 @@ export class GameController {
      *       500:
      *         description: Internal Server Error.
      */
+    
     static async getGuestPerformanceInSession(req: Request, res: Response): Promise<Response> {
         try {
             const { sessionId } = req.params;
             const { name } = req.query as { name: string };
+            
+            const cacheKey = `session-results:${sessionId}`;
+            const cachedData = await redisClient.get(cacheKey);
 
+            if (cachedData) {
+                console.log(`[Cache] HIT for guest performance: ${name} in session ${sessionId}`);
+                const fullResults: IParticipantResult[] = JSON.parse(cachedData);
+                const guestResult = fullResults.find(p => p.name === name && !p.participantId);
+
+                if (!guestResult) {
+                    return res.status(404).json({ message: 'Performance data not found for this guest in the cached session results.' });
+                }
+
+                return res.status(200).json({
+                    username: guestResult.name,
+                    performance: guestResult.detailedPerformance,
+                });
+            }
+
+            console.log(`[Cache] MISS for guest performance: ${name}. Falling back to DB.`);
             const performance = await GameRepository.fetchGuestPerformanceInSession(sessionId, name);
-
             if (!performance || performance.length === 0) {
                 return res.status(404).json({ message: 'No history found for this guest.' });
             }
@@ -690,13 +760,12 @@ export class GameController {
                 username: name,
                 performance: performance
             });
+
         } catch (error) {
+            console.error("Error fetching guest performance:", error);
             return res.status(500).json({ message: 'Server error retrieving guest performance.' });
         }
     }
-
-
-
 }
 
 

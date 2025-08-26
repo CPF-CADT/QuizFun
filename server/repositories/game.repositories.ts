@@ -26,27 +26,33 @@ export interface ResultsPayload {
     viewType: 'host' | 'player' | 'guest';
     results: FinalResultData[];
 }
+export interface IDetailedAnswer {
+    questionText: string;
+    wasUltimatelyCorrect: boolean;
+    finalScoreGained: number;
+    thinkingTimeSeconds: number;
+    attempts: {
+        selectedOptionText: string;
+        isCorrect: boolean;
+        answerTimeMs: number;
+    }[];
+}
+
+export interface IParticipantResult {
+    rank?: number; // Will be added in the controller
+    participantId: string | null;
+    name: string;
+    profileUrl?: string;
+    score: number;
+    correctAnswers: number;
+    totalQuestions: number;
+    percentage: number;
+    averageTime: number; // in seconds
+    detailedPerformance: IDetailedAnswer[];
+}
 
 
 export class GameRepository {
-
-    // static async createGameSession(roomId: number): Promise<IGameSession | null> {
-    //     const session = GameSessionManager.getSession(roomId);
-    //     if (!session) {
-    //         return null;
-    //     }
-
-    //     const newGameSession = await GameSessionModel.create({
-    //         quizId: session.quizId,
-    //         hostId: session.hostId,
-    //         joinCode: roomId,
-    //         status: 'in_progress',
-    //         startedAt: new Date(),
-    //     });
-
-    //     session.dbId = newGameSession._id;
-    //     return newGameSession;
-    // }
 
     static async saveRoundHistory(roomId: number, scoresGained: Map<string, number>): Promise<void> {
         const session = await GameSessionManager.getSession(roomId);
@@ -378,17 +384,14 @@ export class GameRepository {
     }
 
 
-    static async addFeedback(sessionId: string, userId: string, rating: number, comment: string) {
-        if (!Types.ObjectId.isValid(sessionId) || !Types.ObjectId.isValid(userId)) {
-            return null;
-        }
+    static async addFeedback(sessionId: string, rating: number, comment: string) {
         const feedback = {
             rating: rating,
             comment: comment,
         };
         return GameSessionModel.updateOne(
-            { _id: new Types.ObjectId(sessionId), 'results.userId': new Types.ObjectId(userId) },
-            { $push: { 'results.$.feedback': feedback } }
+            { _id: new Types.ObjectId(sessionId) },
+            { $push: { feedback } }
         );
     }
 
@@ -576,7 +579,132 @@ export class GameRepository {
                 }
             }
         ]);
-
         return leaderboard;
+    }
+
+    static async fetchFullSessionResults(sessionId: string): Promise<IParticipantResult[]> {
+        if (!Types.ObjectId.isValid(sessionId)) {
+            return [];
+        }
+        const sessionObjectId = new Types.ObjectId(sessionId);
+
+        const results = await GameHistoryModel.aggregate([
+            // 1. Match all history records for the given session
+            { $match: { gameSessionId: sessionObjectId } },
+
+            // 2. Sort by creation time to process answers in chronological order
+            { $sort: { createdAt: 1 } },
+
+            // 3. Group by participant to build their complete profile in one go
+            {
+                $group: {
+                    _id: { userId: "$userId", guestNickname: "$guestNickname" },
+                    userId: { $first: "$userId" },
+                    name: { $first: { $ifNull: ["$username", "$guestNickname"] } },
+                    score: { $sum: "$finalScoreGained" },
+                    correctAnswers: { $sum: { $cond: ["$isUltimatelyCorrect", 1, 0] } },
+                    totalTimeMs: { $sum: { $last: "$attempts.answerTimeMs" } },
+                    totalQuestions: { $sum: 1 },
+                    // Push all documents for this user to process later
+                    historyDocs: { $push: "$$ROOT" }
+                }
+            },
+
+            // 4. Lookup quiz data once for all participants
+            {
+                $lookup: {
+                    from: "quizzes",
+                    let: { quizId: { $first: "$historyDocs.quizId" } },
+                    pipeline: [
+                        { $match: { $expr: { $eq: ["$_id", "$$quizId"] } } },
+                        { $project: { questions: 1 } }
+                    ],
+                    as: "quizInfo"
+                }
+            },
+            { $unwind: "$quizInfo" },
+
+            // 5. Lookup user details (for profile pics, etc.)
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'userId',
+                    foreignField: '_id',
+                    as: 'userDetails'
+                }
+            },
+            
+            // 6. Project the final, detailed shape for each participant
+            {
+                $project: {
+                    _id: 0,
+                    participantId: "$userId",
+                    name: { $ifNull: [{ $first: "$userDetails.name" }, "$name"] },
+                    profileUrl: { $ifNull: [{ $first: "$userDetails.profileUrl" }, null] },
+                    score: "$score",
+                    correctAnswers: "$correctAnswers",
+                    totalQuestions: "$totalQuestions",
+                    percentage: {
+                        $cond: {
+                            if: { $gt: ["$totalQuestions", 0] },
+                            then: { $round: [{ $multiply: [{ $divide: ["$correctAnswers", "$totalQuestions"] }, 100] }, 2] },
+                            else: 0
+                        }
+                    },
+                    averageTime: {
+                         $cond: {
+                            if: { $gt: ["$totalQuestions", 0] },
+                            then: { $round: [{ $divide: ["$totalTimeMs", { $multiply: ["$totalQuestions", 1000] }] }, 2] },
+                            else: 0
+                        }
+                    },
+                    detailedPerformance: {
+                        $map: {
+                            input: "$historyDocs",
+                            as: "doc",
+                            in: {
+                                $let: {
+                                    vars: {
+                                        question: { $first: { $filter: { input: "$quizInfo.questions", as: "q", cond: { $eq: ["$$q._id", "$$doc.questionId"] } } } }
+                                    },
+                                    in: {
+                                        questionText: "$$question.questionText",
+                                        wasUltimatelyCorrect: "$$doc.isUltimatelyCorrect",
+                                        finalScoreGained: "$$doc.finalScoreGained",
+                                        thinkingTimeSeconds: { $round: [{ $divide: [{ $last: "$$doc.attempts.answerTimeMs" }, 1000] }, 2] },
+                                        attempts: {
+                                            $map: {
+                                                input: "$$doc.attempts",
+                                                as: "attempt",
+                                                in: {
+                                                    $let: {
+                                                        vars: {
+                                                            option: { $first: { $filter: { input: "$$question.options", as: "opt", cond: { $eq: ["$$opt._id", "$$attempt.selectedOptionId"] } } } }
+                                                        },
+                                                        in: {
+                                                            selectedOptionText: "$$option.text",
+                                                            isCorrect: "$$attempt.isCorrect",
+                                                            answerTimeMs: "$$attempt.answerTimeMs"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+             // 7. Sort final results by score to prepare for ranking
+            { $sort: { score: -1 } }
+        ]);
+
+        // 8. Add ranking to each result
+        return results.map((result, index) => ({
+            ...result,
+            rank: index + 1
+        }));
     }
 }

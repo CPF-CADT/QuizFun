@@ -27,14 +27,13 @@ export const GameOverView: React.FC<GameOverViewProps> = ({
   }, [onViewMyPerformance]);
   
   const handleFeedbackSubmit = useCallback(async (rating: number, comment: string) => {
-    if (!sessionId || !userId) {
+    if (!sessionId) {
       console.error("Cannot submit feedback: Session ID or User ID is missing.");
       proceedToResults(); 
       return;
     }
 
     const feedbackData: IFeedbackRequest = {
-      userId,
       rating,
       comment: comment || undefined,
     };

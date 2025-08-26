@@ -5,9 +5,10 @@ import { GameSessionManager, GameStatePayload, ResultsQuestion, SanitizedQuestio
 import { IQuestion } from "../../model/Quiz";
 import { calculatePoint } from "../../service/calculation";
 import { GameRepository } from "../../repositories/game.repositories";
+import redisClient from "../../config/redis";
 
 const RESULTS_DISPLAY_DURATION = 5000; // 5 seconds
-
+const CACHE_EXPIRATION_QUIZZ_RESULT_SECONDS = 20*60;
 /**
  * **FIXED LOGIC**
  * The nextQuestion function is now in this shared file to avoid circular dependencies.
@@ -29,6 +30,20 @@ export async function nextQuestion(io: Server, roomId: number): Promise<void> {
         room.gameState = 'end';
         room.isFinalResults = true;
         await GameRepository.finalizeGameSession(roomId);
+        try {
+            console.log(`[Cache] Proactively caching results for session ${room.sessionId}`);
+            const fullResults = await GameRepository.fetchFullSessionResults(room.sessionId);
+
+            if (fullResults && fullResults.length > 0) {
+                const cacheKey = `session-results:${room.sessionId}`;
+                await redisClient.set(cacheKey, JSON.stringify(fullResults), {
+                    EX: CACHE_EXPIRATION_QUIZZ_RESULT_SECONDS,
+                });
+                console.log(`[Cache] Successfully cached results for session ${room.sessionId}`);
+            }
+        } catch (cacheError) {
+            console.error(`[Cache] Failed to proactively cache results for session ${room.sessionId}:`, cacheError);
+        }
         await broadcastGameState(io, roomId);
         return;
     }
@@ -43,7 +58,7 @@ export async function nextQuestion(io: Server, roomId: number): Promise<void> {
     room.questionTimer = setTimeout(() => endRound(io, roomId), currentQuestion.timeLimit * 1000);
 
     console.log(`[Game] Sending question ${room.currentQuestionIndex + 1} to room ${roomId}.`);
-    
+
     // Broadcast the complete and correct state once.
     await broadcastGameState(io, roomId);
 }
@@ -80,10 +95,10 @@ export async function endRound(io: Server, roomId: number): Promise<void> {
         if (p.role !== 'player' || !p.user_id) return;
 
         const playerAnswers = room.answers.get(p.user_id);
-        const lastAnswer = playerAnswers?.at(-1); 
+        const lastAnswer = playerAnswers?.at(-1);
 
         if (!lastAnswer) {
-            scoresGained.set(p.user_id, 0); 
+            scoresGained.set(p.user_id, 0);
             return;
         }
 
@@ -91,7 +106,7 @@ export async function endRound(io: Server, roomId: number): Promise<void> {
         if (lastAnswer.optionIndex === correctAnswerIndex) {
             scoreGainedThisRound = calculatePoint(currentQuestion.point, currentQuestion.timeLimit, lastAnswer.remainingTime);
             p.score += scoreGainedThisRound;
-            lastAnswer.isCorrect = true; 
+            lastAnswer.isCorrect = true;
         } else {
             lastAnswer.isCorrect = false;
         }
@@ -115,12 +130,12 @@ export async function endRound(io: Server, roomId: number): Promise<void> {
             await nextQuestion(io, roomId);
         }, RESULTS_DISPLAY_DURATION);
     }
-    
+
     await broadcastGameState(io, roomId);
 }
 
 
-export async function broadcastGameState(io: Server, roomId: number, errorMessage?: string): Promise<void>{
+export async function broadcastGameState(io: Server, roomId: number, errorMessage?: string): Promise<void> {
     const room = await GameSessionManager.getSession(roomId);
     if (!room) return;
 
@@ -156,7 +171,7 @@ export async function broadcastGameState(io: Server, roomId: number, errorMessag
                     if (lastAnswer !== undefined) {
                         resultsPayload.yourAnswer = {
                             optionIndex: lastAnswer.optionIndex,
-                            wasCorrect: lastAnswer.isCorrect, 
+                            wasCorrect: lastAnswer.isCorrect,
                         };
                     }
                 }
@@ -167,7 +182,7 @@ export async function broadcastGameState(io: Server, roomId: number, errorMessag
         }
 
         const stateToSend: GameStatePayload = {
-            sessionId: room.sessionId, 
+            sessionId: room.sessionId,
             roomId,
             gameState: room.gameState,
             participants: room.participants,

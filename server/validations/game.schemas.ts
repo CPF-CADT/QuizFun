@@ -64,7 +64,6 @@ export const gameSchemas = {
     // For POST /session/:sessionId/feedback
     addFeedback: {
         body: Joi.object({
-            userId: mongoId.required(),
             rating: Joi.number().min(1).max(5).required(),
             comment: Joi.string().trim().max(500).allow('').optional()
         })
