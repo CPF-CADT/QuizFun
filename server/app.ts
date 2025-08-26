@@ -10,6 +10,7 @@ import { serviceRouter } from './routes/service.route';
 import {gameRouter} from './routes/game.route';
 import { reportRouter } from './routes/report.route';
 import { config } from './config/config';
+import userReportRouter from './routes/bug.report.route'
 import { authenticateToken } from './middleware/authenicate.middleware';
 const app = express();
 
@@ -35,6 +36,7 @@ app.use('/api/quizz', quizzRouter);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/service',serviceRouter)
 app.use('/api/session',gameRouter)
+app.use('/api',userReportRouter)
 app.use('/api/reports',authenticateToken,reportRouter)
 
 app.use(errHandle)  
