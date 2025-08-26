@@ -52,7 +52,7 @@ const StatCardGrid: React.FC<StatCardGridProps> = ({ stats }) => {
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8 lg:mb-12 ml-5">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8 lg:mb-12 ml-10">
       {statItems.map((stat) => (
         <div
           key={stat.title}
