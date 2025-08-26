@@ -1,6 +1,4 @@
-// src/data/templates.ts
-import type { IQuizTemplate } from '../types/quiz'; // Make sure to add IQuizTemplate to types/quiz.ts
- // Make sure to add IQuizTemplate to types/quiz.ts
+import type { IQuizTemplate } from "../types/quiz";
 
 export const backgroundTemplates: IQuizTemplate[] = [
     {
@@ -19,5 +17,4 @@ export const backgroundTemplates: IQuizTemplate[] = [
         gradient: "from-blue-900/20 via-transparent to-cyan-900/20",
         sidebarGradient: "from-blue-600/90 to-blue-800/90"
     },
-    // Add other themes here
 ];

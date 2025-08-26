@@ -15,7 +15,7 @@ export interface IQuiz {
   dificulty: 'Easy' | 'Medium' | 'Hard';
   templateImgUrl?: string;
   questions?: IQuestion[];
-  tags?: string[];
+  tags?: string | string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -56,26 +56,3 @@ export interface IQuestion {
 }
 
 export type Dificulty = 'Hard' | 'Medium' | 'Easy';
-
-export interface IQuiz {
-  _id: string;
-  title: string;
-  description?: string;
-  creatorId: string;
-  visibility: 'public' | 'private';
-  dificulty: Dificulty;
-  templateImgUrl?: string;
-  questions?: IQuestion[]; // Optional, as it might not be present in all API calls
-  tags?: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Add any other shared types here
-export interface IQuizTemplate {
-  id: number;
-  name: string;
-  preview: string;
-  background: string;
-  sidebarGradient: string;
-}

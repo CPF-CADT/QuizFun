@@ -17,9 +17,7 @@ import { config } from "../config/config";
 import { Types } from 'mongoose';
 
 const REFRESH_TOKEN_EXPIRATION_SECONDS = 7 * 24 * 60 * 60;
-const REFRESH_TOKEN_COOKIE_EXPIRATION_MS =
-  REFRESH_TOKEN_EXPIRATION_SECONDS * 1000;
-
+const ACCESS_TOKEN_EXPIRATION = "15m";
 const client = new OAuth2Client(config.googleClientID);
 
 /**
@@ -577,23 +575,108 @@ export async function verifyCode(req: Request, res: Response): Promise<void> {
  *       500:
  *         description: Server error
  */
-export async function refreshToken(req: Request, res: Response): Promise<void> {
-  const oldRefreshToken = req.cookies.refreshToken;
+// export async function refreshToken(req: Request, res: Response): Promise<void> {
+//   const oldRefreshToken = req.cookies.refreshToken;
 
-  if (!oldRefreshToken) {
+//   if (!oldRefreshToken) {
+//     res.status(401).json({ message: "Refresh token missing" });
+//     return;
+//   }
+
+//   let decodedUser;
+//   try {
+//     decodedUser = JWT.verifyRefreshToken(oldRefreshToken) as {
+//       id: string;
+//       email?: string;
+//       role: string;
+//     };
+//   } catch (err) {
+//     console.error("Refresh attempt failed: Token verification error.", err);
+//     res.clearCookie("refreshToken", {
+//       httpOnly: true,
+//       secure: config.nodeEnv === "production",
+//       sameSite: "strict",
+//     });
+//     res.status(403).json({ message: "Invalid or expired refresh token" });
+//     return;
+//   }
+
+//   try {
+//     const storedToken = await redisClient.get(`refreshToken:${decodedUser.id}`);
+
+//     if (!storedToken) {
+//         res.clearCookie("refreshToken", { httpOnly: true, secure: config.nodeEnv === "production", sameSite: "strict" });
+//         res.status(403).json({ message: "Session not found. Please log in again." });
+//         return
+//     }
+
+//     if (storedToken !== oldRefreshToken) {
+//       console.warn(
+//         `SECURITY ALERT: Refresh token reuse detected for user ${decodedUser.id}. Invalidating session.`
+//       );
+//       await redisClient.del(`refreshToken:${decodedUser.id}`);
+//       res.clearCookie("refreshToken", {
+//         httpOnly: true,
+//         secure: config.nodeEnv === "production",
+//         sameSite: "strict",
+//       });
+//       res
+//         .status(403)
+//         .json({ message: "Session invalid. Please log in again." });
+//       return;
+//     }
+
+//     const newTokens = JWT.createTokens({
+//       id: decodedUser.id,
+//       email: decodedUser.email,
+//       role: decodedUser.role,
+//     });
+
+//     // Set the new token in Redis with the 7-day expiration
+//     await redisClient.set(
+//       `refreshToken:${decodedUser.id}`,
+//       newTokens.refreshToken,
+//       {
+//         PX: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
+//       }
+//     );
+
+//     // Set the new cookie on the client
+//     res.cookie("refreshToken", newTokens.refreshToken, {
+//       httpOnly: true,
+//       secure: config.nodeEnv === "production",
+//       sameSite: "strict",
+//       maxAge: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
+//     });
+
+//     res.status(200).json({ accessToken: newTokens.accessToken });
+//   } catch (err) {
+//     console.error(
+//       `CRITICAL: Error during token refresh process for user ${decodedUser.id}:`,
+//       err
+//     );
+//     res
+//       .status(500)
+//       .json({ message: "Internal server error during token refresh" });
+//   }
+// }
+
+export async function refreshToken(req: Request, res: Response): Promise<void> {
+  const token = req.cookies.refreshToken;
+
+  if (!token) {
     res.status(401).json({ message: "Refresh token missing" });
     return;
   }
 
-  let decodedUser;
+  let decoded;
   try {
-    decodedUser = JWT.verifyRefreshToken(oldRefreshToken) as {
+    decoded = jwt.verify(token, config.jwtRefreshSecret!) as {
       id: string;
       email?: string;
       role: string;
     };
   } catch (err) {
-    console.error("Refresh attempt failed: Token verification error.", err);
     res.clearCookie("refreshToken", {
       httpOnly: true,
       secure: config.nodeEnv === "production",
@@ -604,64 +687,29 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
   }
 
   try {
-    const storedToken = await redisClient.get(`refreshToken:${decodedUser.id}`);
-
-    if (!storedToken) {
-        res.clearCookie("refreshToken", { httpOnly: true, secure: config.nodeEnv === "production", sameSite: "strict" });
-        res.status(403).json({ message: "Session not found. Please log in again." });
-        return
-    }
-
-    if (storedToken !== oldRefreshToken) {
-      console.warn(
-        `SECURITY ALERT: Refresh token reuse detected for user ${decodedUser.id}. Invalidating session.`
-      );
-      await redisClient.del(`refreshToken:${decodedUser.id}`);
+    const storedToken = await redisClient.get(`refreshToken:${decoded.id}`);
+    if (!storedToken || storedToken !== token) {
       res.clearCookie("refreshToken", {
         httpOnly: true,
         secure: config.nodeEnv === "production",
         sameSite: "strict",
       });
-      res
-        .status(403)
-        .json({ message: "Session invalid. Please log in again." });
+      res.status(403).json({ message: "Session not found. Please log in again." });
       return;
     }
 
-    const newTokens = JWT.createTokens({
-      id: decodedUser.id,
-      email: decodedUser.email,
-      role: decodedUser.role,
-    });
-
-    // Set the new token in Redis with the 7-day expiration
-    await redisClient.set(
-      `refreshToken:${decodedUser.id}`,
-      newTokens.refreshToken,
-      {
-        PX: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
-      }
+    const accessToken = jwt.sign(
+      { id: decoded.id, email: decoded.email, role: decoded.role },
+      config.jwtSecret,
+      { expiresIn: ACCESS_TOKEN_EXPIRATION }
     );
 
-    // Set the new cookie on the client
-    res.cookie("refreshToken", newTokens.refreshToken, {
-      httpOnly: true,
-      secure: config.nodeEnv === "production",
-      sameSite: "strict",
-      maxAge: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
-    });
-
-    res.status(200).json({ accessToken: newTokens.accessToken });
+    res.status(200).json({ accessToken });
   } catch (err) {
-    console.error(
-      `CRITICAL: Error during token refresh process for user ${decodedUser.id}:`,
-      err
-    );
-    res
-      .status(500)
-      .json({ message: "Internal server error during token refresh" });
+    res.status(500).json({ message: "Internal server error during token refresh" });
   }
 }
+
 
 /**
  * @swagger
@@ -997,34 +1045,83 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
  * Sign in account with google
  * post /api/user/google
  */
+// async function handleSuccessfulLogin(
+//   user: IUserData,
+//   res: Response,
+//   message: string = "Login successful" // Add optional message parameter
+// ) {
+//   try {
+//     const tokens = JWT.createTokens({
+//       id: user.id,
+//       email: user.email,
+//       role: user.role,
+//     });
+
+//     await redisClient.set(`refreshToken:${user.id}`, tokens.refreshToken, {
+//       EX: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
+//     });
+
+//     res.cookie("refreshToken", tokens.refreshToken, {
+//       httpOnly: true,
+//       secure: config.nodeEnv === "production",
+//       sameSite: "strict",
+//       maxAge: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
+//     });
+
+//     const { password: _, ...userResponse } = user.toObject();
+
+//     res.status(200).json({
+//       message, // Use the message parameter here
+//       accessToken: tokens.accessToken,
+//       user: userResponse,
+//     });
+//   } catch (error) {
+//     console.error("Error during handleSuccessfulLogin:", error);
+//     res.status(500).json({ message: "Failed to create a session." });
+//   }
+// }
 async function handleSuccessfulLogin(
   user: IUserData,
   res: Response,
-  message: string = "Login successful" // Add optional message parameter
+  message: string = "Login successful"
 ) {
   try {
-    const tokens = JWT.createTokens({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    });
+    // Check if refresh token already exists
+    let refreshToken = await redisClient.get(`refreshToken:${user.id}`);
 
-    await redisClient.set(`refreshToken:${user.id}`, tokens.refreshToken, {
-      EX: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
-    });
+    if (!refreshToken) {
+      // Create a refresh token only if none exists
+      refreshToken = jwt.sign(
+        { id: user.id, email: user.email, role: user.role },
+        config.jwtRefreshSecret,
+        { expiresIn: `${REFRESH_TOKEN_EXPIRATION_SECONDS}s` }
+      );
 
-    res.cookie("refreshToken", tokens.refreshToken, {
+      await redisClient.set(`refreshToken:${user.id}`, refreshToken, {
+        EX: REFRESH_TOKEN_EXPIRATION_SECONDS,
+      });
+    }
+
+    // Always issue a fresh access token
+    const accessToken = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      config.jwtSecret,
+      { expiresIn: ACCESS_TOKEN_EXPIRATION }
+    );
+
+    // Set the refresh token cookie
+    res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: config.nodeEnv === "production",
       sameSite: "strict",
-      maxAge: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
+      maxAge: REFRESH_TOKEN_EXPIRATION_SECONDS * 1000, // cookie expects ms
     });
 
     const { password: _, ...userResponse } = user.toObject();
 
     res.status(200).json({
-      message, // Use the message parameter here
-      accessToken: tokens.accessToken,
+      message,
+      accessToken,
       user: userResponse,
     });
   } catch (error) {

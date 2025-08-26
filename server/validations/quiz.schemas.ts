@@ -85,7 +85,7 @@ export const quizSchemas = {
       description: Joi.string().trim().max(1000).allow(""),
       visibility: Joi.string().valid("public", "private").required(),
       dificulty: Joi.string().valid("Easy", "Medium", "Hard").default("Medium"),
-      templateImgUrl: Joi.string().uri().allow(""),
+      templateImgUrl: Joi.string().allow(""),
       tags: Joi.string()
         .trim()
         .pattern(/^[a-zA-Z0-9]+(,[a-zA-Z0-9]+)*$/) // comma separated words
@@ -99,7 +99,7 @@ export const quizSchemas = {
       description: Joi.string().trim().max(1000).allow(""),
       visibility: Joi.string().valid("public", "private").default("private"),
       dificulty: Joi.string().valid("Easy", "Medium", "Hard").default("Medium"),
-      templateImgUrl: Joi.string().uri().allow(""),
+      templateImgUrl: Joi.string().allow(""),
       questions: Joi.array().items(questionSchema).min(1).max(50).required(),
     }),
   },
