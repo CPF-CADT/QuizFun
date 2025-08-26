@@ -253,26 +253,26 @@ export async function register(req: Request, res: Response): Promise<Response> {
   }
   let createdUser;
   const hashedPassword = await Encryption.hashPassword(password);
-  try{
-      createdUser = await UserRepository.create({
-        name,
-        email,
-        password: hashedPassword,
-        profileUrl: profile_url || 'http://default.url/image.png',
-        role: role || 'player',
-        isVerified: false,
-      } as IUserData);
-    }catch(err){
-      return res.status(409).json({ error: 'Email is already used' }); // Use 409 Conflict for existing resources
-    }
-    const code = generateRandomNumber(6);
-    const subject = 'Verify Your Email Address';
-    const htmlContent = `<p>Welcome! Your verification code is: <strong>${code}</strong></p>`;
-    await Promise.all([
-      VerificationCodeRepository.create(createdUser.id, code, getExpiryDate(15)),
-      sentEmail(email, subject, '', htmlContent)
-    ]);
-    return res.status(201).json({ message: 'Registration successful. Please check your email to verify your account.' });
+  try {
+    createdUser = await UserRepository.create({
+      name,
+      email,
+      password: hashedPassword,
+      profileUrl: profile_url || 'http://default.url/image.png',
+      role: role || 'player',
+      isVerified: false,
+    } as IUserData);
+  } catch (err) {
+    return res.status(409).json({ error: 'Email is already used' }); // Use 409 Conflict for existing resources
+  }
+  const code = generateRandomNumber(6);
+  const subject = 'Verify Your Email Address';
+  const htmlContent = `<p>Welcome! Your verification code is: <strong>${code}</strong></p>`;
+  await Promise.all([
+    VerificationCodeRepository.create(createdUser.id, code, getExpiryDate(15)),
+    sentEmail(email, subject, '', htmlContent)
+  ]);
+  return res.status(201).json({ message: 'Registration successful. Please check your email to verify your account.' });
 }
 
 /* ----------------------- LOGIN ----------------------- */
@@ -688,6 +688,7 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
 
   try {
     const storedToken = await redisClient.get(`refreshToken:${decoded.id}`);
+
     if (!storedToken || storedToken !== token) {
       res.clearCookie("refreshToken", {
         httpOnly: true,
@@ -771,17 +772,11 @@ export async function logout(req: Request, res: Response): Promise<void> {
 
   res.clearCookie("refreshToken", cookieOptions);
 
-  if (!refreshToken) {
-    res.status(200).json({ message: "Logout successful" });
-    return;
-  }
-
   try {
-    const decoded = jwt.verify(refreshToken, config.jwtRefreshSecret!) as {
-      id: string;
-    };
-
-    await redisClient.del(`refreshToken:${decoded.id}`);
+    const decoded = jwt.decode(refreshToken) as { id: string };
+    if (decoded && decoded.id) {
+      await redisClient.del(`refreshToken:${decoded.id}`);
+    }
   } catch (err) {
     console.error("Logout token invalid or expired:", (err as Error).message);
   }
@@ -1201,26 +1196,26 @@ export async function googleAuthenicate(req: Request, res: Response) {
  *       500:
  *         description: Internal server error
  */
-  export async function getUserById(req: Request, res: Response) {
-    try {
-      const { id } = req.params; 
+export async function getUserById(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
 
-      
-      if (!Types.ObjectId.isValid(id)) {
-        return res.status(400).json({ message: 'Invalid user ID format.' });
-      }
 
-      
-      const user = await UserRepository.findById(id);
-
-      if (!user) {
-        return res.status(404).json({ message: 'User not found.' });
-      }
-
-      return res.status(200).json(user);
-
-    } catch (error) {
-      console.error('Error fetching user by ID:', error);
-      return res.status(500).json({ message: 'Internal server error.' });
+    if (!Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid user ID format.' });
     }
+
+
+    const user = await UserRepository.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    return res.status(200).json(user);
+
+  } catch (error) {
+    console.error('Error fetching user by ID:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
   }
+}
