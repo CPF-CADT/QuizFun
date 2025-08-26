@@ -18,7 +18,13 @@ export class PDFQuizParser {
             const data = await pdf(buffer);
             const text = data.text;
             
-            return this.parseTextToQuestions(text);
+            console.log(`Extracted text length: ${text.length} characters`);
+            console.log('Text preview:', text.substring(0, 200) + '...');
+            
+            const result = this.parseTextToQuestions(text);
+            console.log(`Parsing complete: Found ${result.questions.length} questions, ${result.errors.length} errors`);
+            
+            return result;
         } catch (error) {
             console.error('Error parsing PDF:', error);
             return {
@@ -48,8 +54,8 @@ export class PDFQuizParser {
      * Correct Answer: a
      */
     private static parseTextToQuestions(text: string): ParsedQuizData {
-        const questions: Omit<IQuestion, '_id'>[] = [];
-        const errors: string[] = [];
+        const allQuestions: IQuestion[] = [];
+        const allErrors: string[] = [];
         
         // Clean up the text
         const cleanText = text
@@ -58,22 +64,50 @@ export class PDFQuizParser {
             .replace(/\n+/g, '\n')
             .trim();
 
-        // Try different parsing patterns
+        // Try different parsing patterns and combine results
         const patterns = [
             this.parsePatternQA(cleanText),
             this.parsePatternNumbered(cleanText),
             this.parsePatternSimple(cleanText)
         ];
 
-        for (const result of patterns) {
+        let foundQuestions = false;
+        
+        console.log('Trying parsing patterns...');
+
+        for (let i = 0; i < patterns.length; i++) {
+            const result = patterns[i];
+            const patternNames = ['Q1: format', 'numbered format', 'simple format'];
+            console.log(`Pattern ${i + 1} (${patternNames[i]}): Found ${result.questions.length} questions`);
+            
             if (result.questions.length > 0) {
-                return result;
+                // Add questions that don't already exist (avoid duplicates)
+                for (const question of result.questions) {
+                    const isDuplicate = allQuestions.some(existing => 
+                        existing.questionText.toLowerCase().trim() === question.questionText.toLowerCase().trim()
+                    );
+                    if (!isDuplicate) {
+                        allQuestions.push(question);
+                        foundQuestions = true;
+                        console.log(`Added question: ${question.questionText.substring(0, 50)}...`);
+                    } else {
+                        console.log(`Skipped duplicate: ${question.questionText.substring(0, 50)}...`);
+                    }
+                }
+                allErrors.push(...result.errors);
             }
         }
 
+        if (!foundQuestions) {
+            return {
+                questions: [],
+                errors: ['No valid question format found in PDF. Please ensure your PDF follows the supported format.']
+            };
+        }
+
         return {
-            questions: [],
-            errors: ['No valid question format found in PDF. Please ensure your PDF follows the supported format.']
+            questions: allQuestions,
+            errors: allErrors
         };
     }
 
@@ -85,14 +119,15 @@ export class PDFQuizParser {
         const errors: string[] = [];
 
         // Regex to match Q1: question text followed by options A) B) C) D) and Answer:
-        const questionPattern = /Q(\d+):\s*(.*?)\n((?:[A-D]\)\s*.*?\n)+)(?:Answer:\s*([A-D]))/gi;
+        // More flexible pattern to handle spacing variations
+        const questionPattern = /Q(\d+):\s*(.*?)\s*\n((?:\s*[A-D]\)\s*.*?\s*\n)+)\s*(?:Answer:\s*([A-D]))/gi;
         
         let match;
         while ((match = questionPattern.exec(text)) !== null) {
             const [, questionNum, questionText, optionsText, correctAnswer] = match;
             
-            // Parse options
-            const optionPattern = /([A-D])\)\s*(.*?)(?=\n|$)/g;
+            // Parse options with more flexible spacing
+            const optionPattern = /([A-D])\)\s*(.*?)(?=\s*\n|$)/g;
             const options: IOption[] = [];
             
             let optionMatch;
@@ -106,6 +141,14 @@ export class PDFQuizParser {
             }
 
             if (options.length >= 2 && correctAnswer) {
+                // Ensure at least one option is marked as correct for Q pattern
+                const hasCorrectAnswer = options.some(opt => opt.isCorrect);
+                if (!hasCorrectAnswer && options.length > 0) {
+                    // If no correct answer found, mark the first option as correct
+                    options[0].isCorrect = true;
+                    errors.push(`Question ${questionNum}: No correct answer found, defaulting to first option`);
+                }
+                
                 questions.push({
                     _id: new Types.ObjectId(),
                     questionText: questionText.trim(),
@@ -129,14 +172,15 @@ export class PDFQuizParser {
         const errors: string[] = [];
 
         // Regex to match numbered questions with lowercase options
-        const questionPattern = /(\d+)\.\s*(.*?)\n((?:[a-d]\)\s*.*?\n)+)(?:Correct Answer:\s*([a-d]))/gi;
+        // More flexible pattern to handle spacing variations
+        const questionPattern = /(\d+)\.\s*(.*?)\s*\n((?:\s*[a-d]\)\s*.*?\s*\n)+)\s*(?:Correct Answer:\s*([a-d]))/gi;
         
         let match;
         while ((match = questionPattern.exec(text)) !== null) {
             const [, questionNum, questionText, optionsText, correctAnswer] = match;
             
-            // Parse options
-            const optionPattern = /([a-d])\)\s*(.*?)(?=\n|$)/g;
+            // Parse options with more flexible spacing
+            const optionPattern = /([a-d])\)\s*(.*?)(?=\s*\n|$)/g;
             const options: IOption[] = [];
             
             let optionMatch;

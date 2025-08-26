@@ -2,6 +2,13 @@
 
 This feature allows users to import quiz questions from PDF files and automatically create quizzes from them. Users can then edit the imported questions as needed.
 
+## Recent Improvements
+
+- **Fixed Multiple Format Support**: The parser now properly combines questions from different formats in the same PDF
+- **Enhanced Logging**: Better debugging information to track parsing progress
+- **Improved Regex Patterns**: More flexible handling of spacing and formatting variations
+- **Duplicate Detection**: Prevents duplicate questions when multiple patterns match the same content
+
 ## Supported PDF Formats
 
 The PDF parser supports several question formats:
@@ -118,6 +125,20 @@ Response: {
   data: {
     questions: [...],
     errors: [...]
+  }
+}
+```
+
+### Test Parser (Development Only)
+```
+GET /api/quizz/test-parser
+
+Response: {
+  message: "Parser test completed",
+  data: {
+    questions: [...],
+    errors: [],
+    totalQuestions: number
   }
 }
 ```
