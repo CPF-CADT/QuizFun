@@ -16,7 +16,6 @@
           
           try {
             const token = response.credential;
-            console.log(token)
             const { data } = await authApi.googleAuthenication(token);
             
             socialLogin(data);
@@ -45,9 +44,7 @@
                   width: 380,
               }
             );
-          } else {
-            console.error("Google Identity Services script not loaded or Client ID is missing.");
-          }
+          } 
         }, []);
 
         // This div will be replaced by the Google button

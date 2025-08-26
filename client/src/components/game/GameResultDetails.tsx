@@ -10,7 +10,7 @@ interface GameResultDetailsProps {
     setSelectedPlayer: (player: PlayerIdentifier | null) => void;
 }
 
-export const GameResultDetails: React.FC<GameResultDetailsProps> = ({ payload, sessionId, yourUserId, onExit, setSelectedPlayer }) => {
+export const GameResultDetails: React.FC<GameResultDetailsProps> = ({ payload, yourUserId, onExit, setSelectedPlayer }) => {
     const { viewType, results } = payload;
     const sortedResults = useMemo(() => [...results].sort((a, b) => b.score - a.score), [results]);
 

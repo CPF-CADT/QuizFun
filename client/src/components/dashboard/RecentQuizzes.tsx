@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useQuizGame } from '../../context/GameContext';
 import { useAuth } from '../../context/AuthContext';
-import { Clock, Edit, Play, FaUsers,Activity,ChevronRight } from '../common/Icons';
+import { Clock, Edit, Play, FaUsers } from '../common/Icons';
 import type { IQuiz } from '../../types/quiz';
 
 interface RecentQuizzesProps {

@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { Calendar, Clock, Users } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/dashboard/Sidebar";
 
 const History: React.FC = () => {
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("history");
   const currentTime = new Date();

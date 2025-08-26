@@ -1,31 +1,51 @@
-import express from 'express'
-import {register,login,updateUserInfo,sendVerificationCode,verifyCode,refreshToken,logout,getAllUsers,getUsersByRole, getProfile, googleAuthenicate} from '../controller/user.controller'
-import { authenticateToken, isEmailVerified } from '../middleware/authenicate.middleware';
-import { validationBody } from '../middleware/validation.middleware';
-import { userlogin, userRegister } from '../config/CheckValidation';
-import { handleImageUpload } from '../controller/service.controller';
-import multer from 'multer';
-import { validateImage } from '../middleware/handleInputImage.middleware';
+import express from 'express';
+import { validate } from '../middleware/validate';
+import { userSchemas } from '../validations/user.schemas';
+import { authenticateToken } from '../middleware/authenicate.middleware';
 import { GameController } from '../controller/game.controller';
+import {
+    getAllUsers,
+    getUsersByRole,
+    register,
+    login,
+    updateUserInfo,
+    sendVerificationCode,
+    verifyCode,
+    refreshToken,
+    logout,
+    verifyPasswordResetCode,
+    resetPassword,
+    getProfile,
+    googleAuthenicate,
+    getUserById
+} from '../controller/user.controller';
+import { globalRateLimit ,quizRateLimit} from '../middleware/ratelimit.middleware';
+const router = express.Router();
 
+// Note: The global sanitizeInput middleware from app.ts already handles sanitization.
+// You no longer need to import it here.
 
-export const userRouter = express.Router();
-const storage = multer.memoryStorage(); 
-const upload = multer({ storage });
+// Auth routes
+router.post('/register',globalRateLimit, validate(userSchemas.register), register);
+router.post('/login',globalRateLimit, validate(userSchemas.login), login);
+router.post('/logout',globalRateLimit, logout);
+router.post('/refresh-token',globalRateLimit, refreshToken);
+router.post('/google', validate(userSchemas.googleAuth),globalRateLimit, googleAuthenicate);
 
-// User management routes with pagination
-userRouter.get('/', getAllUsers); // GET all users with pagination
-userRouter.get('/by-role/:role', authenticateToken, getUsersByRole); // GET users by role with pagination
-// Authentication routes
-userRouter.get('/profile', authenticateToken, getProfile);
-userRouter.post('/google', googleAuthenicate);
-userRouter.post('/register',validationBody(userRegister),register);
-userRouter.post('/login',validationBody(userlogin),isEmailVerified, login);
-userRouter.put('/:id',authenticateToken, updateUserInfo)
-userRouter.post('/request-otp',sendVerificationCode);
-userRouter.post('/verify-otp',verifyCode);
-userRouter.post('/refresh-token',refreshToken);
-userRouter.post('/logout',logout);
-userRouter.post('/profile-detail',upload.single('image'),validateImage,handleImageUpload('user_ProfilePic'));
- 
-userRouter.get('/:userId/history', GameController.getUserHistory);
+// Verification and Password Reset
+router.post('/request-code', validate(userSchemas.sendVerificationCode),globalRateLimit, sendVerificationCode);
+router.post('/verify-otp', validate(userSchemas.verifyCode),globalRateLimit, verifyCode);
+router.post('/verify-password-reset-code', validate(userSchemas.verifyCode),globalRateLimit, verifyPasswordResetCode);
+router.post('/reset-password', validate(userSchemas.resetPassword),globalRateLimit, resetPassword);
+
+// User Profile & Management routes
+router.get('/profile', authenticateToken,globalRateLimit, getProfile);
+router.get('/', authenticateToken,globalRateLimit, getAllUsers); // Example: protected route
+router.get('/by-role/:role', authenticateToken, validate(userSchemas.getUsersByRole),globalRateLimit, getUsersByRole);
+router.get('/:id', authenticateToken, validate(userSchemas.getUserById),globalRateLimit, getUserById);
+router.put('/:id', authenticateToken, validate(userSchemas.updateUserInfo),globalRateLimit, updateUserInfo);
+
+// Game History route related to a user
+router.get('/:userId/history', authenticateToken,globalRateLimit, GameController.getUserHistory);
+
+export default router;

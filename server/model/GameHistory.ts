@@ -1,7 +1,7 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
-// NEW: Define a sub-document for each individual answer attempt.
-export interface IAnswerAttempt extends Document {
+// Interface for a single answer attempt (no need to extend Document)
+export interface IAnswerAttempt {
     selectedOptionId: Types.ObjectId;
     isCorrect: boolean;
     answerTimeMs: number;
@@ -11,43 +11,35 @@ const AnswerAttemptSchema = new Schema<IAnswerAttempt>({
     selectedOptionId: { type: Schema.Types.ObjectId, required: true },
     isCorrect: { type: Boolean, required: true },
     answerTimeMs: { type: Number, required: true },
-}, { _id: false }); // _id is not needed for sub-documents in this case
+}, { _id: false });
 
-// UPDATED: The main history interface now contains an array of attempts.
+// Main interface for the Game History document
 export interface IGameHistory extends Document {
     gameSessionId: Types.ObjectId;
     quizId: Types.ObjectId;
-    questionId: Types.ObjectId;
+    questionId: Types.ObjectId; // This ID refers to a sub-document in the Quiz model
     userId?: Types.ObjectId;
     guestNickname?: string;
+    username?: string;
     attempts: IAnswerAttempt[];
-    isUltimatelyCorrect: boolean; // Was the *final* answer correct?
+    isUltimatelyCorrect: boolean;
     finalScoreGained: number;
     createdAt: Date;
-    username?:string,
 }
 
 const GameHistorySchema = new Schema<IGameHistory>({
     gameSessionId: { type: Schema.Types.ObjectId, ref: 'GameSession', required: true, index: true },
     quizId: { type: Schema.Types.ObjectId, ref: 'Quiz', required: true, index: true },
-    questionId: { type: Schema.Types.ObjectId, ref: 'Question', required: true },
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: false, index: true },
-    guestNickname: { type: String, required: false },
-    username: { type: String, required: false },
-    
-    // UPDATED: Store the full history of attempts.
+    questionId: { type: Schema.Types.ObjectId, required: true, index: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', index: true }, // required: false is implied
+    guestNickname: { type: String },
+    username: { type: String },
     attempts: { type: [AnswerAttemptSchema], required: true },
-    
-    // UPDATED: Store summary data for easy access.
     isUltimatelyCorrect: { type: Boolean, required: true },
     finalScoreGained: { type: Number, required: true, default: 0 },
-
 }, {
     timestamps: { createdAt: true, updatedAt: false },
     collection: 'gamehistories'
 });
-
-//index for questionId
-GameHistorySchema.index({questionId: 1});
 
 export const GameHistoryModel = model<IGameHistory>('GameHistory', GameHistorySchema);

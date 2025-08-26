@@ -14,6 +14,7 @@ import jwt from "jsonwebtoken";
 import redisClient from "../config/redis";
 import { OAuth2Client } from "google-auth-library";
 import { config } from "../config/config";
+import { Types } from 'mongoose';
 
 const REFRESH_TOKEN_EXPIRATION_SECONDS = 7 * 24 * 60 * 60;
 const REFRESH_TOKEN_COOKIE_EXPIRATION_MS =
@@ -253,11 +254,12 @@ export async function register(req: Request, res: Response): Promise<Response> {
     return res.status(400).json({ error: 'Missing required user information' });
   }
   let createdUser;
+  const hashedPassword = await Encryption.hashPassword(password);
   try{
       createdUser = await UserRepository.create({
         name,
         email,
-        password: Encryption.hashPassword(password),
+        password: hashedPassword,
         profileUrl: profile_url || 'http://default.url/image.png',
         role: role || 'player',
         isVerified: false,
@@ -276,6 +278,7 @@ export async function register(req: Request, res: Response): Promise<Response> {
 }
 
 /* ----------------------- LOGIN ----------------------- */
+
 /**
  * @swagger
  * /api/user/login:
@@ -291,9 +294,26 @@ export async function register(req: Request, res: Response): Promise<Response> {
  *             required:
  *               - email
  *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: MySecurePassword123
  *     responses:
  *       200:
  *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6...
  *       401:
  *         description: Incorrect password
  *       403:
@@ -320,7 +340,7 @@ export async function login(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const isPasswordValid = Encryption.verifyPassword(
+  const isPasswordValid = await Encryption.verifyPassword(
     user.password as string,
     password
   );
@@ -406,7 +426,7 @@ export async function updateUserInfo(
 
   // Only hash and add the password if a new one was provided
   if (password) {
-    dataToUpdate.password = Encryption.hashPassword(password);
+    dataToUpdate.password = await Encryption.hashPassword(password);
   }
 
   const updatedUser = await UserRepository.update(id, dataToUpdate);
@@ -619,7 +639,7 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       `refreshToken:${decodedUser.id}`,
       newTokens.refreshToken,
       {
-        EX: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
+        PX: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
       }
     );
 
@@ -870,7 +890,7 @@ export async function resetPassword(req: Request, res: Response) {
       return;
     }
 
-    const hashedPassword = Encryption.hashPassword(newPassword);
+    const hashedPassword = await Encryption.hashPassword(newPassword);
     await UserRepository.update(payload.id, { password: hashedPassword });
 
     res.status(200).json({ message: "Password reset successfully" });
@@ -1037,11 +1057,12 @@ export async function googleAuthenicate(req: Request, res: Response) {
       await handleSuccessfulLogin(user, res);
     } else {
       const defaultPasswordForGoolgleLogin = generatePassword();
+      const hashedPassword = await Encryption.hashPassword(defaultPasswordForGoolgleLogin);
 
       const newUser = await UserRepository.create({
         name: payload.name!,
         email: payload.email,
-        password: Encryption.hashPassword(defaultPasswordForGoolgleLogin),
+        password: hashedPassword,
         profileUrl: payload.picture || "http://default.url/image.png",
         role: "player", // Default role for new users
         isVerified: true, // Google accounts are already verified
@@ -1055,3 +1076,54 @@ export async function googleAuthenicate(req: Request, res: Response) {
     res.status(401).json({ message: "Invalid token or authentication failed" });
   }
 }
+/* ----------------------- GET USER BY ID ----------------------- */
+/**
+ * @swagger
+ * /api/user/{id}:
+ *   get:
+ *     summary: Get a single user by ID
+ *     tags: [User]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ObjectId of the user
+ *     responses:
+ *       200:
+ *         description: User data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Invalid user ID format
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
+ */
+  export async function getUserById(req: Request, res: Response) {
+    try {
+      const { id } = req.params; 
+
+      
+      if (!Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: 'Invalid user ID format.' });
+      }
+
+      
+      const user = await UserRepository.findById(id);
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found.' });
+      }
+
+      return res.status(200).json(user);
+
+    } catch (error) {
+      console.error('Error fetching user by ID:', error);
+      return res.status(500).json({ message: 'Internal server error.' });
+    }
+  }

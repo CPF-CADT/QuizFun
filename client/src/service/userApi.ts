@@ -76,4 +76,7 @@ export const userApi = {
   resetPassword: (payload: { resetToken: string; newPassword: string; confirmPassword: string }) => {
     return apiClient.post('/user/reset-password', payload);
   },
+  getUserById: (userId: string) => {
+    return apiClient.get(`/user/${userId}`);
+  },
 };
