@@ -594,8 +594,8 @@ export async function verifyCode(req: Request, res: Response): Promise<void> {
 //     console.error("Refresh attempt failed: Token verification error.", err);
 //     res.clearCookie("refreshToken", {
 //       httpOnly: true,
-//       secure: config.nodeEnv === "production",
-//       sameSite: "strict",
+//       secure: true,
+//       sameSite: "none",
 //     });
 //     res.status(403).json({ message: "Invalid or expired refresh token" });
 //     return;
@@ -605,7 +605,7 @@ export async function verifyCode(req: Request, res: Response): Promise<void> {
 //     const storedToken = await redisClient.get(`refreshToken:${decodedUser.id}`);
 
 //     if (!storedToken) {
-//         res.clearCookie("refreshToken", { httpOnly: true, secure: config.nodeEnv === "production", sameSite: "strict" });
+//         res.clearCookie("refreshToken", { httpOnly: true, secure: true, sameSite: "none" });
 //         res.status(403).json({ message: "Session not found. Please log in again." });
 //         return
 //     }
@@ -617,8 +617,8 @@ export async function verifyCode(req: Request, res: Response): Promise<void> {
 //       await redisClient.del(`refreshToken:${decodedUser.id}`);
 //       res.clearCookie("refreshToken", {
 //         httpOnly: true,
-//         secure: config.nodeEnv === "production",
-//         sameSite: "strict",
+//         secure: true,
+//         sameSite: "none",
 //       });
 //       res
 //         .status(403)
@@ -644,8 +644,8 @@ export async function verifyCode(req: Request, res: Response): Promise<void> {
 //     // Set the new cookie on the client
 //     res.cookie("refreshToken", newTokens.refreshToken, {
 //       httpOnly: true,
-//       secure: config.nodeEnv === "production",
-//       sameSite: "strict",
+//       secure: true,
+//       sameSite: "none",
 //       maxAge: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
 //     });
 
@@ -679,8 +679,8 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
   } catch (err) {
     res.clearCookie("refreshToken", {
       httpOnly: true,
-      secure: config.nodeEnv === "production",
-      sameSite: "strict",
+      secure: true,
+      sameSite: "none",
     });
     res.status(403).json({ message: "Invalid or expired refresh token" });
     return;
@@ -692,8 +692,8 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
     if (!storedToken || storedToken !== token) {
       res.clearCookie("refreshToken", {
         httpOnly: true,
-        secure: config.nodeEnv === "production",
-        sameSite: "strict",
+        secure: true,
+        sameSite: "none",
       });
       res.status(403).json({ message: "Session not found. Please log in again." });
       return;
@@ -766,8 +766,8 @@ export async function logout(req: Request, res: Response): Promise<void> {
 
   const cookieOptions = {
     httpOnly: true,
-    secure: config.nodeEnv === "production",
-    sameSite: "strict" as const,
+    secure: true,
+    sameSite: "none" as const,
   };
 
   res.clearCookie("refreshToken", cookieOptions);
@@ -1058,8 +1058,8 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
 
 //     res.cookie("refreshToken", tokens.refreshToken, {
 //       httpOnly: true,
-//       secure: config.nodeEnv === "production",
-//       sameSite: "strict",
+//       secure: true,
+//       sameSite: "none",
 //       maxAge: REFRESH_TOKEN_COOKIE_EXPIRATION_MS,
 //     });
 
@@ -1107,8 +1107,8 @@ async function handleSuccessfulLogin(
     // Set the refresh token cookie
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: config.nodeEnv === "production",
-      sameSite: "strict",
+      secure: true,
+      sameSite: "none",
       maxAge: REFRESH_TOKEN_EXPIRATION_SECONDS * 1000, // cookie expects ms
     });
 
