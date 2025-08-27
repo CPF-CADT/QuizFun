@@ -98,6 +98,7 @@ const DashboardPage: React.FC = () => {
     { label: "Launch Game", icon: Play, onClick: handleLaunchGame, style: "bg-gradient-to-r from-emerald-500 to-green-500 text-white" },
   ];
 
+<<<<<<< HEAD
   return (
     <div className="flex min-h-screen relative overflow-hidden">
       <Toaster position="top-center" />
@@ -140,8 +141,86 @@ const DashboardPage: React.FC = () => {
       <PDFImportModal isOpen={isPDFImportModalOpen} onClose={() => setPDFImportModalOpen(false)} onImportSuccess={fetchUserQuizzes} />
       <TemplateLibraryModal isOpen={isTemplateModalOpen} onClose={() => setIsTemplateModalOpen(false)} />
       <BugReportModal isOpen={isBugReportModalOpen} onClose={() => setBugReportModalOpen(false)} onSubmit={handleBugReportSubmit} />
+=======
+ return (
+  <div className="flex min-h-screen relative overflow-hidden">
+    <Sidebar
+      activeSection={activeSection}
+      setActiveSection={setActiveSection}
+      sidebarOpen={sidebarOpen}
+      setSidebarOpen={setSidebarOpen}
+      currentTime={currentTime}
+    />
+    <div className="flex-1 flex flex-col ml-2.5 mt-7 min-h-screen">
+      <Header
+        setSidebarOpen={setSidebarOpen}
+        onNewQuizClick={() => setCreateModalOpen(true)}
+        onPDFImportClick={() => setPDFImportModalOpen(true)}
+        onShowTemplatesClick={() => setIsTemplateModalOpen(true)}
+      />
+      <main
+        className={`mr-15 flex-1 p-4 lg:p-8 transition-all duration-1000 ${
+          isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+        }`}
+      >
+        <StatCardGrid stats={stats} />
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8 ml-10">
+          <div className="xl:col-span-2">
+            <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-xl">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Your Latest Quizzes
+                </h2>
+                <Link
+                  to="/my-quizz"
+                  className="flex items-center text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+                >
+                  View All
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Link>
+              </div>
+              {recentQuizzes.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {recentQuizzes.map((quiz, index) => (
+                    <QuizCard
+                      key={quiz._id}
+                      quiz={quiz}
+                      index={index}
+                      actions={cardActions}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10 text-gray-500">
+                  You haven't created any quizzes yet.
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="xl:col-span-1">
+            <ActivityFeed />
+          </div>
+        </div>
+        <FeaturedQuiz />
+      </main>
+>>>>>>> 874a002f996d6f1d2dcb1a662a4322b18ba1f4c3
     </div>
-  );
+
+    <CreateQuizModal
+      isOpen={isCreateModalOpen}
+      onClose={() => setCreateModalOpen(false)}
+    />
+    <PDFImportModal
+      isOpen={isPDFImportModalOpen}
+      onClose={() => setPDFImportModalOpen(false)}
+      onImportSuccess={() => fetchUserQuizzes()}
+    />
+    <TemplateLibraryModal
+      isOpen={isTemplateModalOpen}
+      onClose={() => setIsTemplateModalOpen(false)}
+    />
+  </div>
+);
 };
 
 export default DashboardPage;
