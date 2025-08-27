@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuizGame, type Participant } from '../context/GameContext';
+import { useQuizGame, type Participant } from '../context/GameContext'; // Assuming types are exported from your context
 import { PerformanceDetailModal } from '../components/PerformanceDetailModal';
 
-// Import the new sub-components
+// Import the new animated sub-components
 import { LobbyView } from '../components/game/LobbyView';
 import { QuestionView } from '../components/game/QuestionView';
 import { ResultsView } from '../components/game/ResultsView';
@@ -14,20 +14,23 @@ export type PlayerIdentifier = { userId: string } | { guestName: string };
 
 const GamePage: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
-    const { gameState, startGame, submitAnswer, requestNextQuestion, endGame, fetchFinalResults, updateSettings,userSeleted} = useQuizGame();
+    // Make sure your useQuizGame hook provides all these values
+    const { gameState, startGame, submitAnswer, requestNextQuestion, endGame, fetchFinalResults, updateSettings, userSeleted } = useQuizGame();
     const [selectedPlayer, setSelectedPlayer] = useState<PlayerIdentifier | null>(null);
     const navigate = useNavigate();
-    const me = useMemo(() => 
+
+    const me = useMemo(() =>
         gameState.participants.find((p: Participant) => p.user_id === gameState.yourUserId),
-    [gameState.participants, gameState.yourUserId]);
+        [gameState.participants, gameState.yourUserId]
+    );
 
     const reconnectedAnswer = useMemo(() => {
-        if ((userSeleted) && userSeleted.questionNo === gameState.currentQuestionIndex) {
-            console.log('reonn',userSeleted.option)
+        if (userSeleted && userSeleted.questionNo === gameState.currentQuestionIndex) {
             return userSeleted.option;
         }
         return null;
     }, [userSeleted, gameState.currentQuestionIndex]);
+
     useEffect(() => {
         if (!gameState || !gameState.sessionId) {
             const timer = setTimeout(() => {
@@ -42,14 +45,14 @@ const GamePage: React.FC = () => {
 
     const isRegisteredUser = (id: string | null): boolean => {
         if (!id) return false;
+        // Basic ObjectId check
         return /^[0-9a-fA-F]{24}$/.test(id);
     };
 
     const handleViewMyPerformance = () => {
         if (!me) return;
-
         if (isRegisteredUser(gameState.yourUserId)) {
-            setSelectedPlayer({ userId: gameState.yourUserId });
+            setSelectedPlayer({ userId: gameState.yourUserId! });
         } else {
             setSelectedPlayer({ guestName: me.user_name });
         }
@@ -65,37 +68,35 @@ const GamePage: React.FC = () => {
 
     const renderGameState = () => {
         if (gameState.finalResults && gameState.sessionId && gameState.yourUserId) {
-             return <GameResultDetails 
-                payload={gameState.finalResults} 
+            return <GameResultDetails
+                payload={gameState.finalResults}
                 sessionId={gameState.sessionId}
                 yourUserId={gameState.yourUserId}
-                onExit={endGame} 
+                onExit={endGame}
                 setSelectedPlayer={setSelectedPlayer}
-             />;
+            />;
         }
 
         switch (gameState.gameState) {
             case 'lobby':
                 return <LobbyView gameState={gameState} onStartGame={startGame} onSettingsChange={updateSettings} />;
             case 'question':
-                return <QuestionView 
-                    gameState={gameState} 
+                return <QuestionView
+                    gameState={gameState}
                     onSubmitAnswer={(optionIndex) => submitAnswer({
-                        roomId: gameState.roomId,
-                        userId: gameState.yourUserId,
+                        roomId: gameState.roomId!,
+                        userId: gameState.yourUserId!,
                         optionIndex
-                    })} 
-                    onNextQuestion={() => {
-                        requestNextQuestion(gameState.roomId) 
-                    }}
+                    })}
+                    onNextQuestion={() => requestNextQuestion(gameState.roomId!)}
                     userSeleted={reconnectedAnswer}
                 />;
             case 'results':
-                return <ResultsView gameState={gameState} onNextQuestion={() => requestNextQuestion(gameState.roomId)} />;
+                return <ResultsView gameState={gameState} onNextQuestion={() => requestNextQuestion(gameState.roomId!)} />;
             case 'end':
-                return <GameOverView 
-                    isHost={me?.role === 'host'} 
-                    onFetchResults={() => fetchFinalResults(gameState.sessionId)} 
+                return <GameOverView
+                    isHost={me?.role === 'host'}
+                    onFetchResults={() => fetchFinalResults(gameState.sessionId!)}
                     onViewMyPerformance={handleViewMyPerformance}
                     sessionId={gameState.sessionId}
                     userId={gameState.yourUserId}
@@ -106,9 +107,10 @@ const GamePage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center p-4 overflow-hidden">
             {renderGameState()}
-            <PerformanceDetailModal 
+            {/* Ensure PerformanceDetailModal is implemented or remove if not needed */}
+            <PerformanceDetailModal
                 isOpen={selectedPlayer !== null}
                 onClose={() => setSelectedPlayer(null)}
                 sessionId={gameState.sessionId || ''}

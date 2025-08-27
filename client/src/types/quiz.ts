@@ -1,9 +1,17 @@
-// src/types/quiz.ts
-
 export interface IOption {
   _id?: string;
   text: string;
   isCorrect: boolean;
+}
+
+export interface IQuestion {
+  _id?: string;
+  questionText: string;
+  point: number;
+  timeLimit: number;
+  options: IOption[];
+  imageUrl?: string; // <-- ADD THIS LINE
+  tags?: string[];
 }
 
 export interface IQuiz {
@@ -27,7 +35,6 @@ export interface IQuizCreate {
   dificulty: 'Easy' | 'Medium' | 'Hard';
   visibility: 'public' | 'private';
 }
-// src/types/quiz.ts
 
 export interface IQuizTemplate {
     id: number;
@@ -36,23 +43,6 @@ export interface IQuizTemplate {
     background: string;
     gradient: string;
     sidebarGradient: string;
-}
-// src/types/quiz.ts
-
-export interface IOption {
-  _id?: string;
-  text: string;
-  isCorrect: boolean;
-}
-
-export interface IQuestion {
-  _id?: string;
-  questionText: string;
-  point: number; // Must be required
-  timeLimit: number; // Must be required
-  options: IOption[];
-  imageUrl?: string;
-  tags?: string[];
 }
 
 export type Dificulty = 'Hard' | 'Medium' | 'Easy';

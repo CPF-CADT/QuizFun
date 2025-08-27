@@ -6,7 +6,7 @@ import { swaggerSpec } from './service/swaggerConfig';
 import userRouter from './routes/users.route';
 import quizzRouter from './routes/quizz.route';
 import { errHandle } from './middleware/errHandle.middleware';
-import { serviceRouter } from './routes/service.route';
+import serviceRouter from './routes/service.route';
 import {gameRouter} from './routes/game.route';
 import { reportRouter } from './routes/report.route';
 import { config } from './config/config';
