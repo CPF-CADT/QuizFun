@@ -30,7 +30,7 @@ export interface IQuiz {
   dificulty: Dificulty;
   templateImgUrl?: string;
   questions: IQuestion[];
-  tags?: string[];
+  tags?:any;
   createdAt: string;
   updatedAt: string;
 }
@@ -43,7 +43,7 @@ export interface ICreateQuizPayload {
   visibility: 'public' | 'private';
   dificulty: Dificulty;
   templateImgUrl?: string;
-  tags: string[];
+  tags: string;
 }
 
 export interface IGetAllQuizzesParams {
@@ -84,10 +84,17 @@ export interface IUpdateQuizPayload {
   description?: string;
   visibility: 'public' | 'private';
   dificulty: Dificulty;
-  tags?: string[];
+  tags?: any;
 }
 
 export const quizApi = {
+  addBugReport(report: { title: string; description: string; rating: number }){
+    return apiClient.post('/bug-report', {
+        title: report.title,
+        description: report.description,
+        rating: report.rating, 
+      });
+  },
   getAllQuizzes: (params: IGetAllQuizzesParams): Promise<AxiosResponse<IQuizPaginatedResponse>> => {
     return apiClient.get<IQuizPaginatedResponse>('/quizz', { params });
   },

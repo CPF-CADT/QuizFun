@@ -17,6 +17,7 @@ export const setupAuthInterceptors = (
       if (accessTokenRef.current) {
         config.headers.Authorization = `Bearer ${accessTokenRef.current}`;
       }
+      config.headers['x-api-key'] = import.meta.env.VITE_FRONTEND_API_KEY;
       return config;
     },
     (error) => Promise.reject(error)
@@ -184,7 +185,7 @@ export const authApi = {
 };
 
 export const apiService ={
-   uploadImageToCloudinary: async (file: string | Blob) => {
+  uploadImageToCloudinary: async (file: File | Blob) => { 
     const formData = new FormData();
     formData.append('image', file);
 

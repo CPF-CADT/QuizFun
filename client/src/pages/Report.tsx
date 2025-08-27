@@ -4,14 +4,10 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { TrendingUp, Target, Search, MessageSquare } from "lucide-react";
 import Sidebar from "../components/dashboard/Sidebar";
-import { 
-    PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, 
-    BarChart, Bar, XAxis, YAxis, CartesianGrid 
-} from "recharts";
-import { quizApi, type IQuiz } from "../service/quizApi";
 import { reportApi, type IQuizAnalytics } from "../service/reportApi";
 import { useDebounce } from '../hook/useDebounce';
 import { FeedbackModal } from "../components/report/FeedbackModal";
+import type { IQuiz } from "../types/quiz";
 
 const Report: React.FC = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
