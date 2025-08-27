@@ -1,8 +1,6 @@
 
 import { Request, Response } from 'express';
 import { uploadImage } from '../service/FileUpload';
-import { FileUploadModel } from '../model/FileUpload';
-import fs from 'fs';
 /**
  * @swagger
  * /api/user/profile-detail:
@@ -70,12 +68,11 @@ import fs from 'fs';
  */
 
 
-type UploadImage = 'user_ProfilePic' | 'quizz_Image' |'n/a';
 interface MulterRequest extends Request {
   file?: Express.Multer.File; 
 }
 
-export const handleImageUpload = (category: UploadImage ='n/a') => { return async  (req: MulterRequest, res: Response) => {
+export const handleImageUpload = () => { return async  (req: MulterRequest, res: Response) => {
   console.log('Controller received request to upload an image.');
 
   try {
@@ -87,20 +84,9 @@ export const handleImageUpload = (category: UploadImage ='n/a') => { return asyn
     const uploadResult = await uploadImage(imageBuffer);
 
     console.log('Image uploaded successfully to Cloudinary.');
-     const fileDocument = new FileUploadModel({
-      title: req.file.originalname, 
-      type: req.file.mimetype,
-      category,
-      url: uploadResult.secure_url,
-    });
-
-    await fileDocument.save();
-    console.log('Image info saved to MongoDB.');
     res.status(200).json({
       message: 'Image uploaded successfully!',
       url: uploadResult.secure_url,
-      type: req.file.mimetype,
-      category,
       public_id: uploadResult.public_id,
     });
   } catch (error) {

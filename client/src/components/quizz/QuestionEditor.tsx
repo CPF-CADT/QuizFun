@@ -4,7 +4,6 @@ import { QuestionConfigPanel, type QuestionType } from "./QuestionConfigPanel";
 import type { IOption } from "../../types/quiz";
 import { AutoGrowTextarea } from "../common/AutoGrowTextarea";
 
-// --- Props for the controlled component ---
 interface QuestionEditorProps {
   questionText: string;
   onQuestionTextChange: (value: string) => void;
@@ -19,6 +18,8 @@ interface QuestionEditorProps {
   onTimeLimitChange: (time: number) => void;
   isEditing: boolean;
   questionNumber: number;
+  // This prop will receive the fully built ImageUploader component
+  imageUploaderComponent: React.ReactNode;
 }
 
 export const QuestionEditor: React.FC<QuestionEditorProps> = (props) => {
@@ -39,6 +40,11 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = (props) => {
             placeholder="Start typing your question..."
             className="w-full text-center text-3xl bg-transparent outline-none placeholder-gray-400 font-medium text-gray-800 border-b-2 border-gray-200 focus:border-indigo-500 transition-colors pb-4 resize-none overflow-hidden"
           />
+
+          {/* Render the ImageUploader component passed via props */}
+          <div className="mt-8 flex justify-center">
+            {props.imageUploaderComponent}
+          </div>
         </div>
 
         {/* Answer Options Grid */}

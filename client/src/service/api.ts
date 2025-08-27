@@ -184,7 +184,7 @@ export const authApi = {
 };
 
 export const apiService ={
-   uploadImageToCloudinary: async (file: string | Blob) => {
+  uploadImageToCloudinary: async (file: File | Blob) => { 
     const formData = new FormData();
     formData.append('image', file);
 
