@@ -1,9 +1,10 @@
+// GamePage.tsx
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuizGame, type Participant } from '../context/GameContext'; // Assuming types are exported from your context
+import { useQuizGame, type Participant } from '../context/GameContext';
 import { PerformanceDetailModal } from '../components/PerformanceDetailModal';
 
-// Import the new animated sub-components
 import { LobbyView } from '../components/game/LobbyView';
 import { QuestionView } from '../components/game/QuestionView';
 import { ResultsView } from '../components/game/ResultsView';
@@ -14,7 +15,6 @@ export type PlayerIdentifier = { userId: string } | { guestName: string };
 
 const GamePage: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
-    // Make sure your useQuizGame hook provides all these values
     const { gameState, startGame, submitAnswer, requestNextQuestion, endGame, fetchFinalResults, updateSettings, userSeleted } = useQuizGame();
     const [selectedPlayer, setSelectedPlayer] = useState<PlayerIdentifier | null>(null);
     const navigate = useNavigate();
@@ -32,20 +32,18 @@ const GamePage: React.FC = () => {
     }, [userSeleted, gameState.currentQuestionIndex]);
 
     useEffect(() => {
-        if (!gameState || !gameState.sessionId) {
-            const timer = setTimeout(() => {
-                if (!gameState || !gameState.sessionId) {
-                    console.log("No active session found, redirecting.");
-                    navigate('/dashboard');
-                }
-            }, 2500);
-            return () => clearTimeout(timer);
-        }
+        // Redirect if no session is found after a short delay
+        const timer = setTimeout(() => {
+            if (!gameState || !gameState.sessionId) {
+                console.log("No active session found, redirecting.");
+                navigate('/dashboard');
+            }
+        }, 3000);
+        return () => clearTimeout(timer);
     }, [sessionId, gameState, navigate]);
 
     const isRegisteredUser = (id: string | null): boolean => {
         if (!id) return false;
-        // Basic ObjectId check
         return /^[0-9a-fA-F]{24}$/.test(id);
     };
 
@@ -61,7 +59,10 @@ const GamePage: React.FC = () => {
     if (!gameState || !gameState.sessionId) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center p-4">
-                <div className="text-2xl font-bold animate-pulse">Initializing Game...</div>
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-10 h-10 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <div className="text-xl font-semibold">Connecting to Game...</div>
+                </div>
             </div>
         );
     }
@@ -70,10 +71,10 @@ const GamePage: React.FC = () => {
         if (gameState.finalResults && gameState.sessionId && gameState.yourUserId) {
             return <GameResultDetails
                 payload={gameState.finalResults}
-                sessionId={gameState.sessionId}
                 yourUserId={gameState.yourUserId}
                 onExit={endGame}
                 setSelectedPlayer={setSelectedPlayer}
+                isHost={me?.role === 'host'}
             />;
         }
 
@@ -102,14 +103,15 @@ const GamePage: React.FC = () => {
                     userId={gameState.yourUserId}
                 />;
             default:
-                return <div className="text-2xl font-bold animate-pulse">Connecting...</div>;
+                return <div className="text-xl font-semibold animate-pulse">Loading...</div>;
         }
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center p-4 overflow-hidden">
-            {renderGameState()}
-            {/* Ensure PerformanceDetailModal is implemented or remove if not needed */}
+        <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center p-2 sm:p-4 overflow-auto">
+            <div className="w-full h-full flex items-center justify-center">
+                {renderGameState()}
+            </div>
             <PerformanceDetailModal
                 isOpen={selectedPlayer !== null}
                 onClose={() => setSelectedPlayer(null)}
