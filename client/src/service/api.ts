@@ -17,6 +17,7 @@ export const setupAuthInterceptors = (
       if (accessTokenRef.current) {
         config.headers.Authorization = `Bearer ${accessTokenRef.current}`;
       }
+      config.headers['x-api-key'] = import.meta.env.VITE_FRONTEND_API_KEY;
       return config;
     },
     (error) => Promise.reject(error)
