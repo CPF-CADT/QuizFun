@@ -15,6 +15,9 @@ interface QuizCardProps {
   actions?: CardAction[];
 }
 
+const colors = ['bg-red-500', 'bg-green-500', 'bg-blue-500', 'bg-yellow-500', 'bg-purple-500'];
+  const getRandomColor = () => colors[Math.floor(Math.random() * colors.length)];
+  
 const difficultyConfig = {
   Easy: { 
     bg: 'bg-emerald-50', 
@@ -44,7 +47,8 @@ export const QuizCard: React.FC<QuizCardProps> = ({ quiz, index, actions = [] })
       className="group flex flex-col relative bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-lg border border-white/20 hover:shadow-2xl hover:scale-105 transform transition-all duration-500 overflow-hidden"
       style={{ animationDelay: `${index * 100}ms` }}
     >
-      <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${difficulty.gradient}`}></div>
+      {/* <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${difficulty.gradient}`}></div> */}
+      <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${getRandomColor()}`}></div>
       
       <div className="flex-grow">
         <div className="mb-4 mt-2">

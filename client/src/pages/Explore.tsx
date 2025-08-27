@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {  useState } from 'react';
 // import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import Sidebar from '../components/dashboard/Sidebar';
@@ -120,7 +120,8 @@ const Explore: React.FC = () => {
     setSearchQuery(searchTerm);
     setCurrentPage(1);
   };
-
+  const colors = ['bg-red-500', 'bg-green-500', 'bg-blue-500', 'bg-yellow-500', 'bg-purple-500'];
+  const getRandomColor = () => colors[Math.floor(Math.random() * colors.length)];
   useEffect(() => {
     const fetchQuizzes = async () => {
       const isNewSearch = currentPage === 1;
@@ -224,7 +225,7 @@ const newNames = userResponses.reduce((acc, res) => {
     return categoryColors[category as keyof typeof categoryColors] || categoryColors.Default;
   };
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-gray-50">
       <Sidebar 
         activeSection={activeSection}
         setActiveSection={setActiveSection}
@@ -232,7 +233,7 @@ const newNames = userResponses.reduce((acc, res) => {
         setSidebarOpen={setSidebarOpen}
         currentTime={currentTime}
       />
-      <div className="flex-1 relative z-10">
+      <div className="flex-1 relative z-10 p-8 md:p-10">
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-r from-emerald-400/20 to-blue-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
@@ -304,7 +305,7 @@ const newNames = userResponses.reduce((acc, res) => {
                 <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                   {quizzes.map((quiz, index) => (
                     <div key={`${quiz.id}-${index}`} className="group relative bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-lg border border-white/20 hover:shadow-2xl hover:scale-105 transform transition-all duration-500 overflow-hidden">
-                      <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${getCategoryColor(quiz.category)}`}></div>
+                      <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${getRandomColor()}`}></div>
                       
                       <div className="absolute top-4 right-4 text-right">
                         {quiz.popularity > 1000 && (
@@ -323,8 +324,8 @@ const newNames = userResponses.reduce((acc, res) => {
                       </div>
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
-                          <div className={`w-8 h-8 bg-gradient-to-r ${getCategoryColor(quiz.category)} rounded-lg flex items-center justify-center`}>
-                            <BookOpen className="w-4 h-4 text-white" />
+                          <div className={`w-8 h-8 bg-gradient-to-r ${getRandomColor()} rounded-lg flex items-center justify-center`}>
+                            <BookOpen className="w-4 h-4 text-white " />
                           </div>
                           <span className="text-sm font-medium text-gray-700">{quiz.category}</span>
                         </div>
