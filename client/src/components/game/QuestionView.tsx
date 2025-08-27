@@ -1,6 +1,8 @@
+// QuestionView.tsx
+
 import React, { useEffect, useState, useMemo } from 'react';
 import type { GameState } from '../../context/GameContext';
-import { Trophy, Crown } from 'lucide-react';
+import { Trophy, Zap } from 'lucide-react';
 
 interface QuestionViewProps {
     gameState: GameState;
@@ -13,7 +15,6 @@ export const QuestionView: React.FC<QuestionViewProps> = ({ gameState, onSubmitA
     const { question, yourUserId, participants, currentQuestionIndex, totalQuestions, questionStartTime, settings } = gameState;
     const [timeLeft, setTimeLeft] = useState(question?.timeLimit || 0);
     const [selectedOption, setSelectedOption] = useState<number | null>(null);
-    const [questionAnimation, setQuestionAnimation] = useState('animate-fade-in-up');
     const me = participants.find(p => p.user_id === yourUserId);
     const isHost = me?.role === 'host';
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,11 +25,8 @@ export const QuestionView: React.FC<QuestionViewProps> = ({ gameState, onSubmitA
     }, [settings.allowAnswerChange, me?.hasAnswered, isSubmitting]);
 
     useEffect(() => {
-        setQuestionAnimation('animate-fade-in-up');
         setSelectedOption(userSeleted ?? null);
         setIsSubmitting(false);
-        const timer = setTimeout(() => setQuestionAnimation(''), 500);
-        return () => clearTimeout(timer);
     }, [currentQuestionIndex, userSeleted]);
 
     useEffect(() => {
@@ -48,156 +46,138 @@ export const QuestionView: React.FC<QuestionViewProps> = ({ gameState, onSubmitA
 
     const handlePlayerAnswer = (index: number) => {
         if (isHost || isAnswerLocked) return;
-        if (settings.allowAnswerChange && index === selectedOption) return;
-        
         setSelectedOption(index);
         onSubmitAnswer(index);
-        
         if (!settings.allowAnswerChange) {
             setIsSubmitting(true);
         }
     };
 
     const getAnswerButtonClass = (index: number) => {
-        const base = "relative overflow-hidden rounded-2xl p-6 text-left transition-all duration-500 transform border-2 shadow-lg group hover:shadow-2xl";
+        const base = "w-full text-left p-4 rounded-xl transition-all duration-300 transform border-2 shadow-lg group";
         const colors = [
-            "from-purple-500 to-purple-600 hover:from-purple-400 hover:to-purple-500",
-            "from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500",
-            "from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500",
-            "from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500"
+            "border-purple-400 bg-purple-500/30 hover:bg-purple-500/50 hover:shadow-purple-400/50",
+            "border-emerald-400 bg-emerald-500/30 hover:bg-emerald-500/50 hover:shadow-emerald-400/50",
+            "border-orange-400 bg-orange-500/30 hover:bg-orange-500/50 hover:shadow-orange-400/50",
+            "border-rose-400 bg-rose-500/30 hover:bg-rose-500/50 hover:shadow-rose-400/50"
         ];
-        if (isHost) return `${base} bg-gray-700 text-gray-400 opacity-70 cursor-not-allowed`;
+
+        if (isHost) return `${base} bg-gray-800/50 border-gray-700 cursor-not-allowed`;
+        
         const isSelected = index === selectedOption;
         if (isAnswerLocked) {
             return isSelected
-                ? `${base} bg-gradient-to-br from-blue-500 to-blue-600 ring-4 ring-blue-300 animate-pulse-glow scale-105 cursor-not-allowed`
-                : `${base} bg-gray-700 text-gray-400 opacity-50 cursor-not-allowed`;
-        }
-        if (settings.allowAnswerChange && isSelected) {
-            return `${base} bg-gray-500 text-gray-200 opacity-50 cursor-not-allowed`;
+                ? `${base} bg-blue-500/60 border-blue-300 scale-105 shadow-blue-300/60 cursor-not-allowed animate-pulse`
+                : `${base} bg-gray-800/40 border-gray-700 opacity-40 cursor-not-allowed`;
         }
         if (isSelected) {
-            return `${base} bg-gradient-to-br from-blue-500 to-blue-600 ring-4 ring-blue-300 animate-selected scale-105`;
+            return `${base} bg-blue-500/60 border-blue-300 scale-105 shadow-blue-300/60`;
         }
-        return `${base} bg-gradient-to-br ${colors[index % 4]} cursor-pointer hover:scale-105 hover:-rotate-1 animate-option-appear`;
+        return `${base} ${colors[index % 4]} cursor-pointer hover:scale-105 hover:-rotate-1`;
     };
-
-    const sortedPlayers = useMemo(() => 
-        [...participants].filter(p => p.role === 'player').sort((a, b) => b.score - a.score), 
-        [participants]
-    );
 
     if (!question || !me) {
         return (
-            <div className="text-2xl font-bold">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Loading next question...
-                </div>
+            <div className="flex items-center justify-center h-screen">
+                <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
             </div>
         );
     }
 
     return (
-        <div className="w-full h-full min-h-screen flex flex-col">
-            <header className="flex items-center justify-between p-6 bg-black/20 backdrop-blur-sm border-b border-white/10 animate-slide-down">
-                <div className="flex items-center space-x-2 bg-white/10 rounded-full px-4 py-2 hover:bg-white/20 transition-all duration-300">
-                    <Trophy className="w-5 h-5 text-yellow-400 animate-bounce" />
-                    <span className="font-bold text-lg counter-animation">{me.score.toLocaleString()}</span>
+        <div className="w-full h-full min-h-screen flex flex-col p-4 bg-grid-pattern">
+            <header className="flex items-center justify-between p-3 sm:p-4 bg-black/30 backdrop-blur-sm rounded-xl mb-4 border border-white/10 shadow-lg">
+                <div className="flex items-center space-x-2 bg-white/10 rounded-full px-4 py-2 transition-transform hover:scale-105">
+                    <Trophy className="w-5 h-5 text-yellow-300 animate-pulse" />
+                    <span className="font-bold text-lg text-white shadow-text">{me.score.toLocaleString()}</span>
                 </div>
-                <div className="text-center font-bold text-xl animate-fade-in">
-                    Question {currentQuestionIndex + 1} / {totalQuestions}
+                <div className="text-center font-bold text-lg text-white/90 shadow-text">
+                    {currentQuestionIndex + 1} / {totalQuestions}
                 </div>
-                <div className="relative w-24 h-24 flex items-center justify-center">
-                    <div className={`absolute inset-0 rounded-full border-4 ${timeLeft > 10 ? 'border-green-400' : timeLeft > 5 ? 'border-yellow-400' : 'border-red-400'} transition-colors duration-300`}></div>
-                    <div className={`absolute inset-0 rounded-full border-4 border-transparent ${timeLeft > 10 ? 'border-t-green-400' : timeLeft > 5 ? 'border-t-yellow-400' : 'border-t-red-400'} animate-spin-slow`}></div>
-                    <span className={`text-4xl font-bold z-10 ${timeLeft > 5 ? 'text-white' : 'text-red-400 animate-pulse-fast'} transition-all duration-300`}>{timeLeft}</span>
+                <div className={`relative w-20 h-20 flex items-center justify-center font-bold text-3xl ${timeLeft <= 5 ? 'text-red-400 animate-pulse-fast' : 'text-white'}`}>
+                    <svg className="absolute w-full h-full" viewBox="0 0 100 100">
+                        <circle className="text-gray-700" strokeWidth="8" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" />
+                        <circle
+                            className={`${timeLeft > 10 ? 'text-green-400' : timeLeft > 5 ? 'text-yellow-400' : 'text-red-400'}`}
+                            strokeWidth="8"
+                            strokeDasharray={2 * Math.PI * 45}
+                            strokeDashoffset={(2 * Math.PI * 45) * (1 - timeLeft / (question.timeLimit || 1))}
+                            strokeLinecap="round"
+                            stroke="currentColor"
+                            fill="transparent"
+                            r="45"
+                            cx="50"
+                            cy="50"
+                            style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%', transition: 'stroke-dashoffset 1s linear, stroke 0.5s ease' }}
+                        />
+                    </svg>
+                    {timeLeft}
                 </div>
             </header>
 
-            <main className={`flex-1 flex p-8 gap-8 ${isHost ? 'flex-row items-start' : 'flex-col items-center justify-center'}`}>
-                <div className="flex flex-col items-center justify-center space-y-6 flex-1">
-                    <h1 className={`text-3xl md:text-5xl font-bold text-center ${questionAnimation} question-glow`}>{question.questionText}</h1>
+            <main className="flex-1 flex flex-col items-center justify-center animate-fade-in-up">
+                <div className="w-full max-w-3xl bg-black/30 backdrop-blur-md border border-white/10 rounded-2xl p-6 shadow-2xl">
+                    <h1 className="text-2xl md:text-4xl font-bold text-center mb-6 text-white question-glow">{question.questionText}</h1>
                     
-                    {/* --- NEW: IMAGE DISPLAY --- */}
                     {question.imageUrl && (
-                        <div className="w-full max-w-lg h-64 my-4 rounded-lg shadow-lg overflow-hidden animate-fade-in-up">
-                            <img src={question.imageUrl} alt="Question visual" className="w-full h-full object-contain" />
+                        <div className="w-full max-w-lg mx-auto h-48 sm:h-64 my-4 rounded-lg overflow-hidden shadow-lg border-2 border-white/10">
+                            <img src={question.imageUrl} alt="Question" className="w-full h-full object-contain" />
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-5xl">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                         {question.options.map((answer, index) => (
                             <button 
                                 key={index} 
                                 onClick={() => handlePlayerAnswer(index)} 
                                 className={getAnswerButtonClass(index)}
-                                style={{ animationDelay: `${index * 150}ms` }}
-                                disabled={isHost || isAnswerLocked || (settings.allowAnswerChange && selectedOption === index)}
+                                disabled={isHost || isAnswerLocked}
                             >
-                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                                <div className="flex items-center space-x-4 relative z-10">
-                                    <div className={`w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-xl font-bold transition-all duration-300 ${index === selectedOption ? 'animate-bounce' : 'group-hover:scale-110'}`}>
-                                        {String.fromCharCode(65 + index)}
+                                <div className="flex items-center space-x-4">
+                                    <div className={`w-10 h-10 flex items-center justify-center text-xl font-bold text-white shape-${['diamond', 'triangle', 'circle', 'square'][index % 4]}`}>
+                                       <Zap size={20}/>
                                     </div>
-                                    <span className="text-xl font-semibold flex-1">{answer.text}</span>
+                                    <span className="text-base sm:text-lg font-semibold flex-1 text-white/95">{answer.text}</span>
                                 </div>
                             </button>
                         ))}
                     </div>
-                    {isHost && !settings.autoNext && (<button onClick={onNextQuestion} className="mt-8 px-8 py-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-all duration-300 hover:scale-105 animate-fade-in-up">Next Question</button>)}
-                    {!isHost && isAnswerLocked && (
-                        <div className="flex items-center gap-3 animate-pulse-glow">
-                            <div className="flex space-x-1">
-                                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
-                                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
-                                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
-                            </div>
-                            <p className="text-lg">Answer submitted! Waiting for results...</p>
-                        </div>
-                    )}
                 </div>
-                {isHost && (
-                    <div className="w-full md:w-1/3 bg-black/20 backdrop-blur-sm border border-white/10 rounded-2xl p-6 self-stretch animate-slide-in-right">
-                        <h2 className="text-2xl font-bold mb-4 text-center flex items-center justify-center gap-2">
-                            <Crown className="w-6 h-6 text-yellow-400" /> Live Leaderboard
-                        </h2>
-                        <ul className="space-y-3 max-h-[60vh] overflow-y-auto">
-                            {sortedPlayers.map((p, i) => (
-                                <li key={p.user_id} className="flex justify-between items-center bg-white/10 p-3 rounded-lg text-lg hover:bg-white/20 transition-all duration-300 animate-slide-in-left" style={{animationDelay: `${i * 100}ms`}}>
-                                    <div className="flex items-center gap-3">
-                                        <span className={`text-xl font-bold ${i === 0 ? 'text-yellow-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-orange-400' : 'text-gray-500'}`}>#{i + 1}</span>
-                                        <span className="font-semibold">{p.user_name}</span>
-                                    </div>
-                                    <span className="font-bold text-yellow-300">{p.score.toLocaleString()} pts</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
+                
+                {isHost && !settings.autoNext && (
+                    <button onClick={onNextQuestion} className="mt-8 px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold rounded-lg shadow-lg hover:scale-105 transition-transform">
+                        Next Question
+                    </button>
+                )}
+                {!isHost && isAnswerLocked && (
+                    <p className="mt-6 text-lg animate-pulse text-blue-300">Answer Locked In! Good luck!</p>
                 )}
             </main>
             <style>{`
-                @keyframes fade-in-up { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-                @keyframes slide-down { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-                @keyframes slide-in-right { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
-                @keyframes slide-in-left { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
-                @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); } 50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.8); } }
-                @keyframes pulse-fast { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-                @keyframes option-appear { from { opacity: 0; transform: translateY(20px) scale(0.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
-                @keyframes selected { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1.02); } }
-                @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-                .animate-fade-in-up { animation: fade-in-up 0.6s ease-out; }
-                .animate-slide-down { animation: slide-down 0.5s ease-out; }
-                .animate-slide-in-right { animation: slide-in-right 0.6s ease-out; }
-                .animate-slide-in-left { animation: slide-in-left 0.4s ease-out forwards; opacity: 0; }
-                .animate-pulse-glow { animation: pulse-glow 2s infinite; }
-                .animate-pulse-fast { animation: pulse-fast 0.5s infinite; }
-                .animate-option-appear { animation: option-appear 0.5s ease-out forwards; opacity: 0; }
-                .animate-selected { animation: selected 0.3s ease-out; }
-                .animate-spin-slow { animation: spin-slow 15s linear infinite; }
-                .question-glow { text-shadow: 0 0 20px rgba(255, 255, 255, 0.3); }
-                .counter-animation { transition: all 0.3s ease; }
-                .counter-animation:hover { transform: scale(1.1); }
+                .bg-grid-pattern {
+                    background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+                    background-size: 2rem 2rem;
+                }
+                .shadow-text {
+                    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+                }
+                .question-glow {
+                    text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+                }
+                .animate-pulse-fast {
+                    animation: pulse 0.8s infinite;
+                }
+                .shape-diamond { background-color: #a855f7; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+                .shape-triangle { background-color: #10b981; clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+                .shape-circle { background-color: #f97316; border-radius: 50%; }
+                .shape-square { background-color: #f43f5e; }
+                @keyframes fade-in-up {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .animate-fade-in-up {
+                    animation: fade-in-up 0.6s ease-out forwards;
+                }
             `}</style>
         </div>
     );
