@@ -28,11 +28,11 @@ const Header: React.FC<HeaderProps> = ({
         <div className="w-9"></div>
       </div>
 
-      <div className="mb-8 lg:mb-12 ml-10">
+      <div className="mb-8 lg:mb-12 ml-15">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
           <div>
             <h1 className="text-3xl lg:text-5xl font-bold mb-3">
-              <span className="bg-gradient-to-r from-gray-900 via-gray-700 to-gray-900 bg-clip-text text-transparent">
+              <span className="text-5xl lg:text-6xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-4">
                 Dashboard
               </span>
             </h1>
