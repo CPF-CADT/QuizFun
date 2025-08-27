@@ -681,6 +681,7 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       httpOnly: true,
       secure: true,
       sameSite: "none",
+      path: "/"
     });
     res.status(403).json({ message: "Invalid or expired refresh token" });
     return;
@@ -694,6 +695,7 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
         httpOnly: true,
         secure: true,
         sameSite: "none",
+        path: "/"
       });
       res.status(403).json({ message: "Session not found. Please log in again." });
       return;
@@ -1110,6 +1112,7 @@ async function handleSuccessfulLogin(
       secure: true,
       sameSite: "none",
       maxAge: REFRESH_TOKEN_EXPIRATION_SECONDS * 1000, // cookie expects ms
+      path: "/"
     });
 
     const { password: _, ...userResponse } = user.toObject();
