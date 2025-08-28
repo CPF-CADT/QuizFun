@@ -11,6 +11,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ReportController = void 0;
 const report_repositories_1 = require("../repositories/report.repositories");
+const Quiz_1 = require("../model/Quiz");
+const GameSession_1 = require("../model/GameSession");
+const QuestionReport_1 = require("../model/QuestionReport");
+const MIN_REPORTS = 50;
+const REPORT_PERCENTAGE = 0.7; // 70%
 /**
  * @swagger
  * tags:
@@ -276,6 +281,235 @@ class ReportController {
             }
         });
     }
+    /**
+   * @swagger
+   * /api/reports/quiz/submit:
+   *   post:
+   *     summary: Submit a report for a quiz question
+   *     tags: [Reports]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - quizId
+   *               - questionId
+   *               - reason
+   *             properties:
+   *               quizId:
+   *                 type: string
+   *                 description: The ID of the quiz
+   *                 example: "64f8b8a2c9f1b2d3e4f56789"
+   *               questionId:
+   *                 type: string
+   *                 description: The ID of the question being reported
+   *                 example: "64f8b8a2c9f1b2d3e4f56790"
+   *               reason:
+   *                 type: string
+   *                 description: Reason for reporting
+   *                 enum: [incorrect_answer, unclear_wording, inappropriate_content, other]
+   *                 example: "incorrect_answer"
+   *               comment:
+   *                 type: string
+   *                 description: Optional comment for the report
+   *                 example: "The correct answer seems wrong based on the reference material."
+   *     responses:
+   *       201:
+   *         description: Report submitted successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: "Report submitted successfully. Thank you for your feedback!"
+   *       400:
+   *         description: Missing required fields
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: "Missing required fields."
+   *       409:
+   *         description: User already reported this question
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: "You have already reported this question."
+   *       500:
+   *         description: Server error while submitting report
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: "Server error while submitting report."
+   */
+    static submitQuestionReport(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const { quizId, questionId, reason, comment } = req.body;
+            const reporterId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            if (!quizId || !questionId || !reason) {
+                return res.status(400).json({ message: 'Missing required fields.' });
+            }
+            try {
+                // 1. Create and save the new report
+                const existingReport = yield QuestionReport_1.QuestionReportModel.findOne({ questionId, reporterId });
+                if (existingReport) {
+                    return res.status(409).json({ message: 'You have already reported this question.' });
+                }
+                const newReport = new QuestionReport_1.QuestionReportModel({
+                    quizId,
+                    questionId,
+                    reporterId,
+                    reason,
+                    comment,
+                });
+                yield newReport.save();
+                // 2. Trigger the dynamic flagging logic
+                yield checkAndFlagQuestion(quizId, questionId);
+                return res.status(201).json({ message: 'Report submitted successfully. Thank you for your feedback!' });
+            }
+            catch (error) {
+                return res.status(500).json({ message: 'Server error while submitting report.' });
+            }
+        });
+    }
+    /**
+  * @swagger
+  * /api/reports/users:
+  *   get:
+  *     summary: Get paginated report statistics by user
+  *     tags: [Reports]
+  *     security:
+  *       - bearerAuth: []
+  *     parameters:
+  *       - in: query
+  *         name: page
+  *         schema:
+  *           type: integer
+  *           default: 1
+  *         description: Page number for pagination
+  *       - in: query
+  *         name: limit
+  *         schema:
+  *           type: integer
+  *           default: 10
+  *         description: Number of items per page
+  *     responses:
+  *       200:
+  *         description: Paginated list of users with their report count
+  *         content:
+  *           application/json:
+  *             schema:
+  *               type: object
+  *               properties:
+  *                 data:
+  *                   type: array
+  *                   items:
+  *                     type: object
+  *                     properties:
+  *                       userId:
+  *                         type: string
+  *                       username:
+  *                         type: string
+  *                       userEmail:
+  *                         type: string
+  *                       profileUrl:
+  *                         type: string
+  *                       totalReports:
+  *                         type: integer
+  *                 page:
+  *                   type: integer
+  *                 limit:
+  *                   type: integer
+  *                 totalDocuments:
+  *                   type: integer
+  *                 totalPages:
+  *                   type: integer
+  *                 hasNext:
+  *                   type: boolean
+  *                 hasPrev:
+  *                   type: boolean
+  *       500:
+  *         description: Server error
+  */
+    static getReportsByUser(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c;
+            const page = Math.max(parseInt(req.query.page) || 1, 1);
+            const limit = Math.max(parseInt(req.query.limit) || 10, 1);
+            const skip = (page - 1) * limit;
+            try {
+                const results = yield QuestionReport_1.QuestionReportModel.aggregate([
+                    // Stage 1: Group by reporterId
+                    {
+                        $group: { _id: "$reporterId", totalReports: { $sum: 1 } }
+                    },
+                    // Stage 2: Join with users collection
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "_id",
+                            foreignField: "_id",
+                            as: "reporterInfo"
+                        }
+                    },
+                    // Stage 3: Unwind with preserve nulls
+                    {
+                        $unwind: { path: "$reporterInfo", preserveNullAndEmptyArrays: true }
+                    },
+                    // Stage 4: Project necessary fields
+                    {
+                        $project: {
+                            _id: 0,
+                            userId: "$_id",
+                            profileUrl: "$reporterInfo.profileUrl",
+                            totalReports: 1
+                        }
+                    },
+                    // Stage 5: Sort by totalReports descending
+                    { $sort: { totalReports: -1 } },
+                    // Stage 6: Facet for pagination
+                    {
+                        $facet: {
+                            metadata: [{ $count: "totalDocuments" }],
+                            data: [{ $skip: skip }, { $limit: limit }]
+                        }
+                    }
+                ]);
+                const data = ((_a = results[0]) === null || _a === void 0 ? void 0 : _a.data) || [];
+                const totalDocuments = ((_c = (_b = results[0]) === null || _b === void 0 ? void 0 : _b.metadata[0]) === null || _c === void 0 ? void 0 : _c.totalDocuments) || 0;
+                const totalPages = Math.ceil(totalDocuments / limit);
+                return res.status(200).json({
+                    data,
+                    page,
+                    limit,
+                    totalDocuments,
+                    totalPages,
+                    hasNext: page < totalPages,
+                    hasPrev: page > 1
+                });
+            }
+            catch (error) {
+                console.error('Error fetching reports by user:', error);
+                return res.status(500).json({ message: 'Server error while fetching reports.' });
+            }
+        });
+    }
 }
 exports.ReportController = ReportController;
 /**
@@ -362,3 +596,25 @@ exports.ReportController = ReportController;
  *           type: string
  *           example: "Unauthorized"
  */
+// --- Helper function for dynamic logic ---
+function checkAndFlagQuestion(quizId, questionId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const totalReports = yield QuestionReport_1.QuestionReportModel.countDocuments({ questionId });
+            const uniquePlayers = yield GameSession_1.GameSessionModel.distinct('results.userId', {
+                quizId: quizId,
+                status: 'completed'
+            });
+            const totalParticipants = uniquePlayers.length;
+            console.log(`Checking question ${questionId}: ${totalReports} reports / ${totalParticipants} players.`);
+            const requiredReports = Math.max(MIN_REPORTS, Math.ceil(totalParticipants * REPORT_PERCENTAGE));
+            if (totalReports >= requiredReports) {
+                yield Quiz_1.QuizModel.updateOne({ "_id": quizId, "questions._id": questionId }, { "$set": { "questions.$.status": "under_review" } });
+                console.log(`Question ${questionId} automatically flagged for review.`);
+            }
+        }
+        catch (error) {
+            console.error('Error in checkAndFlagQuestion:', error);
+        }
+    });
+}

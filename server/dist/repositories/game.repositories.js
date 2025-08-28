@@ -362,6 +362,8 @@ class GameRepository {
             const session = yield GameSession_1.GameSessionModel.findById(sessionObjectId).lean();
             if (!session)
                 return null;
+            if (!session.hostId)
+                return null;
             const isHost = !!(identifier.userId && session.hostId.equals(identifier.userId));
             const viewType = isHost ? 'host' : (identifier.guestName ? 'guest' : 'player');
             const pipeline = [

@@ -2,7 +2,8 @@ import * as multer from 'multer';
 interface UserPayload {
   id: string;
   role?: string;
-  email?: string
+  email?: string;
+  name?:string;
 }
 
 interface ValidatedData {
