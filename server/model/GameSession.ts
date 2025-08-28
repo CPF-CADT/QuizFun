@@ -22,11 +22,14 @@ export interface IGameSession extends Document {
   hostId: Types.ObjectId;
   joinCode: number;
   status: 'waiting' | 'in_progress' | 'completed';
+  mode: 'multiplayer' | 'solo';          
+  teamId?: Types.ObjectId | null;       
   results: IGameSessionParticipant[];
-  feedback?: IFeedback; 
+  feedback?: IFeedback[];
   startedAt?: Date;
   endedAt?: Date;
 }
+
 
 const GameSessionFeedbackSchema = new Schema<IFeedback>({
   rating: { type: Number, required: true, min: 1, max: 5 },
@@ -49,10 +52,13 @@ const GameSessionSchema = new Schema<IGameSession>({
     enum: ['waiting', 'in_progress', 'completed'],
     default: 'waiting',
   },
+  mode: { type: String, enum: ['multiplayer', 'solo'], default: 'multiplayer', index: true },
+  teamId: { type: Schema.Types.ObjectId, ref: 'Team', default: null, index: true }, // 👈 null if no team
   feedback: { type: [GameSessionFeedbackSchema], default: [] },
-  results: { type: [GameSessionParticipantSchema], default: [] }, // Added default
+  results: { type: [GameSessionParticipantSchema], default: [] },
   startedAt: { type: Date },
   endedAt: { type: Date },
 }, { timestamps: true, collection: 'gamesessions' });
+
 
 export const GameSessionModel = model<IGameSession>('GameSession', GameSessionSchema);
