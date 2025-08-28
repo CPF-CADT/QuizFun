@@ -25,7 +25,9 @@ export interface IGameSession extends Document {
   mode: 'multiplayer' | 'solo';          
   teamId?: Types.ObjectId | null;       
   results: IGameSessionParticipant[];
-  feedback?: IFeedback[];
+
+  feedback?: IFeedback[]; 
+
   startedAt?: Date;
   endedAt?: Date;
 }

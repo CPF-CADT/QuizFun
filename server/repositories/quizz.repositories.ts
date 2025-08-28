@@ -89,8 +89,41 @@ export class QuizzRepositories {
 			total = candidates.length;
 		}
 
+const quizzes = await Promise.all(
+  candidates.map(async quiz => {
+    const sessions = await GameSessionModel.find({ quizId: quiz._id }).lean();
+
+    const totalPlayers = sessions.reduce(
+      (sum, s) => sum + (s.results?.length || 0),
+      0
+    );
+
+    let ratingCount = 0;
+    let ratingSum = 0;
+
+    sessions.forEach(s => {
+      if (s.feedback && s.feedback.length > 0) {
+        ratingCount += s.feedback.length;
+        ratingSum += s.feedback.reduce((a, f) => a + f.rating, 0);
+      }
+    });
+
+    const averageRating = ratingCount > 0 ? ratingSum / ratingCount : null;
+
+    return {
+      ...quiz,
+      totalPlayers,
+      rating: {
+        count: ratingCount,
+        average: averageRating,
+      },
+    };
+  })
+);
+		
+
 		return {
-			quizzes: candidates,
+			quizzes: quizzes,
 			total,
 			page,
 			limit,

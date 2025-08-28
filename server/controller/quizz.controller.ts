@@ -196,6 +196,7 @@ export async function getAllQuizzes(req: Request, res: Response) {
         owner
     } = req.validated!.query!;
     const userId = req.user?.id;
+    
     try {
         const result = await QuizzRepositories.getAllQuizzes(
             page,
