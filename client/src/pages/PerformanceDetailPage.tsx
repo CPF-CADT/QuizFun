@@ -5,7 +5,7 @@ import { PerformanceView } from '../components/ui/PerformanceView';
 import { useAuth } from '../context/AuthContext';
 
 const PerformanceDetailPage: React.FC = () => {
-    const { sessionId = '', guestName } = useParams<{ sessionId: string; userId?: string; guestName?: string; }>();
+    const { sessionId = '', guestName } = useParams<{ sessionId: string; guestName?: string; }>();
     const navigate = useNavigate();
     const {user} = useAuth()
     const userId = user?._id;
