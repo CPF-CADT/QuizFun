@@ -23,7 +23,7 @@ export interface IGameSession extends Document {
   joinCode: number;
   status: 'waiting' | 'in_progress' | 'completed';
   results: IGameSessionParticipant[];
-  feedback?: IFeedback; 
+  feedback?: IFeedback[]; 
   startedAt?: Date;
   endedAt?: Date;
 }
