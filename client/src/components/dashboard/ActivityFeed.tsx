@@ -39,7 +39,6 @@ const ActivityFeed: React.FC = () => {
         }
     }, []);
 
-    // Initial load
     useEffect(() => {
         fetchActivities(1);
     }, [fetchActivities]);
@@ -51,7 +50,7 @@ const ActivityFeed: React.FC = () => {
     };
 
     const handleViewPlayerPerformance = (sessionId: string) => {
-        navigate(`/session/${sessionId}/performance`);
+        navigate(`/session/${sessionId}/performance?quizzId=${activities.at(0)?.quizzId}`);
     };
     
     const handleViewSessionResult = (sessionId: string) => {
@@ -92,7 +91,6 @@ const ActivityFeed: React.FC = () => {
                         <PlayerSessionCard
                             key={session._id}
                             session={session}
-                            // Assuming you need userId for player performance view
                             onViewResults={() => handleViewPlayerPerformance(session._id)}
                         />
                     )

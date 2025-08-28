@@ -25,6 +25,7 @@ import SettingsPage from "./pages/SettingsPage";
 import Library from "./pages/Library";
 import MyQuizz from "./pages/MyQuizz";
 import ResultPage from "./pages/Result";
+import SoloGamePage from "./pages/SoloGamePage";
 
 const PrivateRoute: React.FC = () => {              
   const { isAuthenticated, isLoading } = useAuth();
@@ -68,6 +69,7 @@ function App() {
         <Route path="/verify" element={<VerifyCode />} />
         <Route path="/join" element={<Joingame />} />
         <Route path="/game/:sessionId" element={<GamePage />} />
+        <Route path="/solo/:quizId" element={<SoloGamePage />}/>
         <Route
           path="/session/:sessionId/performance/guest/:guestName"
           element={<PerformanceDetailPage />}

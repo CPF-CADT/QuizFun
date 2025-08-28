@@ -638,8 +638,7 @@ export class GameController {
                 
                 const session = await GameSessionModel.findById(sessionId).select('hostId').lean();
                 if (!session) return res.status(404).json({ message: "Session not found." });
-
-                const isHost = !!(userId && session.hostId.equals(userId));
+                const isHost = !!(userId && session.hostId && session.hostId.equals(userId));
                 const viewType = isHost ? 'host' : (guestName ? 'guest' : 'player');
 
                 const finalResults = fullResults.map(result => {

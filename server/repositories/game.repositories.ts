@@ -400,7 +400,7 @@ export class GameRepository {
 
         const session = await GameSessionModel.findById(sessionObjectId).lean();
         if (!session) return null;
-
+        if(!session.hostId) return null;
         const isHost = !!(identifier.userId && session.hostId.equals(identifier.userId));
         const viewType: 'host' | 'player' | 'guest' = isHost ? 'host' : (identifier.guestName ? 'guest' : 'player');
 

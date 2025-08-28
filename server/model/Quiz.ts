@@ -14,6 +14,7 @@ export interface IQuestion {
     options: IOption[];
     imageUrl?: string;
     tags?: string[];
+     status?: 'active' | 'under_review' | 'disabled';
 }
 
 export interface IQuiz extends Document {
@@ -59,6 +60,11 @@ export const QuestionSchema = new Schema<IQuestion>({
         ]
     },
     tags: { type: [String], index: true },
+    status: { 
+        type: String,
+        enum: ['active', 'under_review', 'disabled'],
+        default: 'active'
+    }
 });
 
 const QuizSchema = new Schema<IQuiz>({

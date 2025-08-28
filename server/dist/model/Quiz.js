@@ -26,6 +26,11 @@ exports.QuestionSchema = new mongoose_1.Schema({
         ]
     },
     tags: { type: [String], index: true },
+    status: {
+        type: String,
+        enum: ['active', 'under_review', 'disabled'],
+        default: 'active'
+    }
 });
 const QuizSchema = new mongoose_1.Schema({
     title: { type: String, required: true, trim: true, index: true },

@@ -114,7 +114,7 @@ const Signup: React.FC = () => {
       {/* Back Button - Hidden on mobile, visible on desktop */}
       <button
         onClick={() => navigate("/")}
-        className="absolute top-6 left-6 flex items-center space-x-2 text-white hover:text-yellow-300 transition-all duration-300 hover:scale-105 z-20 hidden md:flex"
+        className="absolute top-6 left-6 items-center space-x-2 text-white hover:text-yellow-300 transition-all duration-300 hover:scale-105 z-20 hidden md:flex"
       >
         <div className="bg-white/20 backdrop-blur-sm rounded-full p-2">
         <FaArrowLeft />
