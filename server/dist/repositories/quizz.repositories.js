@@ -99,8 +99,25 @@ class QuizzRepositories {
                 candidates = fuzzyResults.map(r => r.obj);
                 total = candidates.length;
             }
+            const quizzes = yield Promise.all(candidates.map((quiz) => __awaiter(this, void 0, void 0, function* () {
+                const sessions = yield GameSession_1.GameSessionModel.find({ quizId: quiz._id }).lean();
+                const totalPlayers = sessions.reduce((sum, s) => { var _a; return sum + (((_a = s.results) === null || _a === void 0 ? void 0 : _a.length) || 0); }, 0);
+                let ratingCount = 0;
+                let ratingSum = 0;
+                sessions.forEach(s => {
+                    if (s.feedback && s.feedback.length > 0) {
+                        ratingCount += s.feedback.length;
+                        ratingSum += s.feedback.reduce((a, f) => a + f.rating, 0);
+                    }
+                });
+                const averageRating = ratingCount > 0 ? ratingSum / ratingCount : null;
+                return Object.assign(Object.assign({}, quiz), { totalPlayers, rating: {
+                        count: ratingCount,
+                        average: averageRating,
+                    } });
+            })));
             return {
-                quizzes: candidates,
+                quizzes: quizzes,
                 total,
                 page,
                 limit,
