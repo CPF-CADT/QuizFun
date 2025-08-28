@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import type { GameState } from "../../context/GameContext";
-import { Trophy, Crown, Medal } from "lucide-react";
+
 
 interface ResultsViewProps {
   gameState: GameState;

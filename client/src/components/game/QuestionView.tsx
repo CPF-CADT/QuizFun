@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import type { GameState } from '../../context/GameContext';
-import { Trophy, Zap } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 
 interface QuestionViewProps {
     gameState: GameState;
