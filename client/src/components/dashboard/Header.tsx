@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlusCircle, ArrowRight, BarChart3, Menu, FileText, BookOpen, Bug } from 'lucide-react';
+import { PlusCircle, ArrowRight,  Menu, FileText, BookOpen, Bug } from 'lucide-react';
 
 interface HeaderProps {
   setSidebarOpen: (isOpen: boolean) => void;
@@ -64,7 +64,14 @@ const Header: React.FC<HeaderProps> = ({
 
           <button
             onClick={onShowTemplatesClick}
-            className="px-6 lg:px-8 py-4 bg-white/80 backdrop-blur-xl border border-gray-200/50 text-gray-700 rounded-2xl font-semibold hover:border-violet-300 hover:text-violet-700 hover:shadow-lg hover:bg-white transform hover:scale-105 transition-all duration-300"
+            className="group px-6 lg:px-8 py-4 
+            bg-gradient-to-r from-blue-600 to-indigo-600 
+            hover:from-blue-700 hover:to-indigo-700 
+            text-white rounded-2xl font-semibold 
+            shadow-xl shadow-blue-500/25 
+            hover:shadow-2xl hover:shadow-indigo-500/40 
+            transform hover:scale-105 hover:-translate-y-1 
+            transition-all duration-300"
           >
             <div className="flex items-center">
               <BookOpen className="w-5 h-5 mr-2" />
@@ -72,12 +79,6 @@ const Header: React.FC<HeaderProps> = ({
             </div>
           </button>
 
-          <button className="px-6 lg:px-8 py-4 bg-white/80 backdrop-blur-xl border border-gray-200/50 text-gray-700 rounded-2xl font-semibold hover:border-violet-300 hover:text-violet-700 hover:shadow-lg hover:bg-white transform hover:scale-105 transition-all duration-300">
-            <div className="flex items-center">
-              <BarChart3 className="w-5 h-5 mr-2" />
-              Report
-            </div>
-          </button>
 
           {/* --- UPDATED BUG REPORT BUTTON --- */}
           <button
