@@ -19,7 +19,7 @@ import {
     updateOption,
     deleteOption
 } from '../controller/quizz.controller';
-import { importPDFQuiz } from '../controller/pdfImport.controller';
+import { importPDFQuiz, testPDFParser } from '../controller/pdfImport.controller';
 import { globalRateLimit ,quizRateLimit} from '../middleware/ratelimit.middleware';
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -33,6 +33,7 @@ router.get('/:quizzId/leaderboard', validate(quizSchemas.quizzIdParam),globalRat
 router.post('/', authenticateToken, validate(quizSchemas.createQuiz),globalRateLimit, createQuizz);
 router.post('/create-from-import', authenticateToken, validate(quizSchemas.createQuizFromImport),globalRateLimit, createQuizzFromImport);
 router.post('/import-pdf', authenticateToken, upload.single('pdf'),globalRateLimit, importPDFQuiz);
+router.get('/test-parser', testPDFParser); // Test endpoint for development
 router.post('/:quizzId/clone', authenticateToken, validate(quizSchemas.quizzIdParam),globalRateLimit, cloneQuizz);
 router.get('/:quizzId', validate(quizSchemas.quizzIdParam),globalRateLimit, getQuizzById);
 router.put('/:quizId', authenticateToken, validate(quizSchemas.quizIdParam),globalRateLimit, validate(quizSchemas.updateQuiz), handleUpdateQuiz);

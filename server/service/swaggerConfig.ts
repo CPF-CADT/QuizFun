@@ -17,12 +17,12 @@ const swaggerDefinition = {
   },
   servers: [
     {
-      url: `http://localhost:${config.port}`, 
-      description: 'Development server',
+      url: config.serverUrl,
+      description: 'Production server',
     },
     {
-      url: 'https://quizfun.onrender.com',
-      description: 'Production server',
+      url: `http://localhost:${config.port}`,
+      description: 'Development server',
     }
   ],
   components: {
@@ -38,106 +38,92 @@ const swaggerDefinition = {
         in: 'cookie',
         name: 'refreshToken',
         description: 'Refresh token stored in HTTP-only cookie'
+      },
+      apiKeyAuth: {
+        type: 'apiKey',
+        in: 'header',
+        name: 'x-api-key',
+        description: 'Your frontend API key'
       }
     },
-    parameters: {
-      PageParam: {
-        name: 'page',
-        in: 'query',
-        schema: {
-          type: 'integer',
-          minimum: 1,
-          default: 1
-        },
-        description: 'Page number for pagination'
+  parameters: {
+    PageParam: {
+      name: 'page',
+      in: 'query',
+      schema: {
+        type: 'integer',
+        minimum: 1,
+        default: 1
       },
-      LimitParam: {
-        name: 'limit',
-        in: 'query',
-        schema: {
-          type: 'integer',
-          minimum: 1,
-          maximum: 100,
-          default: 10
-        },
-        description: 'Number of items per page (max 100)'
+      description: 'Page number for pagination'
+    },
+    LimitParam: {
+      name: 'limit',
+      in: 'query',
+      schema: {
+        type: 'integer',
+        minimum: 1,
+        maximum: 100,
+        default: 10
       },
-      SearchParam: {
-        name: 'search',
-        in: 'query',
-        schema: {
-          type: 'string'
-        },
-        description: 'Search term for filtering results'
+      description: 'Number of items per page (max 100)'
+    },
+    SearchParam: {
+      name: 'search',
+      in: 'query',
+      schema: {
+        type: 'string'
+      },
+      description: 'Search term for filtering results'
+    }
+  },
+  responses: {
+    UnauthorizedError: {
+      description: 'Access token is missing or invalid',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                example: 'Unauthorized access'
+              }
+            }
+          }
+        }
       }
     },
-    responses: {
-      UnauthorizedError: {
-        description: 'Access token is missing or invalid',
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              properties: {
-                message: {
-                  type: 'string',
-                  example: 'Unauthorized access'
-                }
+    NotFoundError: {
+      description: 'The specified resource was not found',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                example: 'Resource not found'
               }
             }
           }
         }
-      },
-      NotFoundError: {
-        description: 'The specified resource was not found',
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              properties: {
-                message: {
-                  type: 'string',
-                  example: 'Resource not found'
-                }
-              }
-            }
-          }
-        }
-      },
-      ValidationError: {
-        description: 'Validation error',
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              properties: {
-                message: {
-                  type: 'string',
-                  example: 'Validation failed'
-                },
-                errors: {
-                  type: 'array',
-                  items: {
-                    type: 'string'
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      ServerError: {
-        description: 'Internal server error',
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              properties: {
-                message: {
-                  type: 'string',
-                  example: 'Internal server error'
-                },
-                error: {
+      }
+    },
+    ValidationError: {
+      description: 'Validation error',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                example: 'Validation failed'
+              },
+              errors: {
+                type: 'array',
+                items: {
                   type: 'string'
                 }
               }
@@ -145,10 +131,32 @@ const swaggerDefinition = {
           }
         }
       }
+    },
+    ServerError: {
+      description: 'Internal server error',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                example: 'Internal server error'
+              },
+              error: {
+                type: 'string'
+              }
+            }
+          }
+        }
+      }
     }
-  },
+  }
+},
   security: [
-    { bearerAuth: [] }
+    { bearerAuth: [] },
+    { apiKeyAuth: [] },
+
   ],
 };
 
@@ -159,7 +167,7 @@ const options = {
     './controller/*.ts',
     './routes/*.ts',
     './model/*.ts'
-  ], 
+  ],
 };
 
 export const swaggerSpec = swaggerJSDoc(options);

@@ -14,7 +14,11 @@ const requiredEnvVars = [
   "JWT_SECRET_RESET_PASSWORD",
   "EMAIL_USER",
   "EMAIL_PASSWORD",
-  "FRONT_END_URL"
+  "FRONT_END_URL",
+  "PRODUCTION_SERVER",
+  "FRONTEND_API_KEY",
+  "SWAGGER_PASSWORD",
+  "SWAGGER_USER"
 ];
 
 const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
@@ -22,7 +26,7 @@ const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
 if (missingEnvVars.length > 0) {
   console.error("Missing required environment variables:");
   missingEnvVars.forEach((key) => console.error(`- ${key}`));
-  process.exit(1); 
+  process.exit(1);
 } else {
   console.log("All environment variables loaded successfully");
 }
@@ -41,5 +45,9 @@ export const config = {
   jwtSecretResetPassword: process.env.JWT_SECRET_RESET_PASSWORD!,
   emailUser: process.env.EMAIL_USER!,
   emailPassword: process.env.EMAIL_PASSWORD!,
-  frontEndUrl:process.env.FRONT_END_URL
+  frontEndUrl: process.env.FRONT_END_URL,
+  serverUrl: process.env.PRODUCTION_SERVER,
+  frontApiKey: process.env.FRONTEND_API_KEY,
+  swaggerPassword: process.env.SWAGGER_PASSWORD,
+  swaggerUser: process.env.SWAGGER_USER,
 };

@@ -38,7 +38,7 @@ export class QuizzRepositories {
 				{ visibility: "public" }
 			];
 		} else {
-			filter.visibility = "public"; 
+			filter.visibility = "public";
 		}
 
 		if (searchQuery) {
@@ -88,6 +88,7 @@ export class QuizzRepositories {
 			candidates = fuzzyResults.map(r => r.obj);
 			total = candidates.length;
 		}
+
 const quizzes = await Promise.all(
   candidates.map(async quiz => {
     const sessions = await GameSessionModel.find({ quizId: quiz._id }).lean();
@@ -120,6 +121,7 @@ const quizzes = await Promise.all(
   })
 );
 		
+
 		return {
 			quizzes: quizzes,
 			total,
@@ -198,8 +200,8 @@ const quizzes = await Promise.all(
 	): Promise<IQuestion | null> {
 		const quiz = await QuizModel.findOneAndUpdate(
 			{
-				$match: { _id: new Types.ObjectId(quizzId) },
-				"questions._id": questionId,
+				_id: new Types.ObjectId(quizzId),
+				"questions._id": new Types.ObjectId(questionId),
 			},
 			{
 				$set: Object.entries(questionUpdate).reduce((acc, [k, v]) => {
@@ -291,7 +293,7 @@ const quizzes = await Promise.all(
 	static async updateQuizz(
 		quizId: string,
 		creatorId: string,
-		updateData: Partial<IQuiz>
+		updateData: Partial<IQuiz>,
 	): Promise<IQuiz | null> {
 		return await QuizModel.findOneAndUpdate(
 			{

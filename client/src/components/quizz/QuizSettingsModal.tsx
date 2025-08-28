@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { quizApi } from '../../service/quizApi';
 import { toast } from 'react-hot-toast';
-import { X as CloseIcon } from 'lucide-react';
-import type { IQuiz ,Dificulty} from '../../types/quiz';
+import type { IQuiz, Dificulty } from '../../types/quiz';
+
 interface QuizSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -15,8 +15,7 @@ const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({ isOpen, onClose, 
   const [description, setDescription] = useState(quiz.description || '');
   const [dificulty, setDificulty] = useState<Dificulty>(quiz.dificulty);
   const [visibility, setVisibility] = useState<'public' | 'private'>(quiz.visibility);
-  const [tags, setTags] = useState<string[]>(quiz.tags || []);
-  const [tagInput, setTagInput] = useState('');
+  const [tags, setTags] = useState(quiz.tags || ''); 
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -24,23 +23,8 @@ const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({ isOpen, onClose, 
     setDescription(quiz.description || '');
     setDificulty(quiz.dificulty);
     setVisibility(quiz.visibility);
-    setTags(quiz.tags || []);
+    setTags(quiz.tags || '');
   }, [quiz]);
-
-  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const newTag = tagInput.trim();
-      if (newTag && !tags.includes(newTag)) {
-        setTags([...tags, newTag]);
-      }
-      setTagInput('');
-    }
-  };
-
-  const handleRemoveTag = (indexToRemove: number) => {
-    setTags(tags.filter((_, index) => index !== indexToRemove));
-  };
 
   const handleSaveChanges = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,13 +34,12 @@ const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({ isOpen, onClose, 
     try {
       const updatedQuizData = { title, description, dificulty, visibility, tags };
       const response = await quizApi.updateQuiz(quiz._id, updatedQuizData);
-      
-      onQuizUpdate(response.data.data); 
-      toast.success("Quiz details updated!");
+      onQuizUpdate(response.data.data);
+      toast.success('Quiz details updated!');
       onClose();
     } catch (error) {
-      console.error("Failed to update quiz", error);
-      toast.error("Could not update quiz details.");
+      console.error('Failed to update quiz', error);
+      toast.error('Could not update quiz details.');
     } finally {
       setIsSaving(false);
     }
@@ -69,31 +52,48 @@ const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({ isOpen, onClose, 
       <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-lg animate-fade-in-up">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">Edit Quiz Settings</h2>
         <form onSubmit={handleSaveChanges} className="space-y-4">
-          {/* Form fields are similar to the create modal */}
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-            <input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" required />
+            <input
+              id="title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500"
+              required
+            />
           </div>
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" rows={2} />
+            <textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500"
+              rows={2}
+            />
           </div>
           <div>
             <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
-            <div className="flex flex-wrap items-center gap-2 p-2 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-violet-500">
-              {tags.map((tag, index) => (
-                <div key={index} className="flex items-center gap-1 bg-violet-100 text-violet-800 text-sm font-medium px-2.5 py-1 rounded-full">
-                  <span>{tag}</span>
-                  <button type="button" onClick={() => handleRemoveTag(index)} className="text-violet-500 hover:text-violet-700 focus:outline-none"><CloseIcon size={16} /></button>
-                </div>
-              ))}
-              <input id="tags" type="text" placeholder={tags.length === 0 ? "Add tags..." : ""} value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={handleTagKeyDown} className="flex-grow p-1 bg-transparent focus:outline-none" />
-            </div>
+            <input
+              id="tags"
+              type="text"
+              placeholder="Enter tags separated by commas"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 mb-1">Difficulty</label>
-              <select id="difficulty" value={dificulty} onChange={(e) => setDificulty(e.target.value as Dificulty)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white">
+              <select
+                id="difficulty"
+                value={dificulty}
+                onChange={(e) => setDificulty(e.target.value as Dificulty)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
+              >
                 <option>Easy</option>
                 <option>Medium</option>
                 <option>Hard</option>
@@ -101,15 +101,33 @@ const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({ isOpen, onClose, 
             </div>
             <div>
               <label htmlFor="visibility" className="block text-sm font-medium text-gray-700 mb-1">Visibility</label>
-              <select id="visibility" value={visibility} onChange={(e) => setVisibility(e.target.value as 'public' | 'private')} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white">
+              <select
+                id="visibility"
+                value={visibility}
+                onChange={(e) => setVisibility(e.target.value as 'public' | 'private')}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
+              >
                 <option value="public">Public</option>
                 <option value="private">Private</option>
               </select>
             </div>
           </div>
+
           <div className="flex items-center justify-end pt-4 space-x-3">
-            <button type="button" onClick={onClose} className="px-5 py-2 rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 font-medium transition-colors">Cancel</button>
-            <button type="submit" disabled={isSaving || !title.trim()} className="px-6 py-2 rounded-lg bg-violet-600 text-white font-semibold hover:bg-violet-700 disabled:bg-violet-300 transition-colors">{isSaving ? 'Saving...' : 'Save Changes'}</button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2 rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 font-medium transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving || !title.trim()}
+              className="px-6 py-2 rounded-lg bg-violet-600 text-white font-semibold hover:bg-violet-700 disabled:bg-violet-300 transition-colors"
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </button>
           </div>
         </form>
       </div>

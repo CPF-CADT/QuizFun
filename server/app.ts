@@ -6,36 +6,34 @@ import { swaggerSpec } from './service/swaggerConfig';
 import userRouter from './routes/users.route';
 import quizzRouter from './routes/quizz.route';
 import { errHandle } from './middleware/errHandle.middleware';
-import { serviceRouter } from './routes/service.route';
+import serviceRouter from './routes/service.route';
 import {gameRouter} from './routes/game.route';
 import { reportRouter } from './routes/report.route';
 import { config } from './config/config';
+import userReportRouter from './routes/bug.report.route'
 import { authenticateToken } from './middleware/authenicate.middleware';
+import { verifyApiKey } from './middleware/apiKeyVerification.middleware';
+import { swaggerPasswordProtect } from './middleware/swaggerProtect.middleware';
 const app = express();
-
-// const allowedOrigins = [   
-//   'http://localhost:5173',    
-//   'https://quiz-fun-ebon.vercel.app'
-// ];
-
+app.set('trust proxy', true);
 app.use(cors({
-  origin: true,      // allow all origins
-  credentials: true  // allow cookies/auth headers
+  origin: config.frontEndUrl,     
+  credentials: true  
 }));
 app.use(express.json());
 app.use(cookieParser());
-
 app.get('/', (req, res) => {
     res.redirect('/api-docs/');
 });
 
 // API Routes
-app.use('/api/user', userRouter);
-app.use('/api/quizz', quizzRouter);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-app.use('/api/service',serviceRouter)
-app.use('/api/session',gameRouter)
-app.use('/api/reports',authenticateToken,reportRouter)
+app.use('/api/user', verifyApiKey,userRouter);
+app.use('/api/quizz',verifyApiKey ,quizzRouter);
+app.use('/api-docs',swaggerPasswordProtect ,swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api/service',verifyApiKey,serviceRouter)
+app.use('/api/session',verifyApiKey,gameRouter)
+app.use('/api',verifyApiKey,userReportRouter)
+app.use('/api/reports',verifyApiKey,authenticateToken,reportRouter)
 
 app.use(errHandle)  
 export default app;

@@ -10,7 +10,7 @@ interface QuestionListProps {
 
 export const QuestionList: React.FC<QuestionListProps> = ({ questions, editingQuestionId, onEdit, onDelete }) => {
     return (
-        <div className="flex-grow overflow-y-auto pr-2 -mr-2 space-y-2">
+        <div className="flex-grow overflow-y-auto pr-2 mr-2 mb-5 space-y-2 max-h-[550px] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent">
             {questions.map((q, index) => (
                 <div
                     key={q._id}

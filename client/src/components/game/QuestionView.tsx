@@ -1,9 +1,8 @@
+// QuestionView.tsx
+
 import React, { useEffect, useState, useMemo } from 'react';
 import type { GameState } from '../../context/GameContext';
-
-const Trophy: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-    <svg {...props} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M10 2a1 1 0 00-1 1v1a1 1 0 002 0V3a1 1 0 00-1-1zm-5 4a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H6zM5 14a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H6z" clipRule="evenodd"></path></svg>
-);
+import { Trophy, Zap } from 'lucide-react';
 
 interface QuestionViewProps {
     gameState: GameState;
@@ -18,28 +17,18 @@ export const QuestionView: React.FC<QuestionViewProps> = ({ gameState, onSubmitA
     const [selectedOption, setSelectedOption] = useState<number | null>(null);
     const me = participants.find(p => p.user_id === yourUserId);
     const isHost = me?.role === 'host';
-
-    // --- LOGIC FIX START ---
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const isAnswerLocked = useMemo(() => {
-        if (settings.allowAnswerChange) {
-            return false;
-        }
+        if (settings.allowAnswerChange) return false;
         return !!me?.hasAnswered || isSubmitting;
     }, [settings.allowAnswerChange, me?.hasAnswered, isSubmitting]);
-    // --- LOGIC FIX END ---
 
     useEffect(() => {
-        
-        if(userSeleted===undefined){
-            return
-        }
-        setSelectedOption(userSeleted);
-        // --- LOGIC FIX ---
-        setIsSubmitting(false); // Reset for new question
+        setSelectedOption(userSeleted ?? null);
+        setIsSubmitting(false);
     }, [currentQuestionIndex, userSeleted]);
-    
+
     useEffect(() => {
         if (!questionStartTime || !question?.timeLimit) {
             setTimeLeft(question?.timeLimit || 0);
@@ -55,108 +44,141 @@ export const QuestionView: React.FC<QuestionViewProps> = ({ gameState, onSubmitA
         return () => clearInterval(interval);
     }, [questionStartTime, question?.timeLimit, currentQuestionIndex]);
 
-    if (!question || !me) {
-        return <div className="text-2xl font-bold animate-pulse">Loading next question...</div>;
-    }
-
     const handlePlayerAnswer = (index: number) => {
-        // --- LOGIC FIX ---
         if (isHost || isAnswerLocked) return;
-        
-        if (settings.allowAnswerChange && index === selectedOption) return;
-        
         setSelectedOption(index);
         onSubmitAnswer(index);
-        
-        // --- LOGIC FIX ---
         if (!settings.allowAnswerChange) {
             setIsSubmitting(true);
         }
     };
 
-    // --- YOUR ORIGINAL UI STYLES (UNCHANGED) ---
     const getAnswerButtonClass = (index: number) => {
-        const base = "relative overflow-hidden rounded-2xl p-6 text-left transition-all duration-300 transform border-2 shadow-lg";
-        const colors = ["from-purple-500 to-purple-600", "from-emerald-500 to-emerald-600", "from-orange-500 to-orange-600", "from-rose-500 to-rose-600"];
+        const base = "w-full text-left p-4 rounded-xl transition-all duration-300 transform border-2 shadow-lg group";
+        const colors = [
+            "border-purple-400 bg-purple-500/30 hover:bg-purple-500/50 hover:shadow-purple-400/50",
+            "border-emerald-400 bg-emerald-500/30 hover:bg-emerald-500/50 hover:shadow-emerald-400/50",
+            "border-orange-400 bg-orange-500/30 hover:bg-orange-500/50 hover:shadow-orange-400/50",
+            "border-rose-400 bg-rose-500/30 hover:bg-rose-500/50 hover:shadow-rose-400/50"
+        ];
 
-        if (isHost) return `${base} bg-gray-700 text-gray-400 opacity-70 cursor-not-allowed`;
-
+        if (isHost) return `${base} bg-gray-800/50 border-gray-700 cursor-not-allowed`;
+        
         const isSelected = index === selectedOption;
-
-        // This now uses the fixed `isAnswerLocked` logic
         if (isAnswerLocked) {
             return isSelected
-                ? `${base} bg-gradient-to-br from-blue-500 to-blue-600 ring-4 ring-blue-300 scale-105 cursor-not-allowed`
-                : `${base} bg-gray-700 text-gray-400 opacity-70 cursor-not-allowed`;
+                ? `${base} bg-blue-500/60 border-blue-300 scale-105 shadow-blue-300/60 cursor-not-allowed animate-pulse`
+                : `${base} bg-gray-800/40 border-gray-700 opacity-40 cursor-not-allowed`;
         }
-
-        if (settings.allowAnswerChange && isSelected) {
-            return `${base} bg-gray-500 text-gray-200 opacity-50 cursor-not-allowed`;
-        }
-
         if (isSelected) {
-            return `${base} bg-gradient-to-br from-blue-500 to-blue-600 ring-4 ring-blue-300 scale-105`;
+            return `${base} bg-blue-500/60 border-blue-300 scale-105 shadow-blue-300/60`;
         }
-
-        return `${base} bg-gradient-to-br ${colors[index % 4]} cursor-pointer hover:scale-105`;
+        return `${base} ${colors[index % 4]} cursor-pointer hover:scale-105 hover:-rotate-1`;
     };
 
-    // --- YOUR ORIGINAL UI HEADER (UNCHANGED) ---
-    const renderHeader = () => (
-        <header className="flex items-center justify-between p-6 bg-black/20 backdrop-blur-sm border-b border-white/10">
-            <div className="flex items-center space-x-2 bg-white/10 rounded-full px-4 py-2">
-                <Trophy className="w-5 h-5 text-yellow-400" />
-                <span className="font-bold text-lg">{me.score.toLocaleString()}</span>
+    if (!question || !me) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
             </div>
-            <div className="text-center font-bold text-xl">Question {currentQuestionIndex + 1} / {totalQuestions}</div>
-            <div className="relative w-24 h-24 flex items-center justify-center">
-                <span className={`text-4xl font-bold ${timeLeft > 5 ? 'text-white' : 'text-red-400 animate-ping'}`}>{timeLeft}</span>
-            </div>
-        </header>
-    );
+        );
+    }
 
-    const sortedPlayers = useMemo(() => [...participants].filter(p => p.role === 'player').sort((a, b) => b.score - a.score), [participants]);
-
-    // --- YOUR ORIGINAL UI LAYOUT (UNCHANGED) ---
     return (
-        <div className="w-full h-full min-h-screen flex flex-col">
-            {renderHeader()}
-            <main className={`flex-1 flex p-8 gap-8 ${isHost ? 'flex-row items-start' : 'flex-col items-center justify-center'}`}>
-                <div className="flex flex-col items-center justify-center space-y-8 flex-1">
-                    <h1 className="text-3xl md:text-5xl font-bold text-center">{question.questionText}</h1>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-5xl">
+        <div className="w-full h-full min-h-screen flex flex-col p-4 bg-grid-pattern">
+            <header className="flex items-center justify-between p-3 sm:p-4 bg-black/30 backdrop-blur-sm rounded-xl mb-4 border border-white/10 shadow-lg">
+                <div className="flex items-center space-x-2 bg-white/10 rounded-full px-4 py-2 transition-transform hover:scale-105">
+                    <Trophy className="w-5 h-5 text-yellow-300 animate-pulse" />
+                    <span className="font-bold text-lg text-white shadow-text">{me.score.toLocaleString()}</span>
+                </div>
+                <div className="text-center font-bold text-lg text-white/90 shadow-text">
+                    {currentQuestionIndex + 1} / {totalQuestions}
+                </div>
+                <div className={`relative w-20 h-20 flex items-center justify-center font-bold text-3xl ${timeLeft <= 5 ? 'text-red-400 animate-pulse-fast' : 'text-white'}`}>
+                    <svg className="absolute w-full h-full" viewBox="0 0 100 100">
+                        <circle className="text-gray-700" strokeWidth="8" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" />
+                        <circle
+                            className={`${timeLeft > 10 ? 'text-green-400' : timeLeft > 5 ? 'text-yellow-400' : 'text-red-400'}`}
+                            strokeWidth="8"
+                            strokeDasharray={2 * Math.PI * 45}
+                            strokeDashoffset={(2 * Math.PI * 45) * (1 - timeLeft / (question.timeLimit || 1))}
+                            strokeLinecap="round"
+                            stroke="currentColor"
+                            fill="transparent"
+                            r="45"
+                            cx="50"
+                            cy="50"
+                            style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%', transition: 'stroke-dashoffset 1s linear, stroke 0.5s ease' }}
+                        />
+                    </svg>
+                    {timeLeft}
+                </div>
+            </header>
+
+            <main className="flex-1 flex flex-col items-center justify-center animate-fade-in-up">
+                <div className="w-full max-w-3xl bg-black/30 backdrop-blur-md border border-white/10 rounded-2xl p-6 shadow-2xl">
+                    <h1 className="text-2xl md:text-4xl font-bold text-center mb-6 text-white question-glow">{question.questionText}</h1>
+                    
+                    {question.imageUrl && (
+                        <div className="w-full max-w-lg mx-auto h-48 sm:h-64 my-4 rounded-lg overflow-hidden shadow-lg border-2 border-white/10">
+                            <img src={question.imageUrl} alt="Question" className="w-full h-full object-contain" />
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                         {question.options.map((answer, index) => (
                             <button 
                                 key={index} 
                                 onClick={() => handlePlayerAnswer(index)} 
-                                className={getAnswerButtonClass(index)} 
-                                // --- LOGIC FIX ---
-                                disabled={isHost || isAnswerLocked || (settings.allowAnswerChange && selectedOption === index)}
+                                className={getAnswerButtonClass(index)}
+                                disabled={isHost || isAnswerLocked}
                             >
                                 <div className="flex items-center space-x-4">
-                                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-xl font-bold">{String.fromCharCode(65 + index)}</div>
-                                    <span className="text-xl font-semibold flex-1">{answer.text}</span>
+                                    <div className={`w-10 h-10 flex items-center justify-center text-xl font-bold text-white shape-${['diamond', 'triangle', 'circle', 'square'][index % 4]}`}>
+                                       <Zap size={20}/>
+                                    </div>
+                                    <span className="text-base sm:text-lg font-semibold flex-1 text-white/95">{answer.text}</span>
                                 </div>
                             </button>
                         ))}
                     </div>
-                    {isHost && !settings.autoNext && (<button onClick={onNextQuestion} className="mt-8 px-8 py-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">Next Question</button>)}
-                    {!isHost && isAnswerLocked && <p className="text-lg animate-pulse">Answer submitted! Waiting for results...</p>}
                 </div>
-                {isHost && (
-                    <div className="w-full md:w-1/3 bg-black/20 backdrop-blur-sm border border-white/10 rounded-2xl p-6 self-stretch">
-                        <h2 className="text-2xl font-bold mb-4 text-center">Live Leaderboard</h2>
-                        <ul className="space-y-3 max-h-[60vh] overflow-y-auto">
-                            {sortedPlayers.map((p, i) => (
-                                <li key={p.user_id} className="flex justify-between items-center bg-white/10 p-3 rounded-lg text-lg">
-                                    <span className="font-semibold">#{i + 1} {p.user_name}</span>
-                                    <span className="font-bold text-yellow-300">{p.score.toLocaleString()} pts</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
+                
+                {isHost && !settings.autoNext && (
+                    <button onClick={onNextQuestion} className="mt-8 px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold rounded-lg shadow-lg hover:scale-105 transition-transform">
+                        Next Question
+                    </button>
+                )}
+                {!isHost && isAnswerLocked && (
+                    <p className="mt-6 text-lg animate-pulse text-blue-300">Answer Locked In! Good luck!</p>
                 )}
             </main>
+            <style>{`
+                .bg-grid-pattern {
+                    background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+                    background-size: 2rem 2rem;
+                }
+                .shadow-text {
+                    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+                }
+                .question-glow {
+                    text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+                }
+                .animate-pulse-fast {
+                    animation: pulse 0.8s infinite;
+                }
+                .shape-diamond { background-color: #a855f7; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+                .shape-triangle { background-color: #10b981; clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+                .shape-circle { background-color: #f97316; border-radius: 50%; }
+                .shape-square { background-color: #f43f5e; }
+                @keyframes fade-in-up {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .animate-fade-in-up {
+                    animation: fade-in-up 0.6s ease-out forwards;
+                }
+            `}</style>
         </div>
     );
 };

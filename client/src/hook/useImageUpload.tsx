@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { toast } from 'react-hot-toast';
-import { apiService } from '../service/api'; 
+import { apiService } from '../service/api';
 
 export const useImageUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
@@ -15,6 +15,7 @@ export const useImageUpload = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
+      setUploadedImageUrl(null);
     }
   };
 
@@ -25,14 +26,15 @@ export const useImageUpload = () => {
     }
 
     setIsUploading(true);
+    const toastId = toast.loading("Uploading image...");
     try {
       const newUrl = await apiService.uploadImageToCloudinary(selectedFile);
       setUploadedImageUrl(newUrl);
       setSelectedFile(null); 
-      toast.success("Image uploaded successfully!");
+      toast.success("Image uploaded successfully!", { id: toastId });
       return newUrl; 
     } catch (error: any) {
-      toast.error(error.message || "Upload failed.");
+      toast.error(error.message || "Upload failed.", { id: toastId });
     } finally {
       setIsUploading(false);
     }
@@ -43,6 +45,7 @@ export const useImageUpload = () => {
     uploadedImageUrl,
     selectedFile,
     setSelectedFile, 
+    setUploadedImageUrl, // This is now correctly exported
     fileInputRef,
     handleSelectFileClick,
     handleFileSelect,

@@ -1,95 +1,141 @@
-import { Home } from 'lucide-react';
-import React, { useState, useCallback } from 'react';
+// GameOverView.tsx
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { Home } from 'lucide-react';
 import { FeedbackModal } from '../ui/FeedbackModal'; 
-import { gameApi } from '../../service/gameApi';
-import type { IFeedbackRequest } from '../../service/gameApi'; 
+import { gameApi, type IFeedbackRequest } from '../../service/gameApi'; 
+
 interface GameOverViewProps {
-  onFetchResults: () => void;
-  onViewMyPerformance: () => void;
-  isHost: boolean;
-  sessionId: string | null;
-  userId: string | null;
+    onFetchResults: () => void;
+    onViewMyPerformance: () => void;
+    isHost: boolean;
+    sessionId: string | null;
+    userId: string | null;
 }
 
 export const GameOverView: React.FC<GameOverViewProps> = ({ 
-  onFetchResults, 
-  onViewMyPerformance, 
-  isHost,
-  sessionId,
-  userId
+    onFetchResults, 
+    onViewMyPerformance, 
+    isHost,
+    sessionId,
+    userId 
 }) => {
-  const [isFeedbackModalOpen, setFeedbackModalOpen] = useState(false);
+    const [showFireworks, setShowFireworks] = useState(true);
+    const [isFeedbackModalOpen, setFeedbackModalOpen] = useState(false);
 
-  const proceedToResults = useCallback(() => {
-    setFeedbackModalOpen(false);
-    onViewMyPerformance();
-  }, [onViewMyPerformance]);
-  
-  const handleFeedbackSubmit = useCallback(async (rating: number, comment: string) => {
-    if (!sessionId) {
-      console.error("Cannot submit feedback: Session ID or User ID is missing.");
-      proceedToResults(); 
-      return;
-    }
+    useEffect(() => {
+        // Automatically fetch results for the host
+        if (isHost) {
+            onFetchResults();
+        }
+        // Optimized firework animation
+        const timer = setTimeout(() => setShowFireworks(false), 3000);
+        return () => clearTimeout(timer);
+    }, [isHost, onFetchResults]);
 
-    const feedbackData: IFeedbackRequest = {
-      rating,
-      comment: comment || undefined,
+    const proceedToResults = useCallback(() => {
+        setFeedbackModalOpen(false);
+        onViewMyPerformance();
+    }, [onViewMyPerformance]);
+    
+    const handleFeedbackSubmit = useCallback(async (rating: number, comment: string) => {
+        if (!sessionId) {
+            console.error("Cannot submit feedback: Session ID is missing.");
+            proceedToResults(); 
+            return;
+        }
+
+        const feedbackData: IFeedbackRequest = {
+            rating,
+            comment: comment || undefined,
+        };
+
+        try {
+            await gameApi.addFeedback(sessionId, feedbackData);
+        } catch (error) {
+            console.error("Failed to submit feedback:", error);
+        } finally {
+            proceedToResults();
+        }
+    }, [sessionId, userId, proceedToResults]);
+    
+    const handleBackToHome = () => {
+        sessionStorage.removeItem("quizSessionId");
+        sessionStorage.removeItem("quizRoomId");
+        sessionStorage.removeItem("quizUserId");
     };
 
-    try {
-      await gameApi.addFeedback(sessionId, feedbackData);
-    } catch (error) {
-      console.error("Failed to submit feedback:", error);
-    } finally {
-      proceedToResults();
-    }
-  }, [sessionId, userId, proceedToResults]);
-  
-  const handleBackToHome = () => {
-    sessionStorage.removeItem("quizSessionId");
-    sessionStorage.removeItem("quizRoomId");
-    sessionStorage.removeItem("quizUserId");
-  };
+    return (
+        <>
+            <div className="relative w-full min-h-screen flex items-center justify-center p-4">
+                {showFireworks && (
+                    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                        {[...Array(8)].map((_, i) => (
+                            <div key={i} className="absolute animate-firework" style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 1.5}s` }}>
+                                <div className="w-3 h-3 bg-gradient-to-r from-yellow-300 to-red-400 rounded-full"></div>
+                            </div>
+                        ))}
+                    </div>
+                )}
 
-  return (
-    <>
-      <div className="w-full max-w-md p-10 bg-gray-900/60 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/10 text-white text-center flex flex-col items-center gap-6">
-        <h1 className="text-4xl md:text-5xl font-extrabold mb-4">🎉 Game Over! 🎉</h1>
-        <p className="text-gray-300 mb-6">Thanks for playing! Check your results below.</p>
+                <div className="w-full max-w-md p-6 md:p-12 bg-gray-900/70 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 text-white text-center flex flex-col items-center gap-6 relative z-10">
+                    <div className="animate-bounce-in">
+                        <h1 className="text-4xl md:text-5xl font-extrabold mb-3 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
+                            🎉 GAME OVER! 🎉
+                        </h1>
+                        <div className="flex justify-center gap-3 text-3xl">
+                            <span className="animate-bounce" style={{animationDelay: '0ms'}}>🏆</span>
+                            <span className="animate-bounce" style={{animationDelay: '150ms'}}>🎊</span>
+                            <span className="animate-bounce" style={{animationDelay: '300ms'}}>✨</span>
+                        </div>
+                    </div>
 
-        {isHost ? (
-          <button 
-            onClick={onFetchResults} 
-            className="w-full bg-indigo-600 hover:bg-indigo-500 transition-colors font-semibold py-3 px-6 rounded-xl shadow-lg"
-          >
-            View All Player Results
-          </button>
-        ) : (
-          <button 
-            onClick={() => setFeedbackModalOpen(true)} 
-            className="w-full bg-indigo-600 hover:bg-indigo-500 transition-colors font-semibold py-3 px-6 rounded-xl shadow-lg"
-          >
-            View My Results
-          </button>
-        )}
+                    <p className="text-lg text-gray-300 animate-fade-in-delayed">Great game! Let's see how you did. 🚀</p>
 
-        <Link to='/dashboard'
-            onClick={handleBackToHome}
-          className="mt-4 text-indigo-400 hover:text-indigo-300 transition-colors font-medium flex items-center gap-2"
-        >
-          <Home size={20} /> Back to Home
-        </Link>
-      </div>
+                    <div className="w-full animate-scale-in">
+                        {isHost ? (
+                            // Host sees a loading/confirmation state, as results are fetched automatically
+                            <div className="text-center p-4">
+                                <p className="text-xl font-semibold animate-pulse">Fetching final results...</p>
+                            </div>
+                        ) : (
+                            <button onClick={() => setFeedbackModalOpen(true)} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 transition-all duration-300 font-bold py-3 px-6 rounded-xl shadow-lg text-lg transform hover:scale-105">
+                                View My Results
+                            </button>
+                        )}
+                    </div>
+                    
+                    {/* Back to home button is always visible */}
+                    <div className="animate-slide-up">
+                        <Link to="/dashboard" onClick={handleBackToHome} className="text-indigo-400 hover:text-indigo-300 transition-all duration-300 font-medium flex items-center gap-2 p-2 rounded-lg hover:bg-white/10">
+                            <Home size={18} />
+                            <span>Back to Home</span>
+                        </Link>
+                    </div>
+                </div>
+            </div>
 
-      {!isHost && (
-        <FeedbackModal
-          isOpen={isFeedbackModalOpen}
-          onClose={proceedToResults}
-          onSubmit={handleFeedbackSubmit}
-        />
-      )}
-    </>
-  );
+            {!isHost && (
+                <FeedbackModal
+                    isOpen={isFeedbackModalOpen}
+                    onClose={proceedToResults}
+                    onSubmit={handleFeedbackSubmit}
+                />
+            )}
+
+            <style>{`
+                @keyframes firework { 0% { transform: scale(0); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+                @keyframes bounce-in { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+                .animate-firework { animation: firework 1.2s ease-out infinite; }
+                .animate-bounce-in { animation: bounce-in 0.8s ease-out; }
+                .animate-fade-in-delayed { animation: fade-in-up 0.8s ease-out 0.5s both; }
+                .animate-scale-in { animation: scale-in 0.6s ease-out 1s both; }
+                .animate-slide-up { animation: slide-up 0.5s ease-out 1.5s both; }
+                @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes scale-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+                @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+            `}</style>
+        </>
+    );
 };
