@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Calendar, Clock, Users } from "lucide-react";
-// import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom"; 
 import Sidebar from "../components/dashboard/Sidebar";
 
 const History: React.FC = () => {
@@ -8,54 +8,14 @@ const History: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("history");
   const currentTime = new Date();
-
+  const navigate = useNavigate();
   // Dummy quiz history data
   const quizHistory = [
-    {
-      id: 1,
-      title: "JavaScript Fundamentals",
-      date: "May 15, 2025",
-      score: 85,
-      timeTaken: "3m 42s",
-      status: "Completed",
-      players: 120,
-    },
-    {
-      id: 2,
-      title: "React Components",
-      date: "May 12, 2025",
-      score: 92,
-      timeTaken: "4m 10s",
-      status: "Completed",
-      players: 98,
-    },
-    {
-      id: 3,
-      title: "CSS Grid Layout",
-      date: "May 10, 2025",
-      score: 74,
-      timeTaken: "2m 58s",
-      status: "Completed",
-      players: 76,
-    },
-    {
-      id: 4,
-      title: "Node.js Basics",
-      date: "May 8, 2025",
-      score: 67,
-      timeTaken: "5m 21s",
-      status: "Incomplete",
-      players: 89,
-    },
-    {
-      id: 5,
-      title: "Database Design",
-      date: "May 5, 2025",
-      score: 90,
-      timeTaken: "6m 03s",
-      status: "Completed",
-      players: 65,
-    },
+    { id: 1, date: "May 15, 2025", score: 85, timeTaken: "3m 42s", players: 120, status: "Completed" },
+    { id: 2, date: "May 12, 2025", score: 92, timeTaken: "4m 10s", players: 98, status: "Completed" },
+    { id: 3, date: "May 10, 2025", score: 74, timeTaken: "2m 58s", players: 76, status: "Completed" },
+    { id: 4, date: "May 8, 2025", score: 67, timeTaken: "5m 21s", players: 89, status: "Incomplete" },
+    { id: 5, date: "May 5, 2025", score: 90, timeTaken: "6m 03s", players: 65, status: "Completed" },
   ];
 
   const getScoreColor = (score: number) => {
@@ -99,52 +59,37 @@ const History: React.FC = () => {
               <table className="w-full text-left">
                 <thead className="bg-gradient-to-r from-blue-100 to-purple-100 text-gray-700 text-sm">
                   <tr>
-                    <th className="px-6 py-3">Quiz Title</th>
-                    <th className="px-6 py-3">Date</th>
-                    <th className="px-6 py-3">Score</th>
-                    <th className="px-6 py-3">Time Taken</th>
-                    <th className="px-6 py-3">Players</th>
-                    <th className="px-6 py-3">Status</th>
+                    <th className="px-10 py-3">Date</th>
+                    <th className="px-10 py-3">Score</th>
+                    <th className="px-10 py-3">Time Taken</th>
+                    <th className="px-10 py-3">Players</th>
+                    <th className="px-10 py-3">More Detail</th>
                   </tr>
                 </thead>
                 <tbody>
                   {quizHistory.map((quiz) => (
-                    <tr
-                      key={quiz.id}
-                      className="border-b border-gray-200 hover:bg-blue-50/50 transition"
-                    >
-                      <td className="px-6 py-4 font-medium text-gray-800">
-                        {quiz.title}
-                      </td>
-                      <td className="px-6 py-4 flex items-center text-gray-600">
+                    <tr key={quiz.id} className="border-b border-gray-200 hover:bg-blue-50/50 transition">
+                      <td className="px-10 py-4 flex items-center text-gray-600">
                         <Calendar className="w-4 h-4 mr-2 text-blue-600" />
                         {quiz.date}
                       </td>
-                      <td
-                        className={`px-6 py-4 font-semibold ${getScoreColor(
-                          quiz.score
-                        )}`}
-                      >
+                      <td className={`px-10 py-4 font-semibold ${getScoreColor(quiz.score)}`}>
                         {quiz.score}%
                       </td>
-                      <td className="px-6 py-4 flex items-center text-gray-600">
+                      <td className="px-10 py-4 flex items-center text-gray-600">
                         <Clock className="w-4 h-4 mr-2 text-orange-600" />
                         {quiz.timeTaken}
                       </td>
-                      <td className="px-6 py-4 flex items-center text-gray-600">
-                        <Users className="w-4 h-4 mr-2 text-teal-600" />
+                      <td className="px-10 py-4 text-gray-600 font-medium">
                         {quiz.players}
                       </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            quiz.status === "Completed"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700"
-                          }`}
+                      <td className="px-10 py-4">
+                        <button
+                          onClick={() =>navigate(`/history/${quiz.id}`)}
+                          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded-lg text-sm font-medium transition-all duration-300"
                         >
-                          {quiz.status}
-                        </span>
+                          View Detail
+                        </button>
                       </td>
                     </tr>
                   ))}
