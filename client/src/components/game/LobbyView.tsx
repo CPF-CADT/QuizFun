@@ -162,7 +162,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             👥 Players ({participants.length})
           </h2>
           <ul className="space-y-2 text-left text-xs">
-            {participants.map((player, index) => (
+            {participants.map((player) => (
               <li
                 key={player.user_id}
                 className="flex items-center justify-between bg-purple-100 p-2 rounded-lg hover:bg-purple-200 transition-colors"
@@ -217,16 +217,6 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         </div>
       </div>
 
-      <style jsx>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-        }
-        @keyframes fadeInOut {
-          0%, 100% { opacity: 0; }
-          50% { opacity: 0.7; }
-        }
-      `}</style>
     </div>
   );
 };
