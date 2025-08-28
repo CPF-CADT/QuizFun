@@ -4,7 +4,6 @@ import { Activity, Loader, AlertCircle, Inbox } from 'lucide-react';
 import { reportApi, type IActivitySession } from '../../service/reportApi';
 import { HostSessionCard } from './HostSessionCard';
 import { PlayerSessionCard } from './PlayerSessionCard';
-import { useAuth } from '../../context/AuthContext';
 
 const LIMIT = 5;
 
@@ -15,19 +14,15 @@ const ActivityFeed: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
-    const {user} = useAuth()
     const fetchActivities = useCallback(async (pageNum: number) => {
         setLoading(true);
         try {
             const response = await reportApi.getUserActivityFeed(pageNum, LIMIT);
             const newActivities = response.data.activities;
 
-            // ✨ --- KEY CHANGE HERE --- ✨
-            // If it's the first page, replace the state. Otherwise, append.
             if (pageNum === 1) {
                 setActivities(newActivities);
             } else {
-                // Using a function to avoid duplicates if newActivities are already present
                 setActivities(prev => {
                     const existingIds = new Set(prev.map(a => a._id));
                     const filteredNew = newActivities.filter(a => !existingIds.has(a._id));
@@ -55,8 +50,8 @@ const ActivityFeed: React.FC = () => {
         fetchActivities(nextPage);
     };
 
-    const handleViewPlayerPerformance = (sessionId: string, userId: string) => {
-        navigate(`/session/${sessionId}/performance/${userId}`);
+    const handleViewPlayerPerformance = (sessionId: string) => {
+        navigate(`/session/${sessionId}/performance`);
     };
     
     const handleViewSessionResult = (sessionId: string) => {
@@ -98,7 +93,7 @@ const ActivityFeed: React.FC = () => {
                             key={session._id}
                             session={session}
                             // Assuming you need userId for player performance view
-                            onViewResults={() => handleViewPlayerPerformance(session._id,user?._id??'')}
+                            onViewResults={() => handleViewPlayerPerformance(session._id)}
                         />
                     )
                 )}
