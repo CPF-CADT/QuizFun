@@ -214,7 +214,26 @@ const handleSignup = async () => {
                focus:ring-purple-400/40 focus:border-purple-400 transition-all duration-300 text-base md:text-lg"
               />
             </div>
-          {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
+                    {emailError && (
+            <div className="mt-2 flex items-center gap-2 text-red-600 text-sm bg-red-100 border border-red-300 rounded-lg px-3 py-2 animate-fadeIn">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 flex-shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span>{emailError}</span>
+            </div>
+          )}
+
           </div>
 
           {/* Password */}
@@ -240,7 +259,22 @@ const handleSignup = async () => {
                 
               </button>
             </div>
-              {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
+             {/* Error */}
+{passwordError && (
+  <div className="mt-2 flex items-center gap-2 rounded-xl bg-red-50 border border-red-300 px-3 py-2 animate-fadeIn">
+    <svg
+      className="w-4 h-4 text-red-500 flex-shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <p className="text-sm font-medium text-red-600">{passwordError}</p>
+  </div>
+)}
+
           </div>
 
           {/* Confirm Password */}
