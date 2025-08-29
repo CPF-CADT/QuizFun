@@ -17,27 +17,52 @@ const Signup: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+const [emailError, setEmailError] = useState<string | null>(null);
+const [passwordError, setPasswordError] = useState<string | null>(null);
+const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
 
-  const handleSignup = async () => {
-    if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match");
-      return;
+const handleSignup = async () => {
+  // Reset errors before checking
+  setEmailError(null);
+  setPasswordError(null);
+  setConfirmPasswordError(null);
+
+  // Password complexity
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
+  if (!passwordRegex.test(formData.password)) {
+    setPasswordError("Password must include uppercase, lowercase, and a number");
+    return;
+  }
+
+  // Confirm password
+  if (formData.password !== formData.confirmPassword) {
+    setConfirmPasswordError("Passwords do not match");
+    return;
+  }
+
+  try {
+    const res = await authApi.signUp({
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+    });
+
+    if (res.data?.message) {
+      navigate("/verifycode", { state: { email: formData.email } });
     }
-    try {
-      const res = await authApi.signUp({
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-      });
-      if (res.data?.message) {
-        alert(res.data.message);
-        navigate("/verifycode", { state: { email: formData.email } });
-      }
-    } catch (err: any) {
-      console.error("Backend error response:", err.response?.data);
-      alert(err.response?.data?.error || "Something went wrong");
+  } catch (err: any) {
+    console.error("Backend error response:", err.response?.data);
+
+    if (err.response?.data?.error?.toLowerCase().includes("email")) {
+      setEmailError("Email is already used");
+    } else {
+      setEmailError(err.response?.data?.error || "Something went wrong");
     }
-  };
+  }
+};
+
+
+
 
   const isFormValid =
     formData.name.length > 0 &&
@@ -189,6 +214,7 @@ const Signup: React.FC = () => {
                focus:ring-purple-400/40 focus:border-purple-400 transition-all duration-300 text-base md:text-lg"
               />
             </div>
+          {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
           </div>
 
           {/* Password */}
@@ -214,6 +240,7 @@ const Signup: React.FC = () => {
                 
               </button>
             </div>
+              {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
           </div>
 
           {/* Confirm Password */}
@@ -232,6 +259,7 @@ const Signup: React.FC = () => {
                focus:ring-purple-400/40 focus:border-purple-400 transition-all duration-300 text-base md:text-lg"
               />
             </div>
+ {confirmPasswordError && <p className="text-red-500 text-sm mt-1">{confirmPasswordError}</p>}
           </div>
 
           {/* Submit */}
