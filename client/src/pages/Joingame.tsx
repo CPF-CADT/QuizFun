@@ -5,39 +5,29 @@ import { useQuizGame } from "../context/GameContext";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { FaArrowLeft,FaStar,FaLightbulb,FaTrophy,FaRocket,FaPlay,FaUsers, FaArrowRight, FaCrown  } from "react-icons/fa";
-// Helper function to generate a unique ID for guest users
 const generateGuestId = () => `guest_${Math.random().toString(36).substring(2, 10)}`;
 const Joingame: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const { joinRoom, gameState } = useQuizGame();
-  const [searchParams] = useSearchParams(); // Hook to read URL query params
+  const [searchParams] = useSearchParams(); 
 
   const [gamePin, setGamePin] = useState("");
   const [playerName, setPlayerName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // This effect runs when the component loads to handle the URL parameter
   useEffect(() => {
-    const roomCodeFromUrl = searchParams.get("joinRoomCode");
-
-    if (roomCodeFromUrl) {
-      // 1. Pre-fill the game pin input from the URL
-      setGamePin(roomCodeFromUrl);
-
-      // 2. If the user is already logged in, join the game automatically
-      if (isAuthenticated && user) {
-        setIsLoading(true);
-        const joinData = {
-          roomId: parseInt(roomCodeFromUrl),
-          username: user.name,
-          userId: user._id,
-        };
-        console.log("Authenticated user detected. Auto-joining with data:", joinData);
-        joinRoom(joinData);
-      }
-    }
-  }, [searchParams, isAuthenticated, user, joinRoom]);
+  const roomCodeFromUrl = searchParams.get("joinRoomCode");
+  if (!roomCodeFromUrl) return;
+  if (isAuthenticated && user?._id && user?.name) {
+    const joinData = { 
+      roomId: parseInt(roomCodeFromUrl), 
+      username: user.name, 
+      userId: user._id 
+    };
+    joinRoom(joinData);
+  }
+}, [searchParams, isAuthenticated, user, joinRoom]);
 
 
   // This function handles the form submission for guests or manual entries

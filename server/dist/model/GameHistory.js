@@ -8,7 +8,7 @@ const AnswerAttemptSchema = new mongoose_1.Schema({
     answerTimeMs: { type: Number, required: true },
 }, { _id: false });
 const GameHistorySchema = new mongoose_1.Schema({
-    gameSessionId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'GameSession', required: true, index: true },
+    gameSessionId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'GameSession', required: false, index: true },
     quizId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Quiz', required: true, index: true },
     questionId: { type: mongoose_1.Schema.Types.ObjectId, required: true, index: true },
     userId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', index: true }, // required: false is implied

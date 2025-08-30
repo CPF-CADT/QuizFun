@@ -9,3 +9,4 @@ reportRouter.get("/my-quizzes",globalRateLimit, authenticateToken,ReportControll
 reportRouter.get("/quiz/:quizId",globalRateLimit, authenticateToken,ReportController.getQuizAnalytics);
 reportRouter.get("/activity-feed",globalRateLimit, authenticateToken,ReportController.getUserActivityFeed);
 reportRouter.get("/quiz/:quizId/feedback",ReportController.getQuizFeedback);
+reportRouter.post('/question', authenticateToken, ReportController.submitQuestionReport);

@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { authenticateToken } from '../middleware/authenicate.middleware';
+import { authenticateToken,optionalAuthMiddleware } from '../middleware/authenicate.middleware';
 import { validate } from '../middleware/validate';
 import { quizSchemas } from '../validations/quiz.schemas';
 import { 
@@ -20,12 +20,12 @@ import {
     deleteOption
 } from '../controller/quizz.controller';
 import { importPDFQuiz, testPDFParser } from '../controller/pdfImport.controller';
-import { globalRateLimit ,quizRateLimit} from '../middleware/ratelimit.middleware';
+import { globalRateLimit } from '../middleware/ratelimit.middleware';
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 // --- PUBLIC & GENERAL QUIZ ROUTES ---
-router.get('/', authenticateToken,validate(quizSchemas.getAllQuizzes) ,globalRateLimit,getAllQuizzes);
+router.get('/', optionalAuthMiddleware,validate(quizSchemas.getAllQuizzes) ,globalRateLimit,getAllQuizzes);
 router.get('/stats', authenticateToken,globalRateLimit, getDashboardStats);
 router.get('/:quizzId/leaderboard', validate(quizSchemas.quizzIdParam),globalRateLimit, getQuizLeaderboard);
 

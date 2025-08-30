@@ -17,9 +17,7 @@ const ToggleSwitch: React.FC<{
     <span className="text-gray-700 font-medium text-sm">{label}</span>
     <button
       type="button"
-      className={`${
-        enabled ? "bg-[rgb(186,85,211)]" : "bg-[rgb(200,200,200)]"
-      } relative inline-flex h-5 w-10 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`}
+      className={`${enabled ? "bg-green-500" : "bg-gray-600"} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none`}
       onClick={() => onChange(!enabled)}
     >
       <span
@@ -31,63 +29,18 @@ const ToggleSwitch: React.FC<{
   </div>
 );
 
-const ParticleEffect: React.FC = () => (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    {[...Array(6)].map((_, i) => (
-      <div
-        key={i}
-        className="absolute w-1.5 h-1.5 rounded-full opacity-60 animate-ping"
-        style={{
-          background: "linear-gradient(to right, rgb(186,85,211), rgb(255,105,180))",
-          left: `${20 + i * 15}%`,
-          top: `${10 + i * 8}%`,
-          animationDelay: `${i * 0.5}s`,
-          animationDuration: "2s",
-        }}
-      />
-    ))}
-  </div>
-);
-
-const FloatingEmoji: React.FC<{ emoji: string; delay: number }> = ({ emoji, delay }) => (
-  <div
-    className="absolute text-sm animate-bounce opacity-70"
-    style={{
-      animation: `float 3s ease-in-out infinite ${delay}s, fadeInOut 6s ease-in-out infinite ${delay}s`,
-      left: `${Math.random() * 80 + 10}%`,
-      top: `${Math.random() * 80 + 10}%`,
-    }}
-  >
-    {emoji}
-  </div>
-);
-
 interface LobbyViewProps {
   gameState: GameState;
   onStartGame: (roomId: number) => void;
   onSettingsChange: (settings: GameSettings) => void;
 }
 
-export const LobbyView: React.FC<LobbyViewProps> = ({
-  gameState,
-  onStartGame,
-  onSettingsChange,
-}) => {
-  const { roomId, participants, yourUserId, settings } = gameState;
-  const shareableLink = `${window.location.origin}/join?joinRoomCode=${roomId}`;
-  const me = participants.find((p) => p.user_id === yourUserId);
-  const isHost = me?.role === "host";
-  const [isCopied, setIsCopied] = useState(false);
-  const [pulseEffect, setPulseEffect] = useState(false);
-  const [showQrModal, setShowQrModal] = useState(false);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPulseEffect(true);
-      setTimeout(() => setPulseEffect(false), 1000);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
+export const LobbyView: React.FC<LobbyViewProps> = ({ gameState, onStartGame, onSettingsChange }) => {
+    const { roomId, participants, yourUserId, settings } = gameState;
+    const shareableLink = `${window.location.origin}/join?joinRoomCode=${roomId}`;
+    const me = participants.find((p) => p.user_id === yourUserId);
+    const isHost = me?.role === "host";
+    const [isCopied, setIsCopied] = useState(false);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(shareableLink).then(() => {
@@ -98,159 +51,87 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
 
   const floatingEmojis = ["🎮", "🎯", "🚀", "⭐", "🎉", "🏆"];
 
-  return (
-    <div className="relative w-full max-w-2xl">
-      {/* Floating Emojis */}
-      <div className="absolute inset-0 pointer-events-none">
-        {floatingEmojis.map((emoji, i) => (
-          <FloatingEmoji key={i} emoji={emoji} delay={i * 0.8} />
-        ))}
-      </div>
+    return (
+        <div className="w-full max-w-lg mx-auto bg-white/10 backdrop-blur-md rounded-2xl p-6 sm:p-8 shadow-2xl border-white/20 text-center animate-fade-in-up flex flex-col">
+            <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-white">Game Lobby</h1>
+            <p className="text-white/80 text-base sm:text-lg mb-6">Get your friends to join!</p>
 
-      <div
-        className="relative rounded-2xl p-6 shadow-md border text-center"
-        style={{
-          background: "linear-gradient(to bottom right, rgb(245,230,255), rgb(250,240,255))", // lighter purple
-          borderColor: "rgb(230,200,250)",
-        }}
-      >
-        <ParticleEffect />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-black/20 p-4 rounded-xl mb-4">
+                <div className="text-center">
+                    <p className="font-semibold mb-1 text-white/90">Game PIN:</p>
+                    <p className="text-4xl sm:text-5xl font-bold tracking-widest text-yellow-300">{roomId}</p>
+                </div>
+                <div className="flex justify-center items-center bg-white p-2 rounded-lg mx-auto">
+                    <QRCodeSVG value={shareableLink} size={128} level="H" />
+                </div>
+            </div>
 
-        {/* Title */}
-        <h1
-          className="text-3xl font-extrabold mb-2 text-transparent bg-clip-text"
-          style={{ backgroundImage: "linear-gradient(to right, rgb(186,85,211), rgb(238,130,238), rgb(221,160,221))" }}
-        >
-          🎉 Game Lobby
-        </h1>
-        <p className="text-gray-700 mb-4 text-sm">Invite your friends & get ready 🚀</p>
+            <div className="mb-6">
+                <div className="flex">
+                    <input
+                        type="text"
+                        readOnly
+                        value={shareableLink}
+                        className="w-full bg-white/10 p-2 rounded-l-md text-xs sm:text-sm text-center text-white/90"
+                        onClick={(e) => (e.target as HTMLInputElement).select()}
+                    />
+                    <button onClick={handleCopy} className="bg-indigo-500 text-white font-bold px-3 py-2 rounded-r-md hover:bg-indigo-600 transition-colors w-24 flex items-center justify-center">
+                        {isCopied ? <Check size={20}/> : <Copy size={20} />}
+                    </button>
+                </div>
+            </div>
 
-        {/* PIN + QR */}
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-white/70 p-4 rounded-xl shadow-inner">
-          <div className="text-center md:text-left">
-            <p className="font-semibold mb-1 text-gray-600 text-xs">Join with Game PIN:</p>
-            <p
-              className={`text-4xl font-extrabold tracking-widest ${
-                pulseEffect ? "scale-110" : ""
-              }`}
-              style={{ color: pulseEffect ? "rgb(255,105,180)" : "rgb(186,85,211)" }}
-            >
-              {roomId}
-            </p>
-          </div>
-          <div
-            onClick={() => setShowQrModal(true)}
-            className="flex justify-center items-center bg-white p-2 rounded-lg shadow-md cursor-pointer hover:scale-105 transition"
-          >
-            <QRCodeSVG value={shareableLink} size={120} level="H" />
-          </div>
-        </div>
+            <div className="bg-white/10 p-4 rounded-xl flex-grow overflow-y-auto max-h-48 sm:max-h-64 mb-6">
+                <h2 className="text-lg sm:text-xl font-semibold mb-3 text-white">Players ({participants.length})</h2>
+                <ul className="space-y-2 text-left">
+                    {participants.map((player) => (
+                        <li key={player.user_id} className="flex items-center justify-between bg-white/5 p-2 rounded-md text-sm sm:text-base">
+                            <span className="truncate text-white/90">{player.user_name}</span>
+                            {player.role === "host" && (
+                                <span className="text-xs font-bold text-yellow-300 flex items-center gap-1">
+                                    <Crown className="w-4 h-4" /> HOST
+                                </span>
+                            )}
+                        </li>
+                    ))}
+                </ul>
+            </div>
 
-        {/* Share Link */}
-        <div className="mt-4">
-          <p className="font-semibold text-xs mb-1 text-left text-gray-600">Or share this link:</p>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              readOnly
-              value={shareableLink}
-              className="w-full bg-white p-2 rounded-lg text-xs text-gray-800 border border-purple-200 focus:outline-none"
-              onClick={(e) => (e.target as HTMLInputElement).select()}
-            />
-            <button
-              onClick={handleCopy}
-              className="bg-[rgb(186,85,211)] text-white font-bold px-3 py-1.5 rounded-lg hover:bg-[rgb(221,160,221)] transition-colors w-24 shadow-sm text-xs"
-            >
-              {isCopied ? "✅ Copied!" : "📋 Copy"}
-            </button>
-          </div>
-        </div>
+            {isHost && (
+                <div className="mb-6 bg-white/10 p-4 rounded-xl space-y-3">
+                    <h3 className="text-lg sm:text-xl font-semibold text-white">Game Settings</h3>
+                    <ToggleSwitch
+                        label="Auto-Advance"
+                        enabled={settings.autoNext}
+                        onChange={(enabled) => onSettingsChange({ ...settings, autoNext: enabled })}
+                    />
+                    <ToggleSwitch
+                        label="Change Answer"
+                        enabled={settings.allowAnswerChange}
+                        onChange={(enabled) => onSettingsChange({ ...settings, allowAnswerChange: enabled })}
+                    />
+                </div>
+            )}
 
-        {/* Players */}
-        <div className="mt-4 bg-white/70 p-4 rounded-xl max-h-48 overflow-y-auto border border-purple-200">
-          <h2 className="text-lg font-semibold mb-2 flex items-center gap-2 text-gray-700">
-            👥 Players ({participants.length})
-          </h2>
-          <ul className="space-y-2 text-left text-xs">
-            {participants.map((player) => (
-              <li
-                key={player.user_id}
-                className="flex items-center justify-between p-2 rounded-lg transition-colors"
-                style={{ backgroundColor: "rgb(245,230,255)" }}
-              >
-                <span className="font-medium text-gray-800">{player.user_name}</span>
-                {player.role === "host" && (
-                  <span className="text-xs font-bold flex items-center gap-1" style={{ color: "rgb(186,85,211)" }}>
-                    <FaCrown className="w-3 h-3" /> HOST
-                  </span>
+            <div className="mt-auto">
+                {isHost ? (
+                    <button onClick={() => roomId && onStartGame(roomId)} disabled={participants.length < 1} className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-500 disabled:cursor-not-allowed font-bold py-3 rounded-xl transition-colors text-lg">
+                        {participants.length < 1 ? "Waiting for players..." : `Start Game`}
+                    </button>
+                ) : (
+                    <p className="text-lg animate-pulse text-white/90">Waiting for host to start...</p>
                 )}
-              </li>
-            ))}
-          </ul>
+                 <Link to="/dashboard" onClick={handleBackToHome} className="mt-4 text-indigo-400 hover:text-indigo-300 transition-colors font-medium flex items-center justify-center gap-2 text-sm">
+                    <Home size={16} /> Back to Home
+                </Link>
+            </div>
+            <style>{`
+                @keyframes fade-in-up {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .animate-fade-in-up { animation: fade-in-up 0.5s ease-out forwards; }
+            `}</style>
         </div>
-
-        {/* Settings (Host Only) */}
-        {isHost && (
-          <div className="mt-4 bg-white/70 p-4 rounded-xl space-y-3 border border-purple-200">
-            <h3 className="text-sm font-semibold text-left text-gray-700">⚙️ Game Settings</h3>
-            <ToggleSwitch
-              label="Auto-Advance to Next Round"
-              enabled={settings.autoNext}
-              onChange={(enabled) => onSettingsChange({ ...settings, autoNext: enabled })}
-            />
-            <ToggleSwitch
-              label="Allow Players to Change Answer"
-              enabled={settings.allowAnswerChange}
-              onChange={(enabled) => onSettingsChange({ ...settings, allowAnswerChange: enabled })}
-            />
-          </div>
-        )}
-
-        {/* Start / Waiting */}
-        <div className="mt-6">
-          {isHost ? (
-            <button
-              onClick={() => roomId && onStartGame(roomId)}
-              disabled={participants.length < 2}
-              className="w-full font-bold py-2.5 rounded-lg text-sm shadow-md transition-all hover:scale-[1.02] disabled:bg-gray-300 disabled:cursor-not-allowed"
-              style={{
-                background: participants.length < 2
-                  ? "rgb(200,200,200)"
-                  : "linear-gradient(to right, rgb(60,179,113), rgb(46,139,87))",
-                color: "white",
-              }}
-            >
-              {participants.length < 2
-                ? "Waiting for at least 1 player..."
-                : `🚀 Start Game (${participants.length} players)`}
-            </button>
-          ) : (
-            <p className="text-sm animate-pulse text-gray-600">Waiting for host to start...</p>
-          )}
-        </div>
-      </div>
-
-      {/* QR Modal */}
-      {showQrModal && (
-        <div
-          className="fixed inset-0 flex items-center justify-center bg-black/60 z-50"
-          onClick={() => setShowQrModal(false)}
-        >
-          <div
-            className="bg-white p-6 rounded-2xl shadow-lg relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setShowQrModal(false)}
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
-            >
-              ✖
-            </button>
-            <QRCodeSVG value={shareableLink} size={250} level="H" />
-            <p className="text-xs text-gray-600 mt-2 text-center">Scan this QR code to join</p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+    );
 };
