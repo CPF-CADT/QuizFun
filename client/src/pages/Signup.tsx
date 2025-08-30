@@ -17,27 +17,52 @@ const Signup: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+const [emailError, setEmailError] = useState<string | null>(null);
+const [passwordError, setPasswordError] = useState<string | null>(null);
+const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
 
-  const handleSignup = async () => {
-    if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match");
-      return;
+const handleSignup = async () => {
+  // Reset errors before checking
+  setEmailError(null);
+  setPasswordError(null);
+  setConfirmPasswordError(null);
+
+  // Password complexity
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
+  if (!passwordRegex.test(formData.password)) {
+    setPasswordError("Password must include uppercase, lowercase, and a number");
+    return;
+  }
+
+  // Confirm password
+  if (formData.password !== formData.confirmPassword) {
+    setConfirmPasswordError("Passwords do not match");
+    return;
+  }
+
+  try {
+    const res = await authApi.signUp({
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+    });
+
+    if (res.data?.message) {
+      navigate("/verifycode", { state: { email: formData.email } });
     }
-    try {
-      const res = await authApi.signUp({
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-      });
-      if (res.data?.message) {
-        alert(res.data.message);
-        navigate("/verifycode", { state: { email: formData.email } });
-      }
-    } catch (err: any) {
-      console.error("Backend error response:", err.response?.data);
-      alert(err.response?.data?.error || "Something went wrong");
+  } catch (err: any) {
+    console.error("Backend error response:", err.response?.data);
+
+    if (err.response?.data?.error?.toLowerCase().includes("email")) {
+      setEmailError("Email is already used");
+    } else {
+      setEmailError(err.response?.data?.error || "Something went wrong");
     }
-  };
+  }
+};
+
+
+
 
   const isFormValid =
     formData.name.length > 0 &&
@@ -189,6 +214,26 @@ const Signup: React.FC = () => {
                focus:ring-purple-400/40 focus:border-purple-400 transition-all duration-300 text-base md:text-lg"
               />
             </div>
+                    {emailError && (
+            <div className="mt-2 flex items-center gap-2 text-red-600 text-sm bg-red-100 border border-red-300 rounded-lg px-3 py-2 animate-fadeIn">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 flex-shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span>{emailError}</span>
+            </div>
+          )}
+
           </div>
 
           {/* Password */}
@@ -214,6 +259,22 @@ const Signup: React.FC = () => {
                 
               </button>
             </div>
+             {/* Error */}
+{passwordError && (
+  <div className="mt-2 flex items-center gap-2 rounded-xl bg-red-50 border border-red-300 px-3 py-2 animate-fadeIn">
+    <svg
+      className="w-4 h-4 text-red-500 flex-shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <p className="text-sm font-medium text-red-600">{passwordError}</p>
+  </div>
+)}
+
           </div>
 
           {/* Confirm Password */}
@@ -232,6 +293,7 @@ const Signup: React.FC = () => {
                focus:ring-purple-400/40 focus:border-purple-400 transition-all duration-300 text-base md:text-lg"
               />
             </div>
+ {confirmPasswordError && <p className="text-red-500 text-sm mt-1">{confirmPasswordError}</p>}
           </div>
 
           {/* Submit */}
