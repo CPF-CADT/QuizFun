@@ -43,6 +43,10 @@ gameRouter.get('/:sessionId/performance/guest',
     validate(gameSchemas.getGuestPerformance),
     GameController.getGuestPerformanceInSession
 );
+gameRouter.get('/:sessionId/export',
+    validate(gameSchemas.sessionIdParam),
+    GameController.exportSessionResults
+);
 
 gameRouter.get('/:sessionId/performance/:userId', 
     // quizRateLimit,

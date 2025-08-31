@@ -12,6 +12,7 @@ import { quizApi, type IQuiz } from "../service/quizApi";
 import { reportApi, type IQuizAnalytics } from "../service/reportApi";
 import { useDebounce } from '../hook/useDebounce';
 import { FeedbackModal } from "../components/report/FeedbackModal";
+import { ExcelExportButton } from "../components/ui/ExcelExportButton";
 
 const Report: React.FC = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -184,7 +185,15 @@ const Report: React.FC = () => {
                             <div className="animate-fade-in space-y-8">
                                 {/* Metrics Overview */}
                                 <div className="bg-white/70 backdrop-blur-md border border-white/20 shadow-xl rounded-2xl p-6">
-                                    <h3 className="text-lg font-semibold text-gray-800 mb-6">Key Metrics Overview for "{reportData.quizTitle}"</h3>
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                                        <h3 className="text-lg font-semibold text-gray-800">Key Metrics Overview for "{reportData.quizTitle}"</h3>
+                                        <ExcelExportButton
+                                            type="analytics"
+                                            quizId={selectedQuizId}
+                                            buttonText="Export Analytics"
+                                            buttonClass="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+                                        />
+                                    </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         {/* Pie Chart */}
                                         <div className="w-full h-80">

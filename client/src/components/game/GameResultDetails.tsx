@@ -2,16 +2,18 @@ import React, { useEffect, useState, useMemo } from 'react';
 import type { ResultsPayload } from '../../context/GameContext';
 import type { PlayerIdentifier } from '../../pages/GamePage';
 import { Trophy, Crown } from 'lucide-react';
+import { ExcelExportButton } from '../ui/ExcelExportButton';
 
 interface GameResultDetailsProps {
     payload: ResultsPayload;
     yourUserId: string;
+    sessionId?: string;
     onExit: () => void;
     setSelectedPlayer: (player: PlayerIdentifier | null) => void;
     isHost: boolean;
 }
 
-export const GameResultDetails: React.FC<GameResultDetailsProps> = ({ payload, yourUserId, onExit, setSelectedPlayer, isHost }) => {
+export const GameResultDetails: React.FC<GameResultDetailsProps> = ({ payload, yourUserId, sessionId, onExit, setSelectedPlayer, isHost }) => {
     const { results } = payload;
     const [revealedPlayers, setRevealedPlayers] = useState<number[]>([]);
     
@@ -105,7 +107,18 @@ export const GameResultDetails: React.FC<GameResultDetailsProps> = ({ payload, y
                     })}
                 </ul>
 
-                <footer className="mt-6">
+                <footer className="mt-6 space-y-3">
+                    {/* Excel Export Button - Show only for hosts */}
+                    {isHost && sessionId && (
+                        <ExcelExportButton
+                            type="session"
+                            sessionId={sessionId}
+                            buttonText="Export Results to Excel"
+                            buttonClass="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-xl transition-transform duration-300 hover:scale-105 shadow-lg flex items-center justify-center gap-2"
+                            showOptions={true}
+                        />
+                    )}
+                    
                     <button onClick={onExit} className="w-full bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-bold py-3 px-6 rounded-xl transition-transform duration-300 hover:scale-105 shadow-lg">
                         Exit Game
                     </button>

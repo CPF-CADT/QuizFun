@@ -15,3 +15,4 @@ exports.reportRouter.get("/quiz/:quizId", authenicate_middleware_1.authenticateT
 exports.reportRouter.get("/activity-feed", authenicate_middleware_1.authenticateToken, report_controller_1.ReportController.getUserActivityFeed);
 exports.reportRouter.get("/quiz/:quizId/feedback", report_controller_1.ReportController.getQuizFeedback);
 exports.reportRouter.post('/question', authenicate_middleware_1.authenticateToken, report_controller_1.ReportController.submitQuestionReport);
+exports.reportRouter.get("/quiz/:quizId/export", authenicate_middleware_1.authenticateToken, report_controller_1.ReportController.exportQuizAnalytics);

@@ -14,6 +14,7 @@ const report_repositories_1 = require("../repositories/report.repositories");
 const Quiz_1 = require("../model/Quiz");
 const GameSession_1 = require("../model/GameSession");
 const QuestionReport_1 = require("../model/QuestionReport");
+const ExcelExportService_1 = require("../service/ExcelExportService");
 const MIN_REPORTS = 50;
 const REPORT_PERCENTAGE = 0.7; // 70%
 /**
@@ -507,6 +508,64 @@ class ReportController {
             catch (error) {
                 console.error('Error fetching reports by user:', error);
                 return res.status(500).json({ message: 'Server error while fetching reports.' });
+            }
+        });
+    }
+    /**
+     * @swagger
+     * /api/reports/quiz/{quizId}/export:
+     *   get:
+     *     summary: Export quiz analytics to Excel
+     *     tags: [Reports]
+     *     parameters:
+     *       - in: path
+     *         name: quizId
+     *         required: true
+     *         schema:
+     *           type: string
+     *         description: The ID of the quiz
+     *     responses:
+     *       200:
+     *         description: Excel file download
+     *         content:
+     *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+     *             schema:
+     *               type: string
+     *               format: binary
+     *       401:
+     *         description: Unauthorized
+     *       404:
+     *         description: Quiz not found or access denied
+     *       500:
+     *         description: Server error
+     */
+    static exportQuizAnalytics(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const { quizId } = req.params;
+                const creatorId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+                if (!creatorId) {
+                    return res.status(401).json({ message: "Unauthorized" });
+                }
+                const excelBuffer = yield ExcelExportService_1.ExcelExportService.exportQuizAnalytics(quizId, creatorId);
+                // Get quiz info for filename
+                const quiz = yield Quiz_1.QuizModel.findOne({ _id: quizId, creatorId }).select('title').exec();
+                const quizTitle = (quiz === null || quiz === void 0 ? void 0 : quiz.title) || 'Quiz';
+                const sanitizedTitle = quizTitle.replace(/[^a-zA-Z0-9]/g, '_');
+                const timestamp = new Date().toISOString().split('T')[0];
+                const filename = `${sanitizedTitle}_Analytics_${timestamp}.xlsx`;
+                res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+                res.setHeader('Content-Length', excelBuffer.length);
+                return res.send(excelBuffer);
+            }
+            catch (error) {
+                console.error("Error exporting quiz analytics:", error);
+                if (error instanceof Error) {
+                    return res.status(404).json({ message: error.message });
+                }
+                return res.status(500).json({ message: 'Server error exporting quiz analytics.' });
             }
         });
     }
