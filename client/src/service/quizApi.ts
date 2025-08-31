@@ -202,5 +202,4 @@ export const quizApi = {
   getReportsByUser: (page: number, limit: number = 10): Promise<AxiosResponse<IPaginatedUserReports>> => {
     return apiClient.get('/report/by-user', { params: { page, limit } });
   },
-
 };

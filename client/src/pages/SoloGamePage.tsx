@@ -1,5 +1,3 @@
-// src/pages/SoloGamePage.tsx (FULL AND CORRECTED)
-
 import React, { useEffect, useReducer, useCallback, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { soloGameApi, type ISoloQuestion, type ISoloRestoredState } from '../service/soloGameApi';
@@ -15,7 +13,7 @@ type View = 'loading' | 'pregame' | 'question' | 'results' | 'end';
 
 interface State {
     view: View;
-    quizId: string;
+    quizId?: string; // Can be undefined now
     sessionId?: string;
     playerName: string;
     score: number;
@@ -26,16 +24,16 @@ interface State {
 }
 
 type Action =
-    | { type: 'SESSION_RESTORED'; payload: ISoloRestoredState & { playerName: string } }
+    | { type: 'SESSION_LOADED'; payload: ISoloRestoredState & { playerName: string } }
     | { type: 'GAME_STARTED'; payload: { sessionId: string; totalQuestions: number; question: ISoloQuestion; playerName: string } }
-    | { type: 'SHOW_PREGAME' }
+    | { type: 'SHOW_PREGAME'; payload: { quizId: string } }
     | { type: 'SET_LOADING' }
     | { type: 'ANSWER_SUBMITTED'; payload: State['lastResult'] }
     | { type: 'NEXT_QUESTION'; payload: { score: number; question: ISoloQuestion } }
     | { type: 'GAME_FINISHED'; payload: { score: number } };
 
 // --- The Reducer Function ---
-const initialState: Omit<State, 'quizId'> = {
+const initialState: State = {
     view: 'loading',
     playerName: 'Guest',
     score: 0,
@@ -46,8 +44,8 @@ const initialState: Omit<State, 'quizId'> = {
 function soloGameReducer(state: State, action: Action): State {
     switch (action.type) {
         case 'SET_LOADING': return { ...state, view: 'loading' };
-        case 'SHOW_PREGAME': return { ...state, view: 'pregame' };
-        case 'SESSION_RESTORED': return { ...state, view: 'question', ...action.payload };
+        case 'SHOW_PREGAME': return { ...initialState, view: 'pregame', quizId: action.payload.quizId };
+        case 'SESSION_LOADED': return { ...state, view: 'question', ...action.payload };
         case 'GAME_STARTED': return { ...state, view: 'question', ...action.payload, score: 0, currentQuestionIndex: 0 };
         case 'ANSWER_SUBMITTED': return { ...state, view: 'results', lastResult: action.payload };
         case 'NEXT_QUESTION': return { ...state, view: 'question', score: action.payload.score, question: action.payload.question, currentQuestionIndex: state.currentQuestionIndex + 1 };
@@ -58,46 +56,70 @@ function soloGameReducer(state: State, action: Action): State {
 
 // --- The Main Component ---
 const SoloGamePage: React.FC = () => {
-    const { quizId } = useParams<{ quizId: string }>();
+    // ✅ IMPROVED: Get both possible params. Only one will be defined at a time.
+    const { quizId, sessionId } = useParams<{ quizId?: string, sessionId?: string }>();
     const navigate = useNavigate();
     const { user } = useAuth();
 
-    const [state, dispatch] = useReducer(soloGameReducer, { ...initialState, quizId: quizId! });
+    const [state, dispatch] = useReducer(soloGameReducer, initialState);
     const [isPerformanceModalOpen, setPerformanceModalOpen] = useState(false);
 
+    // ✅ IMPROVED: This effect handles both team and public solo games
     useEffect(() => {
         const initialize = async () => {
-            if (!quizId) return navigate('/');
-            const existingSessionId = sessionStorage.getItem(`soloSession_${quizId}`);
-            if (existingSessionId) {
+            // --- TEAM FLOW ---
+            // If we have a sessionId, we load the game directly.
+            if (sessionId) {
                 try {
-                    const restoredState = await soloGameApi.getGameState(existingSessionId);
-                    const playerName = user?.name || 'Player';
-                    dispatch({ type: 'SESSION_RESTORED', payload: { ...restoredState, playerName } });
+                    const restoredState = await soloGameApi.getGameState(sessionId);
+                    const playerName = user?.name || 'Player'; // Team players are always logged in
+                    dispatch({ type: 'SESSION_LOADED', payload: { ...restoredState, playerName } });
                 } catch (error) {
-                    sessionStorage.removeItem(`soloSession_${quizId}`);
-                    dispatch({ type: 'SHOW_PREGAME' });
+                    console.error("Failed to load team solo session", error);
+                    alert("This game session is no longer available.");
+                    navigate('/dashboard'); // Go back to dashboard if session fails
+                }
+            } 
+            // --- PUBLIC FLOW ---
+            // Otherwise, if we have a quizId, we use the original logic.
+            else if (quizId) {
+                const existingSessionId = sessionStorage.getItem(`soloSession_${quizId}`);
+                if (existingSessionId) {
+                    try {
+                        const restoredState = await soloGameApi.getGameState(existingSessionId);
+                        const playerName = user?.name || 'Player';
+                        dispatch({ type: 'SESSION_LOADED', payload: { ...restoredState, playerName } });
+                    } catch (error) {
+                        sessionStorage.removeItem(`soloSession_${quizId}`);
+                        dispatch({ type: 'SHOW_PREGAME', payload: { quizId } });
+                    }
+                } else {
+                    dispatch({ type: 'SHOW_PREGAME', payload: { quizId } });
                 }
             } else {
-                dispatch({ type: 'SHOW_PREGAME' });
+                // If neither ID is present, it's an invalid URL.
+                navigate('/');
             }
         };
         initialize();
-    }, [quizId, navigate, user]);
+    }, [quizId, sessionId, navigate, user]);
     
+    // This function is now only for starting NEW public games
     const handleStartGame = useCallback(async (playerName: string) => {
         if (!quizId) return;
         dispatch({ type: 'SET_LOADING' });
         try {
             const apiResponse = await soloGameApi.start(quizId, playerName);
             sessionStorage.setItem(`soloSession_${quizId}`, apiResponse.sessionId);
-            dispatch({ type: 'GAME_STARTED', payload: { ...apiResponse, playerName } });
+            // After starting, we navigate to the session-based URL for consistency.
+            navigate(`/solo/session/${apiResponse.sessionId}`, { replace: true });
         } catch (error) {
             alert("Could not start quiz. Please try again later.");
-            dispatch({ type: 'SHOW_PREGAME' });
+            dispatch({ type: 'SHOW_PREGAME', payload: { quizId } });
         }
-    }, [quizId]);
+    }, [quizId, navigate]);
 
+    // This function doesn't need to change.
     const handleSubmitAnswer = useCallback(async (optionIndex: number, answerTimeMs: number) => {
         if (!state.sessionId || !state.question) return;
         const optionId = optionIndex === -1 ? null : state.question.options[optionIndex]._id;
@@ -129,7 +151,10 @@ const SoloGamePage: React.FC = () => {
         <>
             <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center p-4">
                 {state.view === 'loading' && <div className="text-xl font-semibold animate-pulse">Loading...</div>}
-                {state.view === 'pregame' && <SoloPreGameLobby quizId={state.quizId} onStart={handleStartGame} />}
+                
+                {/* Pregame lobby is only shown for new public games */}
+                {state.view === 'pregame' && state.quizId && <SoloPreGameLobby quizId={state.quizId} onStart={handleStartGame} />}
+                
                 {state.view === 'question' && state.question && <SoloQuestionView key={state.question._id} sessionId={state.sessionId!} question={state.question} score={state.score} currentQuestionIndex={state.currentQuestionIndex} totalQuestions={state.totalQuestions} onSubmitAnswer={handleSubmitAnswer} />}
                 {state.view === 'results' && state.question && state.lastResult && <SoloResultsView question={state.question} lastResult={state.lastResult} currentScore={state.lastResult.newTotalScore} />}
                 {state.view === 'end' && state.sessionId && (
@@ -140,8 +165,6 @@ const SoloGamePage: React.FC = () => {
                     />
                 )}
             </div>
-
-            {/* --- FIX: Only render the modal when it is open --- */}
             {isPerformanceModalOpen && state.sessionId && (
                  <PerformanceDetailModal
                     isOpen={isPerformanceModalOpen}
