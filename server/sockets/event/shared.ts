@@ -1,6 +1,6 @@
 // FILE: src/socket/handlers/shared.ts
 import { Server } from "socket.io";
-import { GameSessionManager, GameStatePayload, ResultsQuestion, SanitizedQuestion } from "../../config/data/GameSession";
+import { GameSessionManager, GameStatePayload, Participant, ResultsQuestion, SanitizedQuestion } from "../../config/data/GameSession";
 import { IQuestion } from "../../model/Quiz";
 import { calculatePoint } from "../../service/calculation";
 import { GameRepository } from "../../repositories/game.repositories";
@@ -127,87 +127,73 @@ export async function endRound(io: Server, roomId: number): Promise<void> {
 
     await broadcastGameState(io, roomId);
 }
-export async function broadcastGameState(
-    io: Server,
-    roomId: number,
-    errorMessage?: string
-): Promise<void> {
+export async function broadcastGameState(io: Server, roomId: number, targetSocketId?: string, errorMessage?: string) {
     const room = await GameSessionManager.getSession(roomId);
-    if (!room) return;
-
-    const totalQuestions = room.questions?.length ?? 0;
-    const currentQuestion =
-        room.questions &&
-            room.currentQuestionIndex >= 0 &&
-            room.currentQuestionIndex < room.questions.length
-            ? room.questions[room.currentQuestionIndex]
-            : null;
-
-    let baseQuestionPayload: SanitizedQuestion | null = null;
-    let correctAnswerIndex: number | null = null;
-
-    if (currentQuestion) {
-        baseQuestionPayload = {
-            questionText: currentQuestion.questionText,
-            point: currentQuestion.point,
-            timeLimit: currentQuestion.timeLimit,
-            imageUrl: currentQuestion.imageUrl,
-            options: currentQuestion.options.map((opt) => ({ text: opt.text })),
-        };
-        if (room.gameState === "results" || room.gameState === "end") {
-            correctAnswerIndex = currentQuestion.options.findIndex(
-                (opt) => opt.isCorrect
-            );
-        }
+    if (!room) {
+        console.error(`[Broadcast] Attempted to broadcast to non-existent room ${roomId}`);
+        return;
     }
 
-    const sharedState = {
-        sessionId: room.sessionId,
-        roomId,
-        gameState: room.gameState,
-        participants: room.participants,
-        currentQuestionIndex: room.currentQuestionIndex,
-        totalQuestions,
-        isFinalResults: room.isFinalResults,
-        settings: room.settings,
-        questionStartTime: room.questionStartTime,
-        answerCounts: room.answerCounts,
-        error: errorMessage,
-    };
+    // A helper function to create a personalized payload for each player
+    const createPayloadFor = (participant: Participant): GameStatePayload => {
+        const payload: GameStatePayload = {
+            sessionId: room.sessionId,
+            roomId: roomId,
+            gameState: room.gameState,
+            participants: room.participants,
+            currentQuestionIndex: room.currentQuestionIndex,
+            totalQuestions: room.questions?.length ?? 0,
+            isFinalResults: room.isFinalResults,
+            settings: room.settings,
+            questionStartTime: room.questionStartTime,
+            answerCounts: room.answerCounts,
+            yourUserId: participant.user_id,
+            error: errorMessage,
+            question: null,
+        };
 
-    for (const p of room.participants) {
-        if (!p.isOnline) continue;
-
-        let questionPayload: SanitizedQuestion | ResultsQuestion | null = null;
-
-        if (baseQuestionPayload) {
-            if (correctAnswerIndex != null) {
-                const resultsPayload: ResultsQuestion = {
-                    ...baseQuestionPayload,
-                    correctAnswerIndex,
-                };
-                const lastAnswer = p.user_id
-                    ? room.answers.get(p.user_id)?.at(-1)
-                    : undefined;
+        const currentQuestion = room.questions?.[room.currentQuestionIndex];
+        if (currentQuestion && (room.gameState === 'question' || room.gameState === 'results')) {
+            const sanitizedQuestion: SanitizedQuestion = {
+                questionText: currentQuestion.questionText,
+                point: currentQuestion.point,
+                timeLimit: currentQuestion.timeLimit,
+                imageUrl: currentQuestion.imageUrl,
+                options: currentQuestion.options.map(opt => ({ text: opt.text })),
+            };
+            
+            if (room.gameState === 'results') {
+                const resultsQuestion = sanitizedQuestion as ResultsQuestion;
+                resultsQuestion.correctAnswerIndex = currentQuestion.options.findIndex(opt => opt.isCorrect);
+                
+                const lastAnswer = participant.user_id ? room.answers.get(participant.user_id)?.at(-1) : undefined;
                 if (lastAnswer) {
-                    resultsPayload.yourAnswer = {
+                    resultsQuestion.yourAnswer = {
                         optionIndex: lastAnswer.optionIndex,
                         wasCorrect: lastAnswer.isCorrect,
                     };
                 }
-                questionPayload = resultsPayload;
-            } else {
-                questionPayload = baseQuestionPayload;
+            }
+            
+            payload.question = sanitizedQuestion;
+        }
+        return payload;
+    };
+
+    if (targetSocketId) {
+        // ✅ Send a targeted update to a single user (e.g., the host on room creation)
+        const participant = room.participants.find(p => p.socket_id === targetSocketId);
+        if (participant) {
+            console.log(`[Broadcast] Sending TARGETED game-update to host ${participant.user_name} in room ${roomId}`);
+            io.to(targetSocketId).emit('game-update', createPayloadFor(participant));
+        }
+    } else {
+        // Broadcast a personalized update to every online participant in the room
+        console.log(`[Broadcast] Sending GENERAL game-update to everyone in room ${roomId}`);
+        for (const participant of room.participants) {
+            if (participant.isOnline) {
+                io.to(participant.socket_id).emit('game-update', createPayloadFor(participant));
             }
         }
-
-        const stateToSend: GameStatePayload = {
-            ...sharedState,
-            question: questionPayload,
-            yourUserId: p.user_id,
-        };
-
-        io.to(p.socket_id).emit("game-update", stateToSend);
     }
 }
-

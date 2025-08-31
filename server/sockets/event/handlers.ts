@@ -2,93 +2,111 @@
 
 import { Server, Socket } from "socket.io";
 import { GameSessionManager, Participant, GameSettings, PlayerAnswer } from "../../config/data/GameSession";
-import { broadcastGameState, endRound, nextQuestion } from "./shared"; 
+import { broadcastGameState, endRound, nextQuestion } from "./shared";
 import { GameRepository } from "../../repositories/game.repositories";
 import { QuizModel } from "../../model/Quiz";
 import { generateRandomNumber } from "../../service/generateRandomNumber";
 import { GameSessionModel } from "../../model/GameSession";
+import { TeamRepository } from "../../repositories/TeamRepository";
+import redisClient from "../../config/redis";
 
-interface CreateRoomData { quizId: string; userId: string; hostName: string; settings: GameSettings; }
+interface CreateRoomData {
+    quizId: string;
+    userId: string;
+    hostName: string;
+    settings: GameSettings;
+    teamId?: string;
+}
 interface JoinRoomData { roomId: number; username: string; userId: string; }
 interface RejoinGameData { roomId: number; userId: string; }
 interface SubmitAnswerData { roomId: number; userId: string; optionIndex: number; }
 interface UpdateSettingsData {
-  roomId: number;
-  settings: GameSettings;
+    roomId: number;
+    settings: GameSettings;
 }
 export async function handleUpdateSettings(socket: Socket, io: Server, data: UpdateSettingsData): Promise<void> {
     const { roomId, settings } = data;
     const room = await GameSessionManager.getSession(roomId);
     const host = room?.participants.find(p => p.role === 'host');
 
-    // Security check: Only the host of the room can change the settings.
     if (!room || !host || host.socket_id !== socket.id) {
-        return; 
+        return;
     }
 
     console.log(`[Settings] Host updated settings for room ${roomId}:`, settings);
-    
-    // Update the settings for the session in memory
+
     room.settings = settings;
 
-    // Broadcast the new game state (with updated settings) to everyone in the room.
     await broadcastGameState(io, roomId);
 }
 
 export async function handleCreateRoom(socket: Socket, io: Server, data: CreateRoomData): Promise<void> {
-    const roomId = generateRandomNumber(6); // This is the numeric joinCode
+    const roomId = generateRandomNumber(6);
+    console.log(`[Lobby] Attempting to create room ${roomId} for quiz ${data.quizId}. Team: ${data.teamId || 'None'}`);
 
-    let uniqueSessionId: string;
     try {
-        // Step 1: Create the document in MongoDB first to get a unique _id.
         const newGameSession = new GameSessionModel({
             quizId: data.quizId,
             hostId: data.userId,
+            teamId: data.teamId,
             joinCode: roomId,
             status: 'waiting',
+            mode: 'multiplayer'
         });
         await newGameSession.save();
-        uniqueSessionId = newGameSession._id.toString();
-        console.log(`[DB] Created GameSession ${uniqueSessionId} for room ${roomId}.`);
+        const uniqueSessionId = newGameSession._id.toString();
+
+        await GameSessionManager.addSession(roomId, {
+            sessionId: uniqueSessionId,
+            quizId: data.quizId,
+            teamId: data.teamId,
+            hostId: data.userId,
+            settings: data.settings,
+        });
+
+        const room = await GameSessionManager.getSession(roomId);
+        if (!room) throw new Error("Failed to create session in memory.");
+
+        const hostParticipant: Participant = {
+            socket_id: socket.id,
+            user_id: data.userId,
+            user_name: data.hostName,
+            isOnline: true,
+            score: 0,
+            role: 'host',
+            hasAnswered: false,
+        };
+        room.participants.push(hostParticipant);
+        socket.join(roomId.toString());
+
+        await broadcastGameState(io, roomId, socket.id);
+        console.log(`[Lobby] Room ${roomId} created successfully. Host has been notified.`);
+
+        // ✅ **FIX: Notify team members that lobby is activated**
+        if (data.teamId) {
+            const teamRoom = `team-${data.teamId}`;
+            const eventData = { sessionId: uniqueSessionId, joinCode: roomId, timestamp: Date.now() };
+
+            try {
+                // Store in Redis for offline members
+                const redisKey = `team:${data.teamId}:pendingEvents`;
+                await redisClient.rPush(redisKey, JSON.stringify(eventData));
+                await redisClient.expire(redisKey, 3600); // TTL 1 hour
+
+                // Emit to online team members
+                io.to(teamRoom).emit("team-lobby-activated", eventData);
+                console.log(`[Team] Lobby activation event sent to ${teamRoom} and stored in Redis`);
+
+            } catch (err) {
+                console.error("[Socket] Failed to store lobby event:", err);
+            }
+        }
 
     } catch (error) {
-        console.error(`[DB] CRITICAL: Failed to create GameSession for room ${roomId}:`, error);
-        socket.emit("error-message", "A database error prevented the room from being created.");
-        return;
+        console.error(`[Lobby] FAILED to create room ${roomId}:`, error);
+        socket.emit("error-message", "A server error prevented the room from being created.");
     }
-
-    // Step 2: Add the session to the in-memory manager, including the new unique ID.
-    await GameSessionManager.addSession(roomId, {
-        sessionId: uniqueSessionId,
-        quizId: data.quizId,
-        hostId: data.userId,
-        settings: data.settings,
-    });
-
-    const room = await GameSessionManager.getSession(roomId);
-    
-    if (!room) {
-        console.error(`[Lobby] CRITICAL: Failed to create or retrieve session for room ${roomId}.`);
-        socket.emit("error-message", "Failed to create the room due to a server error.");
-        return;
-    }
-
-    const hostParticipant: Participant = {
-        socket_id: socket.id,
-        user_id: data.userId,
-        user_name: data.hostName,
-        isOnline: true,
-        score: 0,
-        role: 'host',
-        hasAnswered: false,
-    };
-    room.participants.push(hostParticipant);
-    socket.join(roomId.toString());
-
-    // Step 3: Broadcast the initial state, which will now include the unique sessionId.
-    broadcastGameState(io, roomId);
 }
-
 
 export async function handleJoinRoom(socket: Socket, io: Server, data: JoinRoomData): Promise<void> {
     const { roomId, username, userId } = data;
@@ -98,18 +116,27 @@ export async function handleJoinRoom(socket: Socket, io: Server, data: JoinRoomD
         socket.emit("error-message", `Room "${roomId}" does not exist.`);
         return;
     }
-    if (room.gameState === 'end') {
-        socket.emit("error-message", `Game in room "${roomId}" has already started.`);
-        return;
-    }
-    if (room.participants.some(p => p.user_id === userId)) {
 
-        await handleRejoinGame(socket, io, { roomId, userId });
+    if (room.gameState === 'end') {
+        socket.emit("error-message", `Game in room "${roomId}" has already finished.`);
         return;
     }
+
+    if (room.participants.some(p => p.user_id === userId)) {
+        return handleRejoinGame(socket, io, { roomId, userId });
+    }
+
     if (room.participants.length >= 50) {
         socket.emit("error-message", `Room "${roomId}" is full.`);
         return;
+    }
+
+    if (room.teamId) {
+        const isMember = await TeamRepository.isUserMemberOfTeam(room.teamId, userId);
+        if (!isMember) {
+            socket.emit("error-message", "You are not a member of the team for this quiz.");
+            return;
+        }
     }
 
     const player: Participant = {
@@ -123,18 +150,17 @@ export async function handleJoinRoom(socket: Socket, io: Server, data: JoinRoomD
     };
     room.participants.push(player);
     socket.join(roomId.toString());
-    broadcastGameState(io, roomId);
+    await broadcastGameState(io, roomId);
 }
 
 
 export async function startGame(socket: Socket, io: Server, roomId: number): Promise<void> {
     const room = await GameSessionManager.getSession(roomId);
-    if(!room) return;
-    
-    const host = room.participants.find(p => p.role === 'host');
+    if (!room) return;
 
+    const host = room.participants.find(p => p.role === 'host');
     if (!host || host.socket_id !== socket.id) return;
-    
+
     if (room.participants.filter(p => p.role === 'player' && p.isOnline).length === 0) {
         socket.emit('error-message', "Cannot start the game with no players.");
         return;
@@ -147,10 +173,18 @@ export async function startGame(socket: Socket, io: Server, roomId: number): Pro
             return;
         }
         room.questions = quiz.questions;
-        
         await GameRepository.updateSessionStatus(room.sessionId, 'in_progress');
-        
         await nextQuestion(io, roomId);
+
+        // ✅ **FIX: Notify team members that the game has started**
+        // This tells the TeamQuizList to update the button to "In Progress".
+        if (room.teamId) {
+            io.to(`team-${room.teamId}`).emit("team-game-started", {
+                sessionId: room.sessionId,
+            });
+            console.log(`[Game] Team ${room.teamId} notified: game for session ${room.sessionId} has started.`);
+        }
+
     } catch (error) {
         console.error(`[Game] Error starting game for room ${roomId}:`, error);
         broadcastGameState(io, roomId, "A server error occurred while starting the game.");
@@ -161,9 +195,9 @@ export async function startGame(socket: Socket, io: Server, roomId: number): Pro
 export async function handleSubmitAnswer(socket: Socket, io: Server, data: SubmitAnswerData): Promise<void> {
     const { roomId, userId, optionIndex } = data;
     const room = await GameSessionManager.getSession(roomId);
-    if(!room) return;
+    if (!room) return;
     const player = room.participants.find(p => p.user_id === userId);
-    
+
     if (!room || !player || player.role !== 'player' || room.gameState !== 'question' || !room.questions) return;
     if (!room.settings.allowAnswerChange && player.hasAnswered) return;
 
@@ -172,9 +206,9 @@ export async function handleSubmitAnswer(socket: Socket, io: Server, data: Submi
         console.error(`Room ${roomId} has no valid current question.`);
         return;
     }
-    
+
     const elapsedMs = Date.now() - (room.questionStartTime ?? Date.now());
-    const remainingSec =currentQuestion.timeLimit - Math.max(0, currentQuestion.timeLimit - elapsedMs / 1000);
+    const remainingSec = currentQuestion.timeLimit - Math.max(0, currentQuestion.timeLimit - elapsedMs / 1000);
 
     const playerAnswer: PlayerAnswer = {
         optionIndex: optionIndex,
@@ -200,10 +234,10 @@ export async function handleSubmitAnswer(socket: Socket, io: Server, data: Submi
 }
 
 export async function handleRequestNextQuestion(socket: Socket, io: Server, roomId: number): Promise<void> {
-    const room =await  GameSessionManager.getSession(roomId);
-    if(!room) return;
+    const room = await GameSessionManager.getSession(roomId);
+    if (!room) return;
     const host = room.participants.find(p => p.role === 'host');
-    if(!host || !host.socket_id) return;
+    if (!host || !host.socket_id) return;
     if (room && host.socket_id === socket.id && room.gameState === 'results') {
         if (room.autoNextTimer) {
             clearTimeout(room.autoNextTimer);
@@ -215,11 +249,11 @@ export async function handleRequestNextQuestion(socket: Socket, io: Server, room
 
 export async function handlePlayAgain(socket: Socket, io: Server, roomId: number): Promise<void> {
     const room = await GameSessionManager.getSession(roomId);
-    if(!room) return;
+    if (!room) return;
     const host = room.participants.find(p => p.role === 'host');
-        
-    if(!host || !host.socket_id) return;
-    
+
+    if (!host || !host.socket_id) return;
+
     if (room && host.socket_id === socket.id && room.gameState === 'end') {
         console.log(`[Lobby] Host is restarting game in room ${roomId}`);
         room.gameState = 'lobby';
@@ -249,10 +283,10 @@ export async function handleRejoinGame(socket: Socket, io: Server, data: RejoinG
         participant.socket_id = socket.id;
         participant.isOnline = true;
         socket.join(roomId.toString());
-        if(participant.hasAnswered){
-            socket.emit('your-selected',{reconnect:true,option:room.answers.get(userId)?.at(-1)?.optionIndex,questionNo:room.currentQuestionIndex});
+        if (participant.hasAnswered) {
+            socket.emit('your-selected', { reconnect: true, option: room.answers.get(userId)?.at(-1)?.optionIndex, questionNo: room.currentQuestionIndex });
         }
-        console.log(participant.hasAnswered,room.answers.get(userId)?.at(-1)?.optionIndex,room.currentQuestionIndex)
+        console.log(participant.hasAnswered, room.answers.get(userId)?.at(-1)?.optionIndex, room.currentQuestionIndex)
         broadcastGameState(io, roomId);
     } else {
         socket.emit('error-message', 'Could not find your session in this game.');
@@ -262,7 +296,7 @@ export async function handleRejoinGame(socket: Socket, io: Server, data: RejoinG
 export async function handleDisconnect(socket: Socket, io: Server): Promise<void> {
     const sessionInfo = GameSessionManager.findSessionBySocketId(socket.id);
     if (!sessionInfo) return;
-    
+
     const { roomId, session } = sessionInfo;
     const disconnectedUser = session.participants.find(p => p.socket_id === socket.id);
 
@@ -272,7 +306,16 @@ export async function handleDisconnect(socket: Socket, io: Server): Promise<void
 
         if (disconnectedUser.role === 'host') {
             broadcastGameState(io, roomId, "The host has disconnected. The game has ended.");
-            // await GameSessionManager.removeSession(roomId);
+
+            // ✅ **FIX: Notify team members that the lobby is now closed**
+            // This resets the quiz card on the TeamQuizList page back to "Waiting for Host".
+            if (session.teamId) {
+                io.to(`team-${session.teamId}`).emit("team-lobby-closed", {
+                    sessionId: session.sessionId,
+                });
+                console.log(`[Disconnect] Team ${session.teamId} notified: lobby for session ${session.sessionId} has closed.`);
+            }
+
         } else {
             const activePlayers = session.participants.filter(p => p.role === 'player' && p.isOnline);
             if (session.gameState === 'question' && !session.settings.allowAnswerChange && activePlayers.length > 0 && activePlayers.every(p => p.hasAnswered)) {

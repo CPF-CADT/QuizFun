@@ -13,9 +13,10 @@ import { config } from './config/config';
 import userReportRouter from './routes/bug.report.route'
 import { authenticateToken } from './middleware/authenicate.middleware';
 import soloRouter from './routes/solo.routes'
+import teamRouter from './routes/team.route'
 // import { } from './middleware/apiKeyVerification.middleware';
 import { swaggerPasswordProtect } from './middleware/swaggerProtect.middleware';
-import rateLimit from 'express-rate-limit';
+// import rateLimit from 'express-rate-limit';
 const app = express();
 
 app.use(cors({
@@ -27,14 +28,14 @@ app.use(cookieParser());
 app.get('/', (req, res) => {
     res.redirect('/api-docs/');
 });
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per window
-    standardHeaders: true,
-    legacyHeaders: false,
-    // The 'trustProxy' setting is no longer needed here if set globally
-});
-app.use(limiter);
+// const limiter = rateLimit({
+//     windowMs: 15 * 60 * 1000, // 15 minutes
+//     max: 100, // Limit each IP to 100 requests per window
+//     standardHeaders: true,
+//     legacyHeaders: false,
+//     // The 'trustProxy' setting is no longer needed here if set globally
+// });
+// app.use(limiter);
 
 
 // API Routes
@@ -45,6 +46,7 @@ app.use('/api/service',serviceRouter)
 app.use('/api/session',gameRouter)
 app.use('/api',userReportRouter)
 app.use('/api/solo',soloRouter)
+app.use('/api/teams',teamRouter)
 app.use('/api/reports',authenticateToken,reportRouter)
 
 app.use(errHandle)  
