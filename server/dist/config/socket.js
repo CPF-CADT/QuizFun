@@ -8,8 +8,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = socketSetup;
+// server/sockets/socketSetup.ts
 const socket_io_1 = require("socket.io");
 const handlers_1 = require("../sockets/event/handlers"); // Adjust path if necessary
 const GameSession_1 = require("../config/data/GameSession"); // Adjust path if necessary
@@ -41,15 +45,7 @@ function socketSetup(server) {
                 yield (0, handlers_1.handleCreateRoom)(socket, io, data);
             }
             catch (err) {
-                console.error("[Socket] Error in create-room:", err);
-            }
-        }));
-        socket.on('update-settings', (data) => __awaiter(this, void 0, void 0, function* () {
-            try {
-                yield (0, handlers_1.handleUpdateSettings)(socket, io, data);
-            }
-            catch (err) {
-                console.error("[Socket] Error in update-settings:", err);
+                console.error(err);
             }
         }));
         socket.on("join-room", (data) => __awaiter(this, void 0, void 0, function* () {
@@ -57,7 +53,7 @@ function socketSetup(server) {
                 yield (0, handlers_1.handleJoinRoom)(socket, io, data);
             }
             catch (err) {
-                console.error("[Socket] Error in join-room:", err);
+                console.error(err);
             }
         }));
         socket.on("start-game", (roomId) => __awaiter(this, void 0, void 0, function* () {
@@ -65,7 +61,7 @@ function socketSetup(server) {
                 yield (0, handlers_1.startGame)(socket, io, roomId);
             }
             catch (err) {
-                console.error("[Socket] Error in start-game:", err);
+                console.error(err);
             }
         }));
         socket.on("submit-answer", (data) => __awaiter(this, void 0, void 0, function* () {
@@ -97,7 +93,7 @@ function socketSetup(server) {
                 yield (0, handlers_1.handleDisconnect)(socket, io);
             }
             catch (err) {
-                console.error("[Socket] Error in disconnect:", err);
+                console.error(err);
             }
         }));
     }));
