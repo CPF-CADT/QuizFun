@@ -22,7 +22,7 @@ class Manager {
         return __awaiter(this, void 0, void 0, function* () {
             const session = Object.assign(Object.assign({}, data), { participants: [], currentQuestionIndex: -1, answers: new Map(), gameState: 'lobby', isFinalResults: false, answerCounts: [] });
             this.sessions.set(roomId, session);
-            yield redis_1.default.set(`session=${roomId}`, JSON.stringify(session));
+            yield redis_1.default.set(`session:${roomId}`, JSON.stringify(session));
             console.log(`[GameSession] In-memory session created for room ${roomId} (SessionID: ${data.sessionId}).`);
         });
     }

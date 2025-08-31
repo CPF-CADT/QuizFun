@@ -1,136 +1,100 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Crown, Home, Loader, ShieldAlert } from 'lucide-react';
-
-// API and Component Imports
-import { gameApi, type ResultsPayload } from '../service/gameApi';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Award, Eye, Loader, ShieldAlert } from 'lucide-react';
 import { PerformanceDetailModal } from '../components/PerformanceDetailModal';
+import { gameApi, type ISessionAnalytics } from '../service/gameApi';
 import type { PlayerIdentifier } from '../hook/usePerformanceData';
-import { useAuth } from '../context/AuthContext'; // Import the Auth Context
-
-// Deriving the player type directly from your ResultsPayload interface
-type LeaderboardPlayer = ResultsPayload['results'][0];
+import { useAuth } from '../context/AuthContext';
 
 const ResultPage: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
-    const { user } = useAuth(); // Get the currently logged-in user
-    const [sessionResults, setSessionResults] = useState<ResultsPayload | null>(null);
-    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+    const { user } = useAuth();
+    
+    const [sessionDetails, setSessionDetails] = useState<ISessionAnalytics | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isModalOpen, setModalOpen] = useState(false);
     const [selectedPlayer, setSelectedPlayer] = useState<PlayerIdentifier | null>(null);
 
     useEffect(() => {
-        // Guard: Don't fetch until we have both the session ID and the logged-in user
-        if (!sessionId) {
-            setError("No game session ID provided in the URL.");
-            setLoading(false);
-            return;
-        }
-        if (!user) {
-            // This is normal on initial load, so we don't set an error, just wait.
-            setLoading(true);
-            return;
-        }
+        if (!sessionId) return;
+        
+        setIsLoading(true);
+        setError(null);
+        // ✅ Use the new generic endpoint
+        gameApi.getSessionAnalytics(sessionId)
+            .then(res => setSessionDetails(res.data))
+            .catch(err => {
+                console.error("Failed to load session results", err);
+                setError("Could not load results.");
+            })
+            .finally(() => setIsLoading(false));
+    }, [sessionId]);
 
-        const fetchSessionResults = async () => {
-            try {
-                setLoading(true);
-                // FIXED: Pass the logged-in user's ID to the API call
-                const response = await gameApi.getSessionResults(sessionId, { userId: user._id });
-                setSessionResults(response.data);
-            } catch (err) {
-                setError("Could not load the results for this game session.");
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchSessionResults();
-    }, [sessionId, user]); // Dependency array now includes the user
-
-    const sortedLeaderboard = useMemo(() => {
-        if (!sessionResults?.results) return [];
-        return [...sessionResults.results].sort((a, b) => b.score - a.score);
-    }, [sessionResults]);
-
-    const handleViewDetails = (player: LeaderboardPlayer) => {
-        const isValidObjectId = (id: string) => /^[0-9a-fA-F]{24}$/.test(id);
-
-        if (player.participantId && isValidObjectId(player.participantId)) {
-            setSelectedPlayer({ userId: player.participantId });
-        } else {
-            setSelectedPlayer({ guestName: player.name });
-        }
+    const handleViewDetails = (player: { userId: string }) => {
+        if (!player.userId) return;
+        setSelectedPlayer({ userId: player.userId });
+        setModalOpen(true);
     };
 
-    const renderContent = () => {
-        if (loading) {
-            return (
-                <div className="flex flex-col items-center gap-4 text-white">
-                    <Loader className="w-12 h-12 animate-spin text-indigo-400" />
-                    <p className="text-xl font-semibold">Loading Final Results...</p>
-                </div>
-            );
-        }
+    if (isLoading || !user) {
+        return <div className="flex items-center justify-center h-screen"><Loader className="animate-spin h-10 w-10 text-indigo-600"/></div>;
+    }
 
-        if (error || !sessionResults) {
-            return (
-                 <div className="w-full max-w-md p-10 bg-gray-900/60 backdrop-blur-lg rounded-3xl shadow-2xl border border-red-500/50 text-white text-center flex flex-col items-center gap-4">
-                    <ShieldAlert className="w-12 h-12 text-red-400"/>
-                    <h2 className="text-2xl font-bold">Failed to Load Results</h2>
-                    <p className="text-gray-300">{error || "The requested session could not be found."}</p>
-                     <Link to='/dashboard' className="mt-4 text-indigo-400 hover:text-indigo-300 transition-colors font-medium flex items-center gap-2">
-                         <Home size={20} /> Back to Dashboard
-                     </Link>
-                </div>
-            );
-        }
-
-        return (
-            <div className="w-full max-w-2xl p-8 bg-gray-800/50 backdrop-blur-md rounded-3xl shadow-xl border border-white/20 text-white">
-                <h1 className="text-3xl font-bold text-center mb-6">Final Rankings</h1>
-
-                <ul className="space-y-3 mb-6 max-h-[60vh] overflow-y-auto p-2 bg-black/20 rounded-lg">
-                    {sortedLeaderboard.map((player, index) => (
-                        <li key={player.participantId || player.name} className="flex items-center justify-between bg-gray-700 p-4 rounded-lg shadow-md">
-                            <div className="flex items-center gap-4">
-                                <span className={`text-xl font-bold w-10 h-10 flex items-center justify-center rounded-full ${index === 0 ? 'bg-yellow-400 text-white' : 'bg-gray-500 text-white'}`}>
-                                    {index === 0 ? <Crown size={20} /> : `#${index + 1}`}
-                                </span>
-                                <span className="text-lg font-medium">{player.name}</span>
-                            </div>
-                            <div className="flex items-center gap-4">
-                               <span className="text-xl font-bold text-indigo-400">{player.score.toLocaleString()} pts</span>
-                                <button
-                                    onClick={() => handleViewDetails(player)}
-                                    className="bg-blue-600 text-white font-semibold px-3 py-1 rounded-md text-sm hover:bg-blue-700 transition-colors"
-                                >
-                                    Details
-                                </button>
-                            </div>
-                        </li>
-                    ))}
-                </ul>
-                 <Link to='/dashboard' className="w-full text-center block bg-gray-600/50 text-white font-bold py-3 px-6 rounded-md hover:bg-gray-700/70 transition-colors">
-                     Back to Dashboard
-                 </Link>
-            </div>
-        );
-    };
+    if (error || !sessionDetails) {
+        return <div className="flex items-center justify-center h-screen text-red-500"><ShieldAlert className="h-8 w-8 mr-2"/> {error}</div>;
+    }
 
     return (
         <>
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-                {renderContent()}
+            <div className="bg-gray-50 min-h-screen p-6">
+                <div className="max-w-4xl mx-auto">
+                    <header className="mb-8">
+                        <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 mb-2 font-semibold">
+                            <ArrowLeft size={18} /> Back to Dashboard
+                        </button>
+                        <h1 className="text-4xl lg:text-5xl font-bold text-gray-800">{sessionDetails.quizTitle}</h1>
+                        <p className="text-lg text-gray-500">Session Results from {new Date(sessionDetails.endedAt).toLocaleString()}</p>
+                    </header>
+
+                    <div className="bg-white p-6 rounded-xl border">
+                        <h3 className="text-xl font-bold mb-4 text-gray-800">Leaderboard</h3>
+                        <ul className="space-y-3">
+                            {sessionDetails.participants.map((player) => (
+                                <li key={player.userId || player.name} className="flex items-center justify-between p-4 rounded-lg bg-gray-50 hover:bg-gray-100">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 text-center">
+                                            <Award className={`w-6 h-6 inline ${player.rank === 1 ? 'text-yellow-500' : player.rank === 2 ? 'text-gray-400' : 'text-orange-500'}`} />
+                                        </div>
+                                        <img src={player.profileUrl || `https://i.pravatar.cc/150?u=${player.userId}`} alt={player.name} className="w-12 h-12 rounded-full" />
+                                        <div>
+                                            <p className="font-bold text-lg">{player.name}</p>
+                                            <p className="text-indigo-600 font-semibold">{player.score.toLocaleString()} Pts</p>
+                                        </div>
+                                    </div>
+                                    {player.userId && ( // Only show button for players with a valid user ID
+                                        <button 
+                                            onClick={() => handleViewDetails({ userId: player.userId })} 
+                                            className="flex items-center gap-2 px-4 py-2 bg-white border-2 text-gray-700 font-semibold rounded-lg hover:bg-gray-200"
+                                        >
+                                            <Eye size={16} /> Details
+                                        </button>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
             </div>
-            
-            <PerformanceDetailModal
-                isOpen={selectedPlayer !== null}
-                onClose={() => setSelectedPlayer(null)}
-                sessionId={sessionId || ''}
-                playerIdentifier={selectedPlayer}
-            />
+            {selectedPlayer && sessionId && (
+                 <PerformanceDetailModal 
+                    isOpen={isModalOpen} 
+                    onClose={() => setModalOpen(false)} 
+                    sessionId={sessionId} 
+                    playerIdentifier={selectedPlayer} 
+                 />
+            )}
         </>
     );
 };

@@ -15,6 +15,7 @@ const GameSession_1 = require("../model/GameSession");
 const GameHistory_1 = require("../model/GameHistory");
 const GameSession_2 = require("../config/data/GameSession");
 const Quiz_1 = require("../model/Quiz");
+const Team_1 = require("../model/Team");
 class GameRepository {
     static saveRoundHistory(roomId, scoresGained) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -648,6 +649,103 @@ class GameRepository {
             ]);
             // 8. Add ranking to each result
             return results.map((result, index) => (Object.assign(Object.assign({}, result), { rank: index + 1 })));
+        });
+    }
+    static getSessionResults(sessionId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            if (!mongoose_1.Types.ObjectId.isValid(sessionId))
+                return null;
+            const session = yield GameSession_1.GameSessionModel.findById(sessionId)
+                .populate({
+                path: 'results.userId',
+                select: 'name profileUrl'
+            })
+                .populate('quizId', 'title')
+                .lean();
+            if (!session)
+                return null;
+            const participants = session.results
+                .sort((a, b) => (a.finalRank || 999) - (b.finalRank || 999))
+                .map(p => {
+                var _a, _b, _c, _d;
+                return ({
+                    // @ts-ignore
+                    userId: (_b = (_a = p.userId) === null || _a === void 0 ? void 0 : _a._id) === null || _b === void 0 ? void 0 : _b.toString(), // Ensure userId is a string
+                    // @ts-ignore
+                    name: ((_c = p.userId) === null || _c === void 0 ? void 0 : _c.name) || p.nickname,
+                    // @ts-ignore
+                    profileUrl: (_d = p.userId) === null || _d === void 0 ? void 0 : _d.profileUrl,
+                    score: p.finalScore,
+                    rank: p.finalRank
+                });
+            });
+            return {
+                // @ts-ignore
+                quizTitle: (_a = session.quizId) === null || _a === void 0 ? void 0 : _a.title,
+                endedAt: session.endedAt,
+                participants
+            };
+        });
+    }
+    /**
+     * ✅ NEW: Fetches all completed sessions for a team.
+     */
+    static getCompletedSessionsForTeam(teamId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!mongoose_1.Types.ObjectId.isValid(teamId))
+                return [];
+            return GameSession_1.GameSessionModel.find({ teamId: new mongoose_1.Types.ObjectId(teamId), status: 'completed' })
+                .populate('quizId', 'title')
+                .select('_id quizId endedAt results')
+                .sort({ endedAt: -1 })
+                .lean();
+        });
+    }
+    /**
+     * ✅ FIXED: Correctly aggregates total scores for each member and excludes the owner.
+     */
+    static getOverallTeamLeaderboard(teamId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            if (!mongoose_1.Types.ObjectId.isValid(teamId))
+                return [];
+            const team = yield Team_1.TeamModel.findById(teamId).lean();
+            if (!team)
+                return [];
+            const ownerId = (_a = team.members.find(m => m.role === 'owner')) === null || _a === void 0 ? void 0 : _a.userId;
+            return GameSession_1.GameSessionModel.aggregate([
+                { $match: { teamId: new mongoose_1.Types.ObjectId(teamId), status: 'completed', 'results.0': { $exists: true } } },
+                { $unwind: "$results" },
+                { $match: { "results.userId": { $ne: ownerId } } },
+                {
+                    $group: {
+                        _id: "$results.userId",
+                        totalScore: { $sum: "$results.finalScore" },
+                        quizzesPlayed: { $sum: 1 }
+                    }
+                },
+                { $sort: { totalScore: -1 } },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: '_id',
+                        foreignField: '_id',
+                        as: 'userDetails'
+                    }
+                },
+                { $unwind: "$userDetails" },
+                {
+                    $project: {
+                        _id: 0,
+                        userId: "$userDetails._id",
+                        name: "$userDetails.name",
+                        profileUrl: "$userDetails.profileUrl",
+                        totalScore: "$totalScore",
+                        quizzesPlayed: "$quizzesPlayed"
+                    }
+                }
+            ]);
         });
     }
 }

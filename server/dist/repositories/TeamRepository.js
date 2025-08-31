@@ -19,66 +19,137 @@ const TeamQuiz_1 = require("../model/TeamQuiz");
 const GameSession_1 = require("../model/GameSession");
 const crypto_1 = __importDefault(require("crypto"));
 const generateRandomNumber_1 = require("../service/generateRandomNumber");
+const Quiz_1 = require("../model/Quiz");
 class TeamRepository {
-    static getOverallTeamLeaderboard(teamId) {
+    static getAggregatedQuizResultsForTeam(teamId, quizId) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!mongoose_1.Types.ObjectId.isValid(teamId))
-                return [];
-            return Team_1.TeamModel.aggregate([
-                // Stage 1: Find the specific team
-                { $match: { _id: new mongoose_1.Types.ObjectId(teamId) } },
-                // Stage 2: Deconstruct the members array to process each member
-                { $unwind: "$members" },
-                // Stage 3: Fetch the full user details for each member
+            if (!mongoose_1.Types.ObjectId.isValid(teamId) || !mongoose_1.Types.ObjectId.isValid(quizId)) {
+                return null;
+            }
+            const quiz = yield Quiz_1.QuizModel.findById(quizId).select('title').lean();
+            if (!quiz)
+                return null;
+            const results = yield GameSession_1.GameSessionModel.aggregate([
+                // 1. Find all completed sessions for this specific quiz and team
+                {
+                    $match: {
+                        teamId: new mongoose_1.Types.ObjectId(teamId),
+                        quizId: new mongoose_1.Types.ObjectId(quizId),
+                        status: 'completed'
+                    }
+                },
+                // 2. Unwind the results array to process each participant individually
+                { $unwind: "$results" },
+                // 3. Sort by score descending so we can easily find the best score for each player
+                { $sort: { "results.finalScore": -1 } },
+                // 4. Group by player to get their highest score
+                {
+                    $group: {
+                        _id: "$results.userId",
+                        name: { $first: "$results.nickname" },
+                        highestScore: { $first: "$results.finalScore" },
+                        // Capture the sessionId of their best attempt for the "Details" button
+                        bestSessionId: { $first: "$_id" }
+                    }
+                },
+                // 5. Sort the final list of players by their best score
+                { $sort: { highestScore: -1 } },
+                // 6. Look up user details for profile pictures
                 {
                     $lookup: {
                         from: 'users',
-                        localField: 'members.userId',
+                        localField: '_id',
                         foreignField: '_id',
                         as: 'userDetails'
                     }
                 },
-                // Stage 4: Deconstruct the userDetails array (it will only have one element)
-                { $unwind: "$userDetails" },
-                // Stage 5: Look up all completed game sessions for that user within this team
+                // 7. Project the final shape
                 {
-                    $lookup: {
-                        from: 'gamesessions',
-                        let: { memberId: "$members.userId" },
-                        pipeline: [
-                            {
-                                $match: {
-                                    teamId: new mongoose_1.Types.ObjectId(teamId),
-                                    status: 'completed',
-                                    $expr: { $in: ["$$memberId", "$results.userId"] }
-                                }
-                            },
-                            { $unwind: "$results" },
-                            { $match: { $expr: { $eq: ["$results.userId", "$$memberId"] } } },
-                            { $project: { _id: 0, finalScore: "$results.finalScore" } }
-                        ],
-                        as: 'playedSessions'
+                    $project: {
+                        _id: 0,
+                        userId: "$_id",
+                        name: { $ifNull: [{ $first: "$userDetails.name" }, "$name"] },
+                        profileUrl: { $ifNull: [{ $first: "$userDetails.profileUrl" }, null] },
+                        score: "$highestScore",
+                        sessionId: "$bestSessionId"
+                    }
+                }
+            ]);
+            return {
+                quizTitle: quiz.title,
+                participants: results
+            };
+        });
+    }
+    static getOverallTeamLeaderboard(teamId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            if (!mongoose_1.Types.ObjectId.isValid(teamId))
+                return [];
+            const team = yield Team_1.TeamModel.findById(teamId).lean();
+            if (!team)
+                return [];
+            const ownerId = (_a = team.members.find(m => m.role === 'owner')) === null || _a === void 0 ? void 0 : _a.userId;
+            return GameSession_1.GameSessionModel.aggregate([
+                // Step 1: Filter sessions for the specific team that are completed
+                { $match: { teamId: new mongoose_1.Types.ObjectId(teamId), status: 'completed' } },
+                // Step 2: Unwind the results array to process each participant
+                { $unwind: "$results" },
+                // Step 3: Exclude the owner from the results
+                { $match: { "results.userId": { $ne: ownerId } } },
+                // Step 4: Group by userId to sum up scores and count quizzes
+                {
+                    $group: {
+                        _id: "$results.userId",
+                        totalScore: { $sum: "$results.finalScore" },
+                        quizzesPlayed: { $sum: 1 }
                     }
                 },
-                // Stage 6: Calculate the final score and quiz count for each member
+                // Step 5: Sort by the total score
+                { $sort: { totalScore: -1 } },
+                // Step 6: Lookup user details to get name and profileUrl
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: '_id',
+                        foreignField: '_id',
+                        as: 'userDetails'
+                    }
+                },
+                { $unwind: "$userDetails" },
+                // Step 7: Project the final shape
                 {
                     $project: {
                         _id: 0,
                         userId: "$userDetails._id",
                         name: "$userDetails.name",
                         profileUrl: "$userDetails.profileUrl",
-                        totalScore: { $sum: "$playedSessions.finalScore" },
-                        quizzesPlayed: { $size: "$playedSessions" }
+                        totalScore: "$totalScore",
+                        quizzesPlayed: "$quizzesPlayed"
                     }
-                },
-                // Stage 7: Sort the final list by score
-                { $sort: { totalScore: -1 } }
+                }
             ]);
         });
     }
-    //  Gets a detailed leaderboard for a single completed game session.
-    static getSessionLeaderboard(sessionId) {
+    static getCompletedSessionsForTeam(teamId) {
         return __awaiter(this, void 0, void 0, function* () {
+            if (!mongoose_1.Types.ObjectId.isValid(teamId))
+                return [];
+            return GameSession_1.GameSessionModel.find({ teamId: new mongoose_1.Types.ObjectId(teamId), status: 'completed' })
+                .populate('quizId', 'title')
+                .select('_id quizId endedAt results')
+                .sort({ endedAt: -1 })
+                .lean();
+        });
+    }
+    /**
+     * ✅ NEW: Gets detailed results for a single session, populating all necessary data.
+     */
+    static getSessionResults(sessionId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            if (!mongoose_1.Types.ObjectId.isValid(sessionId))
+                return null;
             const session = yield GameSession_1.GameSessionModel.findById(sessionId)
                 .populate({
                 path: 'results.userId',
@@ -89,7 +160,7 @@ class TeamRepository {
             if (!session)
                 return null;
             const participants = session.results
-                .sort((a, b) => (b.finalRank || 0) - (a.finalRank || 0))
+                .sort((a, b) => (a.finalRank || 999) - (b.finalRank || 999))
                 .map(p => {
                 var _a, _b, _c;
                 return ({
@@ -105,8 +176,7 @@ class TeamRepository {
             });
             return {
                 // @ts-ignore
-                quizTitle: session.quizId.title,
-                // @ts-ignore
+                quizTitle: (_a = session.quizId) === null || _a === void 0 ? void 0 : _a.title,
                 endedAt: session.endedAt,
                 participants
             };

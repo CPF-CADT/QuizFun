@@ -49,3 +49,8 @@ gameRouter.get('/:sessionId/performance/:userId',
     validate(gameSchemas.userPerformanceParams), 
     GameController.getUserPerformanceInSession
 );
+
+gameRouter.get('/:sessionId/analytics',
+    validate(gameSchemas.sessionIdParam),
+    GameController.getSessionAnalytics
+);
