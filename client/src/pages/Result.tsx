@@ -7,6 +7,7 @@ import { gameApi, type ResultsPayload } from '../service/gameApi';
 import { PerformanceDetailModal } from '../components/PerformanceDetailModal';
 import type { PlayerIdentifier } from '../hook/usePerformanceData';
 import { useAuth } from '../context/AuthContext'; // Import the Auth Context
+import { ExcelExportButton } from '../components/ui/ExcelExportButton';
 
 // Deriving the player type directly from your ResultsPayload interface
 type LeaderboardPlayer = ResultsPayload['results'][0];
@@ -112,9 +113,23 @@ const ResultPage: React.FC = () => {
                         </li>
                     ))}
                 </ul>
-                 <Link to='/dashboard' className="w-full text-center block bg-gray-600/50 text-white font-bold py-3 px-6 rounded-md hover:bg-gray-700/70 transition-colors">
-                     Back to Dashboard
-                 </Link>
+                
+                <div className="space-y-3">
+                    {/* Excel Export Button - Show for host or if user has permission */}
+                    {sessionResults?.viewType === 'host' && sessionId && (
+                        <ExcelExportButton
+                            type="session"
+                            sessionId={sessionId}
+                            buttonText="Export Results to Excel"
+                            buttonClass="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md transition-colors flex items-center justify-center gap-2"
+                            showOptions={true}
+                        />
+                    )}
+                    
+                    <Link to='/dashboard' className="w-full text-center block bg-gray-600/50 text-white font-bold py-3 px-6 rounded-md hover:bg-gray-700/70 transition-colors">
+                        Back to Dashboard
+                    </Link>
+                </div>
             </div>
         );
     };

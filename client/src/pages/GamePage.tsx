@@ -72,6 +72,7 @@ const GamePage: React.FC = () => {
             return <GameResultDetails
                 payload={gameState.finalResults}
                 yourUserId={gameState.yourUserId}
+                sessionId={gameState.sessionId}
                 onExit={endGame}
                 setSelectedPlayer={setSelectedPlayer}
                 isHost={me?.role === 'host'}

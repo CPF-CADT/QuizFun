@@ -27,10 +27,12 @@ export interface ResultsPayload {
     results: FinalResultData[];
 }
 export interface IDetailedAnswer {
+    questionId?: string; // Adding questionId for Excel export
     questionText: string;
     wasUltimatelyCorrect: boolean;
     finalScoreGained: number;
     thinkingTimeSeconds: number;
+    selectedOptionText?: string; // Adding selected option text
     attempts: {
         selectedOptionText: string;
         isCorrect: boolean;
@@ -668,10 +670,12 @@ export class GameRepository {
                                         question: { $first: { $filter: { input: "$quizInfo.questions", as: "q", cond: { $eq: ["$$q._id", "$$doc.questionId"] } } } }
                                     },
                                     in: {
+                                        questionId: { $toString: "$$doc.questionId" },
                                         questionText: "$$question.questionText",
                                         wasUltimatelyCorrect: "$$doc.isUltimatelyCorrect",
                                         finalScoreGained: "$$doc.finalScoreGained",
                                         thinkingTimeSeconds: { $round: [{ $divide: [{ $last: "$$doc.attempts.answerTimeMs" }, 1000] }, 2] },
+                                        selectedOptionText: { $first: { $map: { input: "$$doc.attempts", as: "attempt", in: { $let: { vars: { option: { $first: { $filter: { input: "$$question.options", as: "opt", cond: { $eq: ["$$opt._id", "$$attempt.selectedOptionId"] } } } } }, in: "$$option.text" } } } } },
                                         attempts: {
                                             $map: {
                                                 input: "$$doc.attempts",
