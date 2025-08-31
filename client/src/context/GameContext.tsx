@@ -11,6 +11,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { io, Socket } from "socket.io-client";
 import { gameApi, type ResultsPayload } from "../service/gameApi";
+import type { MusicTrack, SoundEffect } from "../components/game/SoundManager";
 
 // --- TYPE DEFINITIONS ---
 export type ParticipantRole = "host" | "player";
@@ -44,20 +45,28 @@ const initialState: GameState = { sessionId: null, roomId: null, teamId: undefin
 
 const GameContext = createContext<any>(null);
 
+
 export const GameProvider = ({ children }: { children: ReactNode }) => {
     const socketRef = useRef<Socket | null>(null);
     const [gameState, setGameState] = useState<GameState>(initialState);
     const [userSeleted, setUserSeleted] = useState<reconnectSelectedOption | null>(null);
     const navigate = useNavigate();
 
-    // Fetch final results logic
+    // State for managing audio
+    const [sfxToPlay, setSfxToPlay] = useState<SoundEffect>(null);
+    const [musicToPlay, setMusicToPlay] = useState<MusicTrack>(null);
+
     const fetchFinalResults = useCallback(async (sessionId: string | null) => {
         if (!sessionId) return;
         const userId = sessionStorage.getItem("quizUserId");
         const guestName = sessionStorage.getItem("quizUserName");
         if (!userId && !guestName) return;
+
         try {
-            const response = await gameApi.getSessionResults(sessionId, { userId: userId || undefined, guestName: guestName || undefined });
+            const response = await gameApi.getSessionResults(sessionId, {
+                userId: userId || undefined,
+                guestName: guestName || undefined,
+            });
             setGameState((prev) => ({ ...prev, finalResults: response.data }));
         } catch (error) {
             console.error("Failed to fetch final results:", error);
@@ -65,7 +74,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         }
     }, []);
 
-    // --- SOCKET CONNECTION & CORE LISTENERS ---
+    // --- EFFECT HOOKS ---
     useEffect(() => {
         if (socketRef.current) return;
         const newSocket = io(SERVER_URL, { autoConnect: true, reconnection: true });
@@ -103,13 +112,27 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         return () => { newSocket.disconnect(); socketRef.current = null; };
     }, []);
 
-    // --- GAME LOGIC HOOKS ---
     useEffect(() => {
         if (gameState.sessionId && !window.location.pathname.startsWith(`/game/`)) {
             navigate(`/game/${gameState.sessionId}`);
         }
     }, [gameState.sessionId, navigate]);
 
+    useEffect(() => {
+        const myAnswer = gameState.question?.yourAnswer;
+        switch(gameState.gameState) {
+            case 'lobby': setMusicToPlay('lobby'); setSfxToPlay(null); break;
+            case 'question': setMusicToPlay('in-game'); setSfxToPlay('tick'); break;
+            case 'results':
+                setMusicToPlay(null);
+                if (myAnswer) setSfxToPlay(myAnswer.wasCorrect ? 'correct' : 'incorrect');
+                else setSfxToPlay(null);
+                break;
+            case 'end': setMusicToPlay('game-over'); setSfxToPlay(null); break;
+            default: setMusicToPlay(null); setSfxToPlay(null);
+        }
+    }, [gameState.gameState, gameState.question]);
+    
     useEffect(() => {
         if (gameState.gameState === 'end' && !gameState.finalResults) {
             fetchFinalResults(gameState.sessionId);
@@ -124,7 +147,11 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
     const joinRoom = useCallback((data: any) => socketRef.current?.emit("join-room", data), []);
     const startGame = useCallback((roomId: number) => socketRef.current?.emit("start-game", roomId), []);
-    const submitAnswer = useCallback((data: any) => socketRef.current?.emit("submit-answer", data), []);
+    
+    const submitAnswer = useCallback((data: any) => {
+        setSfxToPlay(null);
+        socketRef.current?.emit("submit-answer", data);
+    }, []);
     
     const requestNextQuestion = useCallback((roomId: number | null) => {
         setUserSeleted(null);
@@ -141,15 +168,15 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const updateSettings = useCallback((newSettings: GameSettings) => {
         if (gameState.roomId && socketRef.current) {
             setGameState((prev) => ({ ...prev, settings: newSettings }));
-            socketRef.current.emit("update-settings", {
-                roomId: gameState.roomId,
-                settings: newSettings,
-            });
+            socketRef.current.emit("update-settings", { roomId: gameState.roomId, settings: newSettings });
         }
     }, [gameState.roomId]);
 
     const value = useMemo(() => ({
         gameState,
+        sfxToPlay,
+        musicToPlay,
+        userSeleted,
         createRoom,
         joinRoom,
         startGame,
@@ -158,19 +185,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         endGame,
         fetchFinalResults,
         updateSettings,
-        userSeleted,
         setUserSeleted,
     }), [
-        gameState,
-        createRoom,
-        joinRoom,
-        startGame,
-        submitAnswer,
-        requestNextQuestion,
-        endGame,
-        fetchFinalResults,
-        updateSettings,
-        userSeleted,
+        gameState, sfxToPlay, musicToPlay, userSeleted,
+        createRoom, joinRoom, startGame, submitAnswer, requestNextQuestion, endGame, fetchFinalResults, updateSettings
     ]);
 
     return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

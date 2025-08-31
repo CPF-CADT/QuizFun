@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { quizApi } from '../../service/quizApi';
 import { useAuth } from '../../context/AuthContext';
-import { PlayCircle, User } from 'lucide-react';
+import { PlayCircle, User, Music, MicOff } from 'lucide-react';
 
+// ✅ FIXED: Add the new props to the interface definition
 interface SoloPreGameLobbyProps {
     quizId: string;
     onStart: (playerName: string) => void;
+    isMusicOn: boolean;
+    onToggleMusic: () => void;
 }
 
-export const SoloPreGameLobby: React.FC<SoloPreGameLobbyProps> = ({ quizId, onStart }) => {
+export const SoloPreGameLobby: React.FC<SoloPreGameLobbyProps> = ({ quizId, onStart, isMusicOn, onToggleMusic }) => {
     const { isAuthenticated, user } = useAuth();
     const [quizTitle, setQuizTitle] = useState('Loading Quiz...');
     const [isLoading, setIsLoading] = useState(true);
     const [playerName, setPlayerName] = useState('');
 
-    // Pre-fill name if user is logged in
     useEffect(() => {
         if (isAuthenticated && user) {
             setPlayerName(user.name);
@@ -39,11 +41,19 @@ export const SoloPreGameLobby: React.FC<SoloPreGameLobbyProps> = ({ quizId, onSt
         }
     };
     
-    // Disable the input field if the user is logged in
     const isPlayerNameDisabled = isAuthenticated && !!user;
 
     return (
-        <div className="w-full max-w-2xl p-8 bg-gray-900/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/10 text-white text-center flex flex-col items-center">
+        <div className="w-full max-w-2xl p-8 bg-gray-900/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/10 text-white text-center flex flex-col items-center relative">
+            
+            <button 
+                onClick={onToggleMusic}
+                className="absolute top-4 right-4 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
+                aria-label={isMusicOn ? "Turn music off" : "Turn music on"}
+            >
+                {isMusicOn ? <Music className="w-6 h-6" /> : <MicOff className="w-6 h-6 text-gray-400" />}
+            </button>
+
             <h1 className="text-4xl font-extrabold mb-3">You are about to begin:</h1>
             <p className="text-2xl text-indigo-300 font-semibold mb-6 h-16">{quizTitle}</p>
             
