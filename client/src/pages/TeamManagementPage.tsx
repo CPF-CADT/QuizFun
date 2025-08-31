@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useLocation, useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Users, BookCopy, BarChartHorizontal, UserPlus } from 'lucide-react';
 import Sidebar from '../components/dashboard/Sidebar';
 import { MemberList } from '../components/teams/MemberList';
@@ -19,7 +19,6 @@ const TeamManagementPage: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     const { user } = useAuth(); // Get the current logged-in user
-    const location = useLocation();
     const navigate = useNavigate();
     const { teamId } = useParams<{ teamId: string }>();
 

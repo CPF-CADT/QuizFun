@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Link, Mail, Send, Search, UserPlus, AlertCircle, Copy, Check } from 'lucide-react';
+import { X, Link, Mail, Search, UserPlus, AlertCircle, Copy, Check } from 'lucide-react';
 import { teamApi } from '../../service/teamApi';
 import { useDebounce } from '../../hook/useDebounce';
 import type { IUser } from '../../service/api';
