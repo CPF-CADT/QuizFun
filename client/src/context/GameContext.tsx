@@ -1,4 +1,4 @@
-import React, {
+import {
     useState,
     useMemo,
     useCallback,
@@ -182,4 +182,4 @@ export const useQuizGame = () => {
     return context;
 };
 
-export { ResultsPayload };
+export type { ResultsPayload };
