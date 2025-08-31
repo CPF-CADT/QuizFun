@@ -30,6 +30,8 @@ import SoloGamePage from "./pages/SoloGamePage";
 import TeamDashboardPage from './pages/TeamDashboardPage';
 import TeamManagementPage from './pages/TeamManagementPage';
 import JoinTeamPage from "./pages/JoinTeamPage";
+import TeamSessionResultPage from "./pages/TeamSessionResultPage";
+import TeamQuizResultPage from "./pages/TeamQuizResultPage";
 
 const PrivateRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -77,10 +79,13 @@ function App() {
         <Route path="/session/:sessionId/performance" element={<PerformanceDetailPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+
         <Route path="/result/:sessionId" element={<ResultPage />} />
         <Route path="/solo/session/:sessionId" element={<SoloGamePage />} />
         <Route path="/teams" element={<TeamDashboardPage />} />
         <Route path="/teams/:teamId" element={<TeamManagementPage />} />
+        <Route path="/teams/:teamId/analytics/session/:sessionId" element={<TeamSessionResultPage />} />
+        <Route path="/teams/:teamId/analytics/quiz/:quizId" element={<TeamQuizResultPage />} />
         <Route path="/join-team/:inviteCode/" element={<JoinTeamPage />} />
       </Route>
 

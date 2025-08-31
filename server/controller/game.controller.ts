@@ -765,6 +765,19 @@ export class GameController {
             return res.status(500).json({ message: 'Server error retrieving guest performance.' });
         }
     }
+     static async getSessionAnalytics(req: Request, res: Response) {
+        try {
+            const { sessionId } = req.params;
+            const sessionDetails = await GameRepository.getSessionResults(sessionId);
+            if (!sessionDetails) {
+                return res.status(404).json({ message: 'Session not found.' });
+            }
+            res.status(200).json(sessionDetails);
+        } catch (error) {
+            console.error("Error fetching session details:", error);
+            res.status(500).json({ message: 'Error fetching session details.' });
+        }
+    }
 }
 
 

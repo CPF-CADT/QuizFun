@@ -25,7 +25,6 @@ export interface PlayerAnswer {
     isCorrect: boolean;
 }
 
-// CORRECTED: The SessionData interface now includes the optional teamId property.
 export interface SessionData {
     sessionId: string;
     quizId: string;
@@ -97,7 +96,7 @@ class Manager {
             answerCounts: [],
         };
         this.sessions.set(roomId, session);
-        await redisClient.set(`session=${roomId}`, JSON.stringify(session)); 
+        await redisClient.set(`session:${roomId}`, JSON.stringify(session));
         console.log(`[GameSession] In-memory session created for room ${roomId} (SessionID: ${data.sessionId}).`);
     }
 

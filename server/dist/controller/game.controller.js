@@ -772,5 +772,21 @@ class GameController {
             }
         });
     }
+    static getSessionAnalytics(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { sessionId } = req.params;
+                const sessionDetails = yield game_repositories_1.GameRepository.getSessionResults(sessionId);
+                if (!sessionDetails) {
+                    return res.status(404).json({ message: 'Session not found.' });
+                }
+                res.status(200).json(sessionDetails);
+            }
+            catch (error) {
+                console.error("Error fetching session details:", error);
+                res.status(500).json({ message: 'Error fetching session details.' });
+            }
+        });
+    }
 }
 exports.GameController = GameController;

@@ -129,71 +129,69 @@ function endRound(io, roomId) {
         yield broadcastGameState(io, roomId);
     });
 }
-function broadcastGameState(io, roomId, targetSocketId, errorMessage) {
+function broadcastGameState(io, roomId, errorMessage) {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b, _c;
         const room = yield GameSession_1.GameSessionManager.getSession(roomId);
-        if (!room) {
-            console.error(`[Broadcast] Attempted to broadcast to non-existent room ${roomId}`);
+        if (!room)
             return;
-        }
-        // A helper function to create a personalized payload for each player
-        const createPayloadFor = (participant) => {
-            var _a, _b, _c, _d;
-            const payload = {
-                sessionId: room.sessionId,
-                roomId: roomId,
-                gameState: room.gameState,
-                participants: room.participants,
-                currentQuestionIndex: room.currentQuestionIndex,
-                totalQuestions: (_b = (_a = room.questions) === null || _a === void 0 ? void 0 : _a.length) !== null && _b !== void 0 ? _b : 0,
-                isFinalResults: room.isFinalResults,
-                settings: room.settings,
-                questionStartTime: room.questionStartTime,
-                answerCounts: room.answerCounts,
-                yourUserId: participant.user_id,
-                error: errorMessage,
-                question: null,
+        const totalQuestions = (_b = (_a = room.questions) === null || _a === void 0 ? void 0 : _a.length) !== null && _b !== void 0 ? _b : 0;
+        const currentQuestion = room.questions &&
+            room.currentQuestionIndex >= 0 &&
+            room.currentQuestionIndex < room.questions.length
+            ? room.questions[room.currentQuestionIndex]
+            : null;
+        let baseQuestionPayload = null;
+        let correctAnswerIndex = null;
+        if (currentQuestion) {
+            baseQuestionPayload = {
+                questionText: currentQuestion.questionText,
+                point: currentQuestion.point,
+                timeLimit: currentQuestion.timeLimit,
+                imageUrl: currentQuestion.imageUrl,
+                options: currentQuestion.options.map((opt) => ({ text: opt.text })),
             };
-            const currentQuestion = (_c = room.questions) === null || _c === void 0 ? void 0 : _c[room.currentQuestionIndex];
-            if (currentQuestion && (room.gameState === 'question' || room.gameState === 'results')) {
-                const sanitizedQuestion = {
-                    questionText: currentQuestion.questionText,
-                    point: currentQuestion.point,
-                    timeLimit: currentQuestion.timeLimit,
-                    imageUrl: currentQuestion.imageUrl,
-                    options: currentQuestion.options.map(opt => ({ text: opt.text })),
-                };
-                if (room.gameState === 'results') {
-                    const resultsQuestion = sanitizedQuestion;
-                    resultsQuestion.correctAnswerIndex = currentQuestion.options.findIndex(opt => opt.isCorrect);
-                    const lastAnswer = participant.user_id ? (_d = room.answers.get(participant.user_id)) === null || _d === void 0 ? void 0 : _d.at(-1) : undefined;
+            if (room.gameState === "results" || room.gameState === "end") {
+                correctAnswerIndex = currentQuestion.options.findIndex((opt) => opt.isCorrect);
+            }
+        }
+        const sharedState = {
+            sessionId: room.sessionId,
+            roomId,
+            gameState: room.gameState,
+            participants: room.participants,
+            currentQuestionIndex: room.currentQuestionIndex,
+            totalQuestions,
+            isFinalResults: room.isFinalResults,
+            settings: room.settings,
+            questionStartTime: room.questionStartTime,
+            answerCounts: room.answerCounts,
+            error: errorMessage,
+        };
+        for (const p of room.participants) {
+            if (!p.isOnline)
+                continue;
+            let questionPayload = null;
+            if (baseQuestionPayload) {
+                if (correctAnswerIndex != null) {
+                    const resultsPayload = Object.assign(Object.assign({}, baseQuestionPayload), { correctAnswerIndex });
+                    const lastAnswer = p.user_id
+                        ? (_c = room.answers.get(p.user_id)) === null || _c === void 0 ? void 0 : _c.at(-1)
+                        : undefined;
                     if (lastAnswer) {
-                        resultsQuestion.yourAnswer = {
+                        resultsPayload.yourAnswer = {
                             optionIndex: lastAnswer.optionIndex,
                             wasCorrect: lastAnswer.isCorrect,
                         };
                     }
+                    questionPayload = resultsPayload;
                 }
-                payload.question = sanitizedQuestion;
-            }
-            return payload;
-        };
-        if (targetSocketId) {
-            // ✅ Send a targeted update to a single user (e.g., the host on room creation)
-            const participant = room.participants.find(p => p.socket_id === targetSocketId);
-            if (participant) {
-                console.log(`[Broadcast] Sending TARGETED game-update to host ${participant.user_name} in room ${roomId}`);
-                io.to(targetSocketId).emit('game-update', createPayloadFor(participant));
-            }
-        }
-        else {
-            // Broadcast a personalized update to every online participant in the room
-            console.log(`[Broadcast] Sending GENERAL game-update to everyone in room ${roomId}`);
-            for (const participant of room.participants) {
-                if (participant.isOnline) {
-                    io.to(participant.socket_id).emit('game-update', createPayloadFor(participant));
+                else {
+                    questionPayload = baseQuestionPayload;
                 }
             }
+            const stateToSend = Object.assign(Object.assign({}, sharedState), { question: questionPayload, yourUserId: p.user_id });
+            io.to(p.socket_id).emit("game-update", stateToSend);
         }
     });
 }

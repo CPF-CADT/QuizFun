@@ -59,7 +59,7 @@ export async function handleCreateRoom(socket: Socket, io: Server, data: CreateR
         await GameSessionManager.addSession(roomId, {
             sessionId: uniqueSessionId,
             quizId: data.quizId,
-            teamId: data.teamId,
+            teamId: data.teamId, // <-- This ensures teamId is stored in memory
             hostId: data.userId,
             settings: data.settings,
         });
@@ -82,26 +82,6 @@ export async function handleCreateRoom(socket: Socket, io: Server, data: CreateR
         await broadcastGameState(io, roomId, socket.id);
         console.log(`[Lobby] Room ${roomId} created successfully. Host has been notified.`);
 
-        // ✅ **FIX: Notify team members that lobby is activated**
-        if (data.teamId) {
-            const teamRoom = `team-${data.teamId}`;
-            const eventData = { sessionId: uniqueSessionId, joinCode: roomId, timestamp: Date.now() };
-
-            try {
-                // Store in Redis for offline members
-                const redisKey = `team:${data.teamId}:pendingEvents`;
-                await redisClient.rPush(redisKey, JSON.stringify(eventData));
-                await redisClient.expire(redisKey, 3600); // TTL 1 hour
-
-                // Emit to online team members
-                io.to(teamRoom).emit("team-lobby-activated", eventData);
-                console.log(`[Team] Lobby activation event sent to ${teamRoom} and stored in Redis`);
-
-            } catch (err) {
-                console.error("[Socket] Failed to store lobby event:", err);
-            }
-        }
-
     } catch (error) {
         console.error(`[Lobby] FAILED to create room ${roomId}:`, error);
         socket.emit("error-message", "A server error prevented the room from being created.");
@@ -116,16 +96,13 @@ export async function handleJoinRoom(socket: Socket, io: Server, data: JoinRoomD
         socket.emit("error-message", `Room "${roomId}" does not exist.`);
         return;
     }
-
     if (room.gameState === 'end') {
         socket.emit("error-message", `Game in room "${roomId}" has already finished.`);
         return;
     }
-
     if (room.participants.some(p => p.user_id === userId)) {
         return handleRejoinGame(socket, io, { roomId, userId });
     }
-
     if (room.participants.length >= 50) {
         socket.emit("error-message", `Room "${roomId}" is full.`);
         return;
@@ -134,7 +111,7 @@ export async function handleJoinRoom(socket: Socket, io: Server, data: JoinRoomD
     if (room.teamId) {
         const isMember = await TeamRepository.isUserMemberOfTeam(room.teamId, userId);
         if (!isMember) {
-            socket.emit("error-message", "You are not a member of the team for this quiz.");
+            socket.emit("error-message", "You are not a member of the team for this private quiz.");
             return;
         }
     }
