@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Award, Eye, Loader, ShieldAlert, Crown, Home } from 'lucide-react';
+import { ArrowLeft, Award, Eye, Loader, ShieldAlert, Home } from 'lucide-react';
 import { PerformanceDetailModal } from '../components/PerformanceDetailModal';
 import { ExcelExportButton } from '../components/ui/ExcelExportButton'; // Make sure this path is correct
 import { gameApi, type ISessionAnalytics } from '../service/gameApi';
