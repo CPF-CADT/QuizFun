@@ -29,7 +29,6 @@ const Quiz_1 = require("../../model/Quiz");
 const generateRandomNumber_1 = require("../../service/generateRandomNumber");
 const GameSession_2 = require("../../model/GameSession");
 const TeamRepository_1 = require("../../repositories/TeamRepository");
-const redis_1 = __importDefault(require("../../config/redis"));
 function handleUpdateSettings(socket, io, data) {
     return __awaiter(this, void 0, void 0, function* () {
         const { roomId, settings } = data;
@@ -61,7 +60,7 @@ function handleCreateRoom(socket, io, data) {
             yield GameSession_1.GameSessionManager.addSession(roomId, {
                 sessionId: uniqueSessionId,
                 quizId: data.quizId,
-                teamId: data.teamId,
+                teamId: data.teamId, // <-- This ensures teamId is stored in memory
                 hostId: data.userId,
                 settings: data.settings,
             });
@@ -81,23 +80,6 @@ function handleCreateRoom(socket, io, data) {
             socket.join(roomId.toString());
             yield (0, shared_1.broadcastGameState)(io, roomId, socket.id);
             console.log(`[Lobby] Room ${roomId} created successfully. Host has been notified.`);
-            // ✅ **FIX: Notify team members that lobby is activated**
-            if (data.teamId) {
-                const teamRoom = `team-${data.teamId}`;
-                const eventData = { sessionId: uniqueSessionId, joinCode: roomId, timestamp: Date.now() };
-                try {
-                    // Store in Redis for offline members
-                    const redisKey = `team:${data.teamId}:pendingEvents`;
-                    yield redis_1.default.rPush(redisKey, JSON.stringify(eventData));
-                    yield redis_1.default.expire(redisKey, 3600); // TTL 1 hour
-                    // Emit to online team members
-                    io.to(teamRoom).emit("team-lobby-activated", eventData);
-                    console.log(`[Team] Lobby activation event sent to ${teamRoom} and stored in Redis`);
-                }
-                catch (err) {
-                    console.error("[Socket] Failed to store lobby event:", err);
-                }
-            }
         }
         catch (error) {
             console.error(`[Lobby] FAILED to create room ${roomId}:`, error);
@@ -127,7 +109,7 @@ function handleJoinRoom(socket, io, data) {
         if (room.teamId) {
             const isMember = yield TeamRepository_1.TeamRepository.isUserMemberOfTeam(room.teamId, userId);
             if (!isMember) {
-                socket.emit("error-message", "You are not a member of the team for this quiz.");
+                socket.emit("error-message", "You are not a member of the team for this private quiz.");
                 return;
             }
         }

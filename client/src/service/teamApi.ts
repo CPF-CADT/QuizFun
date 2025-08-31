@@ -20,6 +20,46 @@ export interface ISoloSessionResponse {
     sessionId: string;
     message: string;
 }
+export interface ITeamAnalytics {
+    leaderboard: {
+        userId: string;
+        name: string;
+        profileUrl?: string;
+        totalScore: number;
+        quizzesPlayed: number;
+    }[];
+    pastSessions: {
+        latestSessionId: string;
+        quizId: string;
+        quizTitle: string;
+        endedAt: string;
+        participantCount: number;
+        playCount: number;
+    }[];
+}
+export interface ITeamQuizAnalytics {
+    quizTitle: string;
+    participants: {
+        userId: string;
+        name: string;
+        profileUrl?: string;
+        score: number;
+        sessionId: string; // The session of their best attempt
+    }[];
+}
+
+export interface ISessionAnalytics {
+    quizTitle: string;
+    endedAt: string;
+    participants: {
+        userId: string;
+        name: string;
+        profileUrl?: string;
+        score: number;
+        rank: number;
+    }[];
+}
+
 
 export const teamApi = {
     // --- Core Team Management ---
@@ -53,13 +93,6 @@ export const teamApi = {
         }
         return apiClient.get<IUser[]>(`/users/search`, { params });
     },
-    // ✅ NEW: API functions for analytics
-    getTeamAnalytics: (teamId: string) => {
-        return apiClient.get(`/teams/${teamId}/analytics`);
-    },
-    getSessionAnalytics: (sessionId: string) => {
-        return apiClient.get(`/teams/analytics/session/${sessionId}`);
-    },
 
     // --- Team Quiz Management ---
     /**
@@ -83,4 +116,15 @@ export const teamApi = {
     startTeamSoloSession: (teamId: string, quizId: string) => {
         return apiClient.post<ISoloSessionResponse>(`/teams/solo-session`, { teamId, quizId });
     },
+    getTeamAnalytics: (teamId: string) => {
+        return apiClient.get<ITeamAnalytics>(`/teams/${teamId}/analytics`);
+    },
+
+    getSessionAnalytics: (sessionId: string) => {
+        return apiClient.get<ISessionAnalytics>(`/teams/analytics/session/${sessionId}`);
+    },
+    getTeamQuizAnalytics: (teamId: string, quizId: string) => {
+        return apiClient.get<ITeamQuizAnalytics>(`/teams/${teamId}/analytics/quiz/${quizId}`);
+    },
+
 };

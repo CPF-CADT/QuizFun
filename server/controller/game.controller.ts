@@ -766,93 +766,17 @@ export class GameController {
             return res.status(500).json({ message: 'Server error retrieving guest performance.' });
         }
     }
-
-    /**
-     * @swagger
-     * /api/session/{sessionId}/export:
-     *   get:
-     *     tags:
-     *       - Game Sessions
-     *     summary: Export session results to Excel
-     *     description: Download session results as an Excel file with participant summary, question breakdown, and detailed answers
-     *     parameters:
-     *       - in: path
-     *         name: sessionId
-     *         required: true
-     *         schema:
-     *           type: string
-     *         description: The session ID
-     *       - in: query
-     *         name: includeDetailedAnswers
-     *         schema:
-     *           type: boolean
-     *           default: true
-     *         description: Include detailed answers sheet
-     *       - in: query
-     *         name: includeQuestionBreakdown
-     *         schema:
-     *           type: boolean
-     *           default: true
-     *         description: Include question breakdown sheet
-     *       - in: query
-     *         name: includeParticipantSummary
-     *         schema:
-     *           type: boolean
-     *           default: true
-     *         description: Include participant summary sheet
-     *     responses:
-     *       200:
-     *         description: Excel file download
-     *         content:
-     *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
-     *             schema:
-     *               type: string
-     *               format: binary
-     *       404:
-     *         description: Session not found or no results available
-     *       500:
-     *         description: Internal Server Error
-     */
-    static async exportSessionResults(req: Request, res: Response): Promise<Response> {
+     static async getSessionAnalytics(req: Request, res: Response) {
         try {
             const { sessionId } = req.params;
-            const {
-                includeSessionOverview = 'true',
-                includeSimpleSummary = 'true',
-                includeDetailedAnswers = 'false',
-                includeQuestionBreakdown = 'false',
-                includeParticipantSummary = 'false'
-            } = req.query;
-
-            const options: ExcelExportOptions = {
-                includeSessionOverview: includeSessionOverview === 'true',
-                includeSimpleSummary: includeSimpleSummary === 'true',
-                includeDetailedAnswers: includeDetailedAnswers === 'true',
-                includeQuestionBreakdown: includeQuestionBreakdown === 'true',
-                includeParticipantSummary: includeParticipantSummary === 'true'
-            };
-
-            const excelBuffer = await ExcelExportService.exportSessionResults(sessionId, options);
-
-            // Get session info for filename
-            const session = await GameSessionModel.findById(sessionId).populate('quizId', 'title').exec();
-            const quizTitle = (session?.quizId as any)?.title || 'Quiz';
-            const sanitizedTitle = quizTitle.replace(/[^a-zA-Z0-9]/g, '_');
-            const timestamp = new Date().toISOString().split('T')[0];
-            const filename = `${sanitizedTitle}_Results_${timestamp}.xlsx`;
-
-            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-            res.setHeader('Content-Length', excelBuffer.length);
-
-            return res.send(excelBuffer);
-
-        } catch (error) {
-            console.error("Error exporting session results:", error);
-            if (error instanceof Error) {
-                return res.status(404).json({ message: error.message });
+            const sessionDetails = await GameRepository.getSessionResults(sessionId);
+            if (!sessionDetails) {
+                return res.status(404).json({ message: 'Session not found.' });
             }
-            return res.status(500).json({ message: 'Server error exporting session results.' });
+            res.status(200).json(sessionDetails);
+        } catch (error) {
+            console.error("Error fetching session details:", error);
+            res.status(500).json({ message: 'Error fetching session details.' });
         }
     }
 }

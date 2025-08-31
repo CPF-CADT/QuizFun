@@ -4,8 +4,90 @@ import { TeamRepository } from '../repositories/TeamRepository';
 import { GameRepository } from '../repositories/game.repositories';
 import { GameSessionModel } from '../model/GameSession';
 import { GameSessionManager } from '../config/data/GameSession';
+import { UserModel } from '../model/User';
 
 export class TeamController {
+    static async getTeamAnalytics(req: Request, res: Response) {
+        try {
+            const { teamId } = req.params;
+            const [leaderboard, pastSessions] = await Promise.all([
+                TeamRepository.getOverallTeamLeaderboard(teamId),
+                TeamRepository.getCompletedSessionsForTeam(teamId)
+            ]);
+
+            // ✅ AGGREGATION LOGIC STARTS HERE
+            const aggregatedSessions = new Map<string, any>();
+
+            // Group sessions by quizId
+            for (const session of pastSessions) {
+                // @ts-ignore
+                const quizId = session.quizId._id.toString();
+                if (!aggregatedSessions.has(quizId)) {
+                    aggregatedSessions.set(quizId, {
+                        quizId: session.quizId,
+                        allParticipants: new Set(),
+                        playCount: 0,
+                        latestSession: session,
+                    });
+                }
+
+                const data = aggregatedSessions.get(quizId);
+                data.playCount += 1;
+                session.results.forEach(p => p.userId && data.allParticipants.add(p.userId.toString()));
+
+                if (new Date(session.endedAt ?? 'No Date') > new Date(data.latestSession.endedAt)) {
+                    data.latestSession = session;
+                }
+            }
+
+            const formattedPastSessions = Array.from(aggregatedSessions.values()).map(data => ({
+                quizId: data.quizId._id,
+                quizTitle: data.quizId.title,
+                participantCount: data.allParticipants.size,
+                playCount: data.playCount,
+                endedAt: data.latestSession.endedAt,
+                latestSessionId: data.latestSession._id, // ID to link to for "View Results"
+            }));
+
+            // Sort by most recently played
+            formattedPastSessions.sort((a, b) => new Date(b.endedAt).getTime() - new Date(a.endedAt).getTime());
+
+            res.status(200).json({ leaderboard, pastSessions: formattedPastSessions });
+
+        } catch (error) {
+            console.error("Error fetching team analytics:", error);
+            res.status(500).json({ message: 'Error fetching team analytics.' });
+        }
+    }
+
+    static async getQuizAnalytics(req: Request, res: Response) {
+        try {
+            const { teamId, quizId } = req.params;
+            const results = await TeamRepository.getAggregatedQuizResultsForTeam(teamId, quizId);
+            if (!results) {
+                return res.status(404).json({ message: 'Quiz results not found for this team.' });
+            }
+            res.status(200).json(results);
+        } catch (error) {
+            console.error("Error fetching quiz analytics:", error);
+            res.status(500).json({ message: 'Error fetching quiz analytics.' });
+        }
+    }
+
+
+    static async getSessionAnalytics(req: Request, res: Response) {
+        try {
+            const { sessionId } = req.params;
+            const sessionDetails = await TeamRepository.getSessionResults(sessionId);
+            if (!sessionDetails) {
+                return res.status(404).json({ message: 'Session not found.' });
+            }
+            res.status(200).json(sessionDetails);
+        } catch (error) {
+            console.error("Error fetching session details:", error);
+            res.status(500).json({ message: 'Error fetching session details.' });
+        }
+    }
 
     static async createTeam(req: Request, res: Response) {
         try {
@@ -128,10 +210,18 @@ export class TeamController {
         try {
             const { teamId, quizId } = req.body;
             // @ts-ignore
-            const user = req.user;
-            if (!user) return res.status(401).json({ message: 'User not found.' });
+            const userFromToken = req.user;
+            if (!userFromToken || !userFromToken.id) {
+                return res.status(401).json({ message: 'User not found or invalid token.' });
+            }
 
-            const isMember = await TeamRepository.isUserMemberOfTeam(teamId, user.id);
+            // ✅ 2. FETCH THE FULL USER DETAILS FROM THE DATABASE
+            const user = await UserModel.findById(userFromToken.id).lean();
+            if (!user) {
+                return res.status(401).json({ message: 'Authenticated user not found in database.' });
+            }
+
+            const isMember = await TeamRepository.isUserMemberOfTeam(teamId, user._id.toString());
             if (!isMember) {
                 return res.status(403).json({ message: 'You must be a member of this team to start this quiz.' });
             }
@@ -139,10 +229,11 @@ export class TeamController {
             const session = new GameSessionModel({
                 quizId,
                 teamId,
-                hostId: user.id, 
+                hostId: user._id,
                 mode: 'solo',
                 status: 'in_progress',
                 startedAt: new Date(),
+                results: [{ userId: user._id, nickname: user.name, finalScore: 0 }],
             });
             await session.save();
 
@@ -152,6 +243,7 @@ export class TeamController {
             res.status(500).json({ message: 'Error starting solo session.' });
         }
     }
+
 
     static async getTeamAnalyticsOverview(req: Request, res: Response) {
         try {
@@ -164,7 +256,7 @@ export class TeamController {
             res.status(500).json({ message: 'Error fetching team analytics.' });
         }
     }
-    
+
 
     static async getTeamSessionDetails(req: Request, res: Response) {
         try {
@@ -266,7 +358,7 @@ export class TeamController {
             res.status(500).json({ message: 'Failed to assign quiz.' });
         }
     }
-     static async getAssignedQuizzes(req: Request, res: Response) {
+    static async getAssignedQuizzes(req: Request, res: Response) {
         try {
             const { teamId } = req.params;
             const quizzes = await TeamRepository.getQuizzesForTeam(teamId);

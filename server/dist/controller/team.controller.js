@@ -14,7 +14,88 @@ const TeamRepository_1 = require("../repositories/TeamRepository");
 const game_repositories_1 = require("../repositories/game.repositories");
 const GameSession_1 = require("../model/GameSession");
 const GameSession_2 = require("../config/data/GameSession");
+const User_1 = require("../model/User");
 class TeamController {
+    static getTeamAnalytics(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const { teamId } = req.params;
+                const [leaderboard, pastSessions] = yield Promise.all([
+                    TeamRepository_1.TeamRepository.getOverallTeamLeaderboard(teamId),
+                    TeamRepository_1.TeamRepository.getCompletedSessionsForTeam(teamId)
+                ]);
+                // ✅ AGGREGATION LOGIC STARTS HERE
+                const aggregatedSessions = new Map();
+                // Group sessions by quizId
+                for (const session of pastSessions) {
+                    // @ts-ignore
+                    const quizId = session.quizId._id.toString();
+                    if (!aggregatedSessions.has(quizId)) {
+                        aggregatedSessions.set(quizId, {
+                            quizId: session.quizId,
+                            allParticipants: new Set(),
+                            playCount: 0,
+                            latestSession: session,
+                        });
+                    }
+                    const data = aggregatedSessions.get(quizId);
+                    data.playCount += 1;
+                    session.results.forEach(p => p.userId && data.allParticipants.add(p.userId.toString()));
+                    if (new Date((_a = session.endedAt) !== null && _a !== void 0 ? _a : 'No Date') > new Date(data.latestSession.endedAt)) {
+                        data.latestSession = session;
+                    }
+                }
+                const formattedPastSessions = Array.from(aggregatedSessions.values()).map(data => ({
+                    quizId: data.quizId._id,
+                    quizTitle: data.quizId.title,
+                    participantCount: data.allParticipants.size,
+                    playCount: data.playCount,
+                    endedAt: data.latestSession.endedAt,
+                    latestSessionId: data.latestSession._id, // ID to link to for "View Results"
+                }));
+                // Sort by most recently played
+                formattedPastSessions.sort((a, b) => new Date(b.endedAt).getTime() - new Date(a.endedAt).getTime());
+                res.status(200).json({ leaderboard, pastSessions: formattedPastSessions });
+            }
+            catch (error) {
+                console.error("Error fetching team analytics:", error);
+                res.status(500).json({ message: 'Error fetching team analytics.' });
+            }
+        });
+    }
+    static getQuizAnalytics(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { teamId, quizId } = req.params;
+                const results = yield TeamRepository_1.TeamRepository.getAggregatedQuizResultsForTeam(teamId, quizId);
+                if (!results) {
+                    return res.status(404).json({ message: 'Quiz results not found for this team.' });
+                }
+                res.status(200).json(results);
+            }
+            catch (error) {
+                console.error("Error fetching quiz analytics:", error);
+                res.status(500).json({ message: 'Error fetching quiz analytics.' });
+            }
+        });
+    }
+    static getSessionAnalytics(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { sessionId } = req.params;
+                const sessionDetails = yield TeamRepository_1.TeamRepository.getSessionResults(sessionId);
+                if (!sessionDetails) {
+                    return res.status(404).json({ message: 'Session not found.' });
+                }
+                res.status(200).json(sessionDetails);
+            }
+            catch (error) {
+                console.error("Error fetching session details:", error);
+                res.status(500).json({ message: 'Error fetching session details.' });
+            }
+        });
+    }
     static createTeam(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -146,20 +227,27 @@ class TeamController {
             try {
                 const { teamId, quizId } = req.body;
                 // @ts-ignore
-                const user = req.user;
-                if (!user)
-                    return res.status(401).json({ message: 'User not found.' });
-                const isMember = yield TeamRepository_1.TeamRepository.isUserMemberOfTeam(teamId, user.id);
+                const userFromToken = req.user;
+                if (!userFromToken || !userFromToken.id) {
+                    return res.status(401).json({ message: 'User not found or invalid token.' });
+                }
+                // ✅ 2. FETCH THE FULL USER DETAILS FROM THE DATABASE
+                const user = yield User_1.UserModel.findById(userFromToken.id).lean();
+                if (!user) {
+                    return res.status(401).json({ message: 'Authenticated user not found in database.' });
+                }
+                const isMember = yield TeamRepository_1.TeamRepository.isUserMemberOfTeam(teamId, user._id.toString());
                 if (!isMember) {
                     return res.status(403).json({ message: 'You must be a member of this team to start this quiz.' });
                 }
                 const session = new GameSession_1.GameSessionModel({
                     quizId,
                     teamId,
-                    hostId: user.id,
+                    hostId: user._id,
                     mode: 'solo',
                     status: 'in_progress',
                     startedAt: new Date(),
+                    results: [{ userId: user._id, nickname: user.name, finalScore: 0 }],
                 });
                 yield session.save();
                 res.status(201).json({ sessionId: session._id.toString(), message: 'Team solo session started successfully.' });

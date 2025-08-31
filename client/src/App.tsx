@@ -26,9 +26,11 @@ import MyQuizz from "./pages/MyQuizz";
 import ResultPage from "./pages/Result";
 import SoloGamePage from "./pages/SoloGamePage";
 
-// Refactored Team & Analytics Pages
+// Team & Analytics Pages
 import TeamDashboardPage from './pages/TeamDashboardPage';
 import TeamManagementPage from './pages/TeamManagementPage';
+import TeamQuizResultPage from './pages/TeamQuizResultPage';
+import TeamSessionResultPage from './pages/TeamSessionResultPage';
 import JoinTeamPage from "./pages/JoinTeamPage";
 
 const PrivateRoute: React.FC = () => {
@@ -57,13 +59,18 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Homepage />} />
+      
+      {/* --- Public Routes (No Login Required) --- */}
       <Route element={<PublicRoute />}>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify" element={<VerifyCode />} />
         <Route path="/join" element={<Joingame />} />
         <Route path="/game/:sessionId" element={<GamePage />} />
+        
         <Route path="/solo/:quizId" element={<SoloGamePage />}/>
+        <Route path="/solo/session/:sessionId" element={<SoloGamePage />} /> 
+        
         <Route path="/session/:sessionId/performance/guest/:guestName" element={<PerformanceDetailPage />} />
       </Route>
 
@@ -78,9 +85,11 @@ function App() {
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/result/:sessionId" element={<ResultPage />} />
-        <Route path="/solo/session/:sessionId" element={<SoloGamePage />} />
+        
         <Route path="/teams" element={<TeamDashboardPage />} />
         <Route path="/teams/:teamId" element={<TeamManagementPage />} />
+        <Route path="/teams/:teamId/analytics/quiz/:quizId" element={<TeamQuizResultPage />} />
+        <Route path="/teams/:teamId/analytics/session/:sessionId" element={<TeamSessionResultPage />} />
         <Route path="/join-team/:inviteCode/" element={<JoinTeamPage />} />
       </Route>
 

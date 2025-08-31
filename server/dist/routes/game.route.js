@@ -26,3 +26,4 @@ exports.gameRouter.get('/:sessionId/export', (0, validate_1.validate)(game_schem
 exports.gameRouter.get('/:sessionId/performance/:userId', 
 // quizRateLimit,
 (0, validate_1.validate)(game_schemas_1.gameSchemas.userPerformanceParams), game_controller_1.GameController.getUserPerformanceInSession);
+exports.gameRouter.get('/:sessionId/analytics', (0, validate_1.validate)(game_schemas_1.gameSchemas.sessionIdParam), game_controller_1.GameController.getSessionAnalytics);
