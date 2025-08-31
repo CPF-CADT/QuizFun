@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GameSessionModel = void 0;
-// No longer need 'joi' if it's not being used in this file
 const mongoose_1 = require("mongoose");
 const GameSessionFeedbackSchema = new mongoose_1.Schema({
     rating: { type: Number, required: true, min: 1, max: 5 },
@@ -15,12 +14,12 @@ const GameSessionParticipantSchema = new mongoose_1.Schema({
 }, { _id: false });
 const GameSessionSchema = new mongoose_1.Schema({
     quizId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Quiz', required: true, index: true },
+    teamId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team', index: true },
     hostId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', index: true },
     guestNickname: { type: String, trim: true },
     joinCode: {
         type: Number,
-        unique: false,
-        sparse: true
+        sparse: true // Allows multiple nulls, but unique if a value exists
     },
     status: {
         type: String,

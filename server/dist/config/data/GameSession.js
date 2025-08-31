@@ -22,7 +22,7 @@ class Manager {
         return __awaiter(this, void 0, void 0, function* () {
             const session = Object.assign(Object.assign({}, data), { participants: [], currentQuestionIndex: -1, answers: new Map(), gameState: 'lobby', isFinalResults: false, answerCounts: [] });
             this.sessions.set(roomId, session);
-            yield redis_1.default.set(`session= ${roomId}`, JSON.stringify(session));
+            yield redis_1.default.set(`session=${roomId}`, JSON.stringify(session));
             console.log(`[GameSession] In-memory session created for room ${roomId} (SessionID: ${data.sessionId}).`);
         });
     }
@@ -31,24 +31,25 @@ class Manager {
             const local = this.sessions.get(roomId);
             if (local)
                 return local;
-            const redisData = yield redis_1.default.get(`room session${roomId}`);
+            const redisData = yield redis_1.default.get(`session=${roomId}`);
             if (redisData) {
-                return JSON.parse(redisData);
+                const parsedData = JSON.parse(redisData);
+                parsedData.answers = new Map(Object.entries(parsedData.answers));
+                return parsedData;
             }
             return undefined;
         });
     }
     removeSession(roomId) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a, _b, _c, _d;
-            const room = this.getSession(roomId);
+            const room = yield this.getSession(roomId);
             if (room) {
-                if ((_a = (yield room)) === null || _a === void 0 ? void 0 : _a.questionTimer)
-                    clearTimeout((_b = (yield room)) === null || _b === void 0 ? void 0 : _b.questionTimer);
-                if ((_c = (yield room)) === null || _c === void 0 ? void 0 : _c.autoNextTimer)
-                    clearTimeout((_d = (yield room)) === null || _d === void 0 ? void 0 : _d.autoNextTimer);
+                if (room.questionTimer)
+                    clearTimeout(room.questionTimer);
+                if (room.autoNextTimer)
+                    clearTimeout(room.autoNextTimer);
                 this.sessions.delete(roomId);
-                yield redis_1.default.del(`sessionId:${roomId}`);
+                yield redis_1.default.del(`session=${roomId}`); // Note: Fixed key to match
                 console.log(`[GameSession] Room ${roomId} removed.`);
             }
         });
@@ -60,6 +61,12 @@ class Manager {
             }
         }
         return undefined;
+    }
+    getAllSessions() {
+        return Array.from(this.sessions.entries(), ([roomId, session]) => ({
+            roomId,
+            session,
+        }));
     }
 }
 exports.GameSessionManager = new Manager();
