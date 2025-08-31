@@ -12,6 +12,7 @@ interface GameOverViewProps {
     isHost: boolean;
     sessionId: string | null;
     userId: string | null;
+    onExit: () => void;
 }
 
 export const GameOverView: React.FC<GameOverViewProps> = ({ 
@@ -19,7 +20,8 @@ export const GameOverView: React.FC<GameOverViewProps> = ({
     onViewMyPerformance, 
     isHost,
     sessionId,
-    userId 
+    userId ,
+    onExit
 }) => {
     const [showFireworks, setShowFireworks] = useState(true);
     const [isFeedbackModalOpen, setFeedbackModalOpen] = useState(false);
@@ -60,12 +62,6 @@ export const GameOverView: React.FC<GameOverViewProps> = ({
         }
     }, [sessionId, userId, proceedToResults]);
     
-    const handleBackToHome = () => {
-        sessionStorage.removeItem("quizSessionId");
-        sessionStorage.removeItem("quizRoomId");
-        sessionStorage.removeItem("quizUserId");
-    };
-
     return (
         <>
             <div className="relative w-full min-h-screen flex items-center justify-center p-4">
@@ -106,9 +102,8 @@ export const GameOverView: React.FC<GameOverViewProps> = ({
                         )}
                     </div>
                     
-                    {/* Back to home button is always visible */}
                     <div className="animate-slide-up">
-                        <Link to="/dashboard" onClick={handleBackToHome} className="text-indigo-400 hover:text-indigo-300 transition-all duration-300 font-medium flex items-center gap-2 p-2 rounded-lg hover:bg-white/10">
+                        <Link to="/dashboard" onClick={onExit} className="text-indigo-400 hover:text-indigo-300 transition-all duration-300 font-medium flex items-center gap-2 p-2 rounded-lg hover:bg-white/10">
                             <Home size={18} />
                             <span>Back to Home</span>
                         </Link>

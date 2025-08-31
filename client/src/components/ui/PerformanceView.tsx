@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import type { IGameHistory } from '../../service/gameApi';
-import { QuestionReportModal } from '../ui/QuestionReportModal'; // Make sure path is correct
+import { QuestionReportModal } from './QuestionReportModal'; // Make sure path is correct
 import { Flag } from 'lucide-react'; // Import the Flag icon
 import { useLocation } from 'react-router-dom';
 

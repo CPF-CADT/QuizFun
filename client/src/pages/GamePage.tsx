@@ -80,7 +80,7 @@ const GamePage: React.FC = () => {
 
         switch (gameState.gameState) {
             case 'lobby':
-                return <LobbyView gameState={gameState} onStartGame={startGame} onSettingsChange={updateSettings} />;
+                return <LobbyView gameState={gameState} onStartGame={startGame} onSettingsChange={updateSettings} onExit={endGame} />;
             case 'question':
                 return <QuestionView
                     gameState={gameState}
@@ -101,6 +101,7 @@ const GamePage: React.FC = () => {
                     onViewMyPerformance={handleViewMyPerformance}
                     sessionId={gameState.sessionId}
                     userId={gameState.yourUserId}
+                    onExit={endGame}
                 />;
             default:
                 return <div className="text-xl font-semibold animate-pulse">Loading...</div>;
