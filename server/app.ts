@@ -47,7 +47,7 @@ app.use('/api/session',gameRouter)
 app.use('/api',userReportRouter)
 app.use('/api/solo',soloRouter)
 app.use('/api/teams',teamRouter)
-app.use('/api/reports',authenticateToken,reportRouter)
+app.use('/api/reports',reportRouter)
 
 app.use(errHandle)  
 export default app;

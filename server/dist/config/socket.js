@@ -68,6 +68,14 @@ function socketSetup(server) {
                 console.error("[Socket] Error in start-game:", err);
             }
         }));
+        socket.on("end-game", (roomId) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield GameSession_1.GameSessionManager.removeSession(parseInt(roomId));
+            }
+            catch (err) {
+                console.error("[Socket] Error in start-game:", err);
+            }
+        }));
         socket.on("submit-answer", (data) => __awaiter(this, void 0, void 0, function* () {
             try {
                 yield (0, handlers_1.handleSubmitAnswer)(socket, io, data);

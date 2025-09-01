@@ -27,10 +27,11 @@ interface PerformanceViewProps {
         avgTime: string;
         accuracy: number;
     };
+    defaultQuizzId?:string,
 }
 
 // --- MAIN VIEW COMPONENT ---
-export const PerformanceView: React.FC<PerformanceViewProps> = ({ player, performance, summary }) => {
+export const PerformanceView: React.FC<PerformanceViewProps> = ({ player, performance, summary ,defaultQuizzId}) => {
     const [expandedQuestionId, setExpandedQuestionId] = useState<string | null>(null);
     
     // --- NEW STATE & HANDLERS FOR REPORT MODAL ---
@@ -127,7 +128,7 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({ player, perfor
                 <QuestionReportModal
                     isOpen={isReportModalOpen}
                     onClose={handleCloseReportModal}
-                    quizId={(quizzId)??performance.at(0)?.quizId??'no quizzId'}
+                    quizId={(quizzId)??defaultQuizzId??'no quizzId'}
                     question={reportingQuestion}
                 />
             )}
