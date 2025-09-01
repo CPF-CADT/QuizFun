@@ -6,7 +6,7 @@ import { useQuizGame, type Participant } from '../context/GameContext';
 import { PerformanceDetailModal } from '../components/PerformanceDetailModal';
 
 import { LobbyView } from '../components/game/LobbyView';
-import { QuestionView } from '../components/game/QuestionView';
+import QuestionView from '../components/game/QuestionView';
 import { ResultsView } from '../components/game/ResultsView';
 import { GameOverView } from '../components/game/GameOverView';
 import { GameResultDetails } from '../components/game/GameResultDetails';
