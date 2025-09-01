@@ -17,7 +17,7 @@ interface SidebarProps {
 const sidebarItems = [
   { name: 'Dashboard', icon: Activity, section: 'dashboard', color: 'from-violet-500 to-purple-600' },
   { name: 'My Quizz', icon: Activity, section: 'my-quizz', color: 'from-green-500 to-green-300' },
-  // CHANGED: Added the new "Teams" item to the navigation array
+  { name: 'My History', icon: Activity, section: 'my-history', color: 'from-blue-500 to-blue-300' },
   { name: 'Teams', icon: Users, section: 'teams', color: 'from-indigo-500 to-blue-600' },
   { name: 'Explore', icon: Compass, section: 'explore', color: 'from-blue-500 to-cyan-500' },
   { name: 'My Library', icon: BookOpen, section: 'library', color: 'from-emerald-500 to-teal-600' },

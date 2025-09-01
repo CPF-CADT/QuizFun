@@ -4,6 +4,7 @@ import { useQuizGame, type Participant } from '../context/GameContext';
 import { PerformanceDetailModal } from '../components/PerformanceDetailModal';
 import { SoundManager } from '../components/game/SoundManager';
 import { Music, MicOff } from 'lucide-react';
+import Cookies from "js-cookie";
 
 import { LobbyView } from '../components/game/LobbyView';
 import { QuestionView } from '../components/game/QuestionView';
@@ -24,10 +25,10 @@ const GamePage: React.FC = () => {
         startGame,
         submitAnswer,
         requestNextQuestion,
-        endGame,
         fetchFinalResults,
         updateSettings,
-        userSeleted
+        userSeleted,
+        endGame
     } = useQuizGame();
     
     const [selectedPlayer, setSelectedPlayer] = useState<PlayerIdentifier | null>(null);
@@ -64,6 +65,13 @@ const GamePage: React.FC = () => {
             setSelectedPlayer({ guestName: me.user_name });
         }
     };
+    const handleLeftGame=() =>{
+        Cookies.remove("quizSessionId");
+        Cookies.remove("quizRoomId");
+        Cookies.remove("quizUserId");
+        Cookies.remove("quizUserName");
+        navigate("/dashboard");
+    }
 
     if (!gameState || !gameState.sessionId) {
         return (
@@ -82,7 +90,7 @@ const GamePage: React.FC = () => {
                 payload={gameState.finalResults}
                 yourUserId={gameState.yourUserId}
                 sessionId={gameState.sessionId}
-                onExit={endGame}
+                onExit={(me?.role === 'host')? endGame: handleLeftGame}
                 setSelectedPlayer={setSelectedPlayer}
                 isHost={me?.role === 'host'}
             />;
@@ -111,7 +119,7 @@ const GamePage: React.FC = () => {
                     onViewMyPerformance={handleViewMyPerformance}
                     sessionId={gameState.sessionId}
                     userId={gameState.yourUserId}
-                    onExit={endGame}
+                    onExit={handleLeftGame}
                 />;
             default:
                 return <div className="text-xl font-semibold animate-pulse">Loading...</div>;

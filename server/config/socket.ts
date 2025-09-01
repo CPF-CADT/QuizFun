@@ -21,7 +21,7 @@ export default function socketSetup(server: http.Server) {
 
     io.on("connection", async (socket: Socket) => {
         console.log(`[Connection] User connected with socket ID: ${socket.id}`);
-        
+
         // Handle auto-rejoin on page refresh
         const { roomId, userId } = socket.handshake.query;
         if (roomId && userId && typeof roomId === 'string' && typeof userId === 'string') {
@@ -69,6 +69,13 @@ export default function socketSetup(server: http.Server) {
                 console.error("[Socket] Error in start-game:", err);
             }
         });
+        socket.on("end-game", async (roomId) => {
+            try {
+                await GameSessionManager.removeSession(parseInt(roomId));
+            } catch (err) {
+                console.error("[Socket] Error in start-game:", err);
+            }
+        })
 
         socket.on("submit-answer", async (data) => {
             try {
