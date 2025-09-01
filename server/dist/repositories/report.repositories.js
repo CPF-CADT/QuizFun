@@ -124,7 +124,16 @@ class ReportRepository {
                     {
                         $match: {
                             status: "completed",
-                            $or: [{ hostId: userObjectId }, { "results.userId": userObjectId }]
+                            $or: [
+                                // Always include if user is a participant
+                                { "results.userId": userObjectId },
+                                {
+                                    $and: [
+                                        { hostId: userObjectId },
+                                        { mode: { $ne: "solo" } }
+                                    ]
+                                }
+                            ]
                         }
                     },
                     // 2. Sort by most recent and paginate

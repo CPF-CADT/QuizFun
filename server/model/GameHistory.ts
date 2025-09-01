@@ -28,7 +28,7 @@ export interface IGameHistory extends Document {
 }
 
 const GameHistorySchema = new Schema<IGameHistory>({
-    gameSessionId: { type: Schema.Types.ObjectId, ref: 'GameSession', required: true, index: true },
+    gameSessionId: { type: Schema.Types.ObjectId, ref: 'GameSession', required: false, index: true },
     quizId: { type: Schema.Types.ObjectId, ref: 'Quiz', required: true, index: true },
     questionId: { type: Schema.Types.ObjectId, required: true, index: true },
     userId: { type: Schema.Types.ObjectId, ref: 'User', index: true }, // required: false is implied

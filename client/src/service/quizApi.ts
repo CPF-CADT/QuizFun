@@ -30,7 +30,7 @@ export interface IQuiz {
   dificulty: Dificulty;
   templateImgUrl?: string;
   questions: IQuestion[];
-  tags?:any;
+  tags?: any;
   createdAt: string;
   updatedAt: string;
 }
@@ -87,13 +87,36 @@ export interface IUpdateQuizPayload {
   tags?: any;
 }
 
+export type IReportQuestionPayload = {
+  quizId: string;
+  questionId: string;
+  reason: 'incorrect_answer' | 'unclear_wording' | 'typo' | 'inappropriate_content' | 'other';
+  comment?: string;
+};
+
+export interface IUserReportSummary {
+  userId: string;
+  totalReports: number;
+}
+export interface IPaginatedUserReports {
+  data: IUserReportSummary[];
+  page: number;
+  limit: number;
+  totalDocuments: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+
+
 export const quizApi = {
-  addBugReport(report: { title: string; description: string; rating: number }){
+  addBugReport(report: { title: string; description: string; rating: number }) {
     return apiClient.post('/bug-report', {
-        title: report.title,
-        description: report.description,
-        rating: report.rating, 
-      });
+      title: report.title,
+      description: report.description,
+      rating: report.rating,
+    });
   },
   getAllQuizzes: (params: IGetAllQuizzesParams): Promise<AxiosResponse<IQuizPaginatedResponse>> => {
     return apiClient.get<IQuizPaginatedResponse>('/quizz', { params });
@@ -141,6 +164,7 @@ export const quizApi = {
   getDashboardStats: () => {
     return apiClient.get('/quizz/stats');
   },
+
   importPDF: (file: File) => {
     const formData = new FormData();
     formData.append('pdf', file);
@@ -170,5 +194,12 @@ export const quizApi = {
   },
   updateQuiz: (quizId: string, quizData: IUpdateQuizPayload) => {
     return apiClient.put<{ message: string, data: IQuiz }>(`/quizz/${quizId}`, quizData);
+  },
+  reportQuestion: (payload: IReportQuestionPayload): Promise<AxiosResponse<{ message: string }>> => {
+    console.log(payload)
+    return apiClient.post('/reports/question', payload);
+  },
+  getReportsByUser: (page: number, limit: number = 10): Promise<AxiosResponse<IPaginatedUserReports>> => {
+    return apiClient.get('/report/by-user', { params: { page, limit } });
   },
 };

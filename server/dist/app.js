@@ -17,10 +17,12 @@ const report_route_1 = require("./routes/report.route");
 const config_1 = require("./config/config");
 const bug_report_route_1 = __importDefault(require("./routes/bug.report.route"));
 const authenicate_middleware_1 = require("./middleware/authenicate.middleware");
-const apiKeyVerification_middleware_1 = require("./middleware/apiKeyVerification.middleware");
+const solo_routes_1 = __importDefault(require("./routes/solo.routes"));
+const team_route_1 = __importDefault(require("./routes/team.route"));
+// import { } from './middleware/apiKeyVerification.middleware';
 const swaggerProtect_middleware_1 = require("./middleware/swaggerProtect.middleware");
+// import rateLimit from 'express-rate-limit';
 const app = (0, express_1.default)();
-app.set('trust proxy', true);
 app.use((0, cors_1.default)({
     origin: config_1.config.frontEndUrl,
     credentials: true
@@ -30,13 +32,23 @@ app.use((0, cookie_parser_1.default)());
 app.get('/', (req, res) => {
     res.redirect('/api-docs/');
 });
+// const limiter = rateLimit({
+//     windowMs: 15 * 60 * 1000, // 15 minutes
+//     max: 100, // Limit each IP to 100 requests per window
+//     standardHeaders: true,
+//     legacyHeaders: false,
+//     // The 'trustProxy' setting is no longer needed here if set globally
+// });
+// app.use(limiter);
 // API Routes
-app.use('/api/user', apiKeyVerification_middleware_1.verifyApiKey, users_route_1.default);
-app.use('/api/quizz', apiKeyVerification_middleware_1.verifyApiKey, quizz_route_1.default);
+app.use('/api/user', users_route_1.default);
+app.use('/api/quizz', quizz_route_1.default);
 app.use('/api-docs', swaggerProtect_middleware_1.swaggerPasswordProtect, swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerConfig_1.swaggerSpec));
-app.use('/api/service', apiKeyVerification_middleware_1.verifyApiKey, service_route_1.default);
-app.use('/api/session', apiKeyVerification_middleware_1.verifyApiKey, game_route_1.gameRouter);
-app.use('/api', apiKeyVerification_middleware_1.verifyApiKey, bug_report_route_1.default);
-app.use('/api/reports', apiKeyVerification_middleware_1.verifyApiKey, authenicate_middleware_1.authenticateToken, report_route_1.reportRouter);
+app.use('/api/service', service_route_1.default);
+app.use('/api/session', game_route_1.gameRouter);
+app.use('/api', bug_report_route_1.default);
+app.use('/api/solo', solo_routes_1.default);
+app.use('/api/teams', team_route_1.default);
+app.use('/api/reports', authenicate_middleware_1.authenticateToken, report_route_1.reportRouter);
 app.use(errHandle_middleware_1.errHandle);
 exports.default = app;

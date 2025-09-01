@@ -1,5 +1,12 @@
 import { Request, Response } from "express";
 import { IActivityFeedResponse, ReportRepository } from "../repositories/report.repositories";
+import { QuizModel } from "../model/Quiz";
+import { GameSessionModel } from "../model/GameSession";
+import { QuestionReportModel } from '../model/QuestionReport';
+import { ExcelExportService } from '../service/ExcelExportService';
+
+const MIN_REPORTS = 50;
+const REPORT_PERCENTAGE = 0.7; // 70%
 
 /**
  * @swagger
@@ -266,6 +273,302 @@ export class ReportController {
       return res.status(500).json({ message: "Server error fetching feedback." });
     }
   }
+
+  /**
+ * @swagger
+ * /api/reports/quiz/submit:
+ *   post:
+ *     summary: Submit a report for a quiz question
+ *     tags: [Reports]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - quizId
+ *               - questionId
+ *               - reason
+ *             properties:
+ *               quizId:
+ *                 type: string
+ *                 description: The ID of the quiz
+ *                 example: "64f8b8a2c9f1b2d3e4f56789"
+ *               questionId:
+ *                 type: string
+ *                 description: The ID of the question being reported
+ *                 example: "64f8b8a2c9f1b2d3e4f56790"
+ *               reason:
+ *                 type: string
+ *                 description: Reason for reporting
+ *                 enum: [incorrect_answer, unclear_wording, inappropriate_content, other]
+ *                 example: "incorrect_answer"
+ *               comment:
+ *                 type: string
+ *                 description: Optional comment for the report
+ *                 example: "The correct answer seems wrong based on the reference material."
+ *     responses:
+ *       201:
+ *         description: Report submitted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Report submitted successfully. Thank you for your feedback!"
+ *       400:
+ *         description: Missing required fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Missing required fields."
+ *       409:
+ *         description: User already reported this question
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "You have already reported this question."
+ *       500:
+ *         description: Server error while submitting report
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Server error while submitting report."
+ */
+
+  static async submitQuestionReport(req: Request, res: Response): Promise<Response> {
+    const { quizId, questionId, reason, comment } = req.body;
+    const reporterId = req.user?.id;
+
+    if (!quizId || !questionId || !reason) {
+      return res.status(400).json({ message: 'Missing required fields.' });
+    }
+
+    try {
+      // 1. Create and save the new report
+      const existingReport = await QuestionReportModel.findOne({ questionId, reporterId });
+      if (existingReport) {
+        return res.status(409).json({ message: 'You have already reported this question.' });
+      }
+
+      const newReport = new QuestionReportModel({
+        quizId,
+        questionId,
+        reporterId,
+        reason,
+        comment,
+      });
+      await newReport.save();
+
+      // 2. Trigger the dynamic flagging logic
+      await checkAndFlagQuestion(quizId, questionId);
+
+      return res.status(201).json({ message: 'Report submitted successfully. Thank you for your feedback!' });
+
+    } catch (error) {
+      return res.status(500).json({ message: 'Server error while submitting report.' });
+    }
+  }
+
+  /**
+* @swagger
+* /api/reports/users:
+*   get:
+*     summary: Get paginated report statistics by user
+*     tags: [Reports]
+*     security:
+*       - bearerAuth: []
+*     parameters:
+*       - in: query
+*         name: page
+*         schema:
+*           type: integer
+*           default: 1
+*         description: Page number for pagination
+*       - in: query
+*         name: limit
+*         schema:
+*           type: integer
+*           default: 10
+*         description: Number of items per page
+*     responses:
+*       200:
+*         description: Paginated list of users with their report count
+*         content:
+*           application/json:
+*             schema:
+*               type: object
+*               properties:
+*                 data:
+*                   type: array
+*                   items:
+*                     type: object
+*                     properties:
+*                       userId:
+*                         type: string
+*                       username:
+*                         type: string
+*                       userEmail:
+*                         type: string
+*                       profileUrl:
+*                         type: string
+*                       totalReports:
+*                         type: integer
+*                 page:
+*                   type: integer
+*                 limit:
+*                   type: integer
+*                 totalDocuments:
+*                   type: integer
+*                 totalPages:
+*                   type: integer
+*                 hasNext:
+*                   type: boolean
+*                 hasPrev:
+*                   type: boolean
+*       500:
+*         description: Server error
+*/
+
+  static async getReportsByUser(req: Request, res: Response) {
+    const page = Math.max(parseInt(req.query.page as string) || 1, 1);
+    const limit = Math.max(parseInt(req.query.limit as string) || 10, 1);
+    const skip = (page - 1) * limit;
+
+    try {
+      const results = await QuestionReportModel.aggregate([
+        // Stage 1: Group by reporterId
+        {
+          $group: { _id: "$reporterId", totalReports: { $sum: 1 } }
+        },
+        // Stage 2: Join with users collection
+        {
+          $lookup: {
+            from: "users",
+            localField: "_id",
+            foreignField: "_id",
+            as: "reporterInfo"
+          }
+        },
+        // Stage 3: Unwind with preserve nulls
+        {
+          $unwind: { path: "$reporterInfo", preserveNullAndEmptyArrays: true }
+        },
+        // Stage 4: Project necessary fields
+        {
+          $project: {
+            _id: 0,
+            userId: "$_id",
+            profileUrl: "$reporterInfo.profileUrl",
+            totalReports: 1
+          }
+        },
+        // Stage 5: Sort by totalReports descending
+        { $sort: { totalReports: -1 } },
+        // Stage 6: Facet for pagination
+        {
+          $facet: {
+            metadata: [{ $count: "totalDocuments" }],
+            data: [{ $skip: skip }, { $limit: limit }]
+          }
+        }
+      ]);
+
+      const data = results[0]?.data || [];
+      const totalDocuments = results[0]?.metadata[0]?.totalDocuments || 0;
+      const totalPages = Math.ceil(totalDocuments / limit);
+
+      return res.status(200).json({
+        data,
+        page,
+        limit,
+        totalDocuments,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+      });
+    } catch (error) {
+      console.error('Error fetching reports by user:', error);
+      return res.status(500).json({ message: 'Server error while fetching reports.' });
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/reports/quiz/{quizId}/export:
+   *   get:
+   *     summary: Export quiz analytics to Excel
+   *     tags: [Reports]
+   *     parameters:
+   *       - in: path
+   *         name: quizId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The ID of the quiz
+   *     responses:
+   *       200:
+   *         description: Excel file download
+   *         content:
+   *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+   *             schema:
+   *               type: string
+   *               format: binary
+   *       401:
+   *         description: Unauthorized
+   *       404:
+   *         description: Quiz not found or access denied
+   *       500:
+   *         description: Server error
+   */
+  static async exportQuizAnalytics(req: Request, res: Response): Promise<Response> {
+    try {
+      const { quizId } = req.params;
+      const creatorId = req.user?.id;
+      
+      if (!creatorId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const excelBuffer = await ExcelExportService.exportQuizAnalytics(quizId, creatorId);
+
+      // Get quiz info for filename
+      const quiz = await QuizModel.findOne({ _id: quizId, creatorId }).select('title').exec();
+      const quizTitle = quiz?.title || 'Quiz';
+      const sanitizedTitle = quizTitle.replace(/[^a-zA-Z0-9]/g, '_');
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `${sanitizedTitle}_Analytics_${timestamp}.xlsx`;
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', excelBuffer.length);
+
+      return res.send(excelBuffer);
+
+    } catch (error) {
+      console.error("Error exporting quiz analytics:", error);
+      if (error instanceof Error) {
+        return res.status(404).json({ message: error.message });
+      }
+      return res.status(500).json({ message: 'Server error exporting quiz analytics.' });
+    }
+  }
+
 }
 
 
@@ -353,3 +656,33 @@ export class ReportController {
  *           type: string
  *           example: "Unauthorized"
  */
+
+// --- Helper function for dynamic logic ---
+
+async function checkAndFlagQuestion(quizId: string, questionId: string) {
+  try {
+    const totalReports = await QuestionReportModel.countDocuments({ questionId });
+
+    const uniquePlayers = await GameSessionModel.distinct('results.userId', {
+      quizId: quizId,
+      status: 'completed'
+    });
+    const totalParticipants = uniquePlayers.length;
+
+    console.log(`Checking question ${questionId}: ${totalReports} reports / ${totalParticipants} players.`);
+
+    const requiredReports = Math.max(MIN_REPORTS, Math.ceil(totalParticipants * REPORT_PERCENTAGE));
+
+    if (totalReports >= requiredReports) {
+      await QuizModel.updateOne(
+        { "_id": quizId, "questions._id": questionId },
+        { "$set": { "questions.$.status": "under_review" } }
+      );
+      console.log(`Question ${questionId} automatically flagged for review.`);
+    }
+  } catch (error) {
+    console.error('Error in checkAndFlagQuestion:', error);
+  }
+
+  
+}

@@ -140,7 +140,17 @@ export class ReportRepository {
                 {
                     $match: {
                         status: "completed",
-                        $or: [{ hostId: userObjectId }, { "results.userId": userObjectId }]
+                        $or: [
+                            // Always include if user is a participant
+                            { "results.userId": userObjectId },
+
+                            {
+                                $and: [
+                                    { hostId: userObjectId },
+                                    { mode: { $ne: "solo" } }
+                                ]
+                            }
+                        ]
                     }
                 },
                 // 2. Sort by most recent and paginate
@@ -193,7 +203,7 @@ export class ReportRepository {
                         results: { $push: "$results" }
                     }
                 },
-                
+
                 // 7. Re-sort after grouping to guarantee chronological order
                 { $sort: { endedAt: -1 } },
 
@@ -223,7 +233,7 @@ export class ReportRepository {
                         role: { $cond: { if: { $eq: ["$hostId", userObjectId] }, then: "host", else: "player" } },
                         playerCount: { $size: "$results" },
                         averageScore: {
-                             $cond: {
+                            $cond: {
                                 if: { $and: [{ $gt: ["$totalQuestions", 0] }, { $gt: [{ $size: "$results" }, 0] }] },
                                 then: {
                                     $avg: {

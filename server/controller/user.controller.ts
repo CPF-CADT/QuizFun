@@ -11,7 +11,7 @@ import { sentEmail } from "../service/transporter";
 import { VerificationCodeRepository } from "../repositories/verification.repositories";
 import { IUserData, UserModel } from "../model/User";
 import jwt from "jsonwebtoken";
-import redisClient from "../config/redis";
+// import redisClient from "../config/redis";
 import { OAuth2Client } from "google-auth-library";
 import { config } from "../config/config";
 import { Types } from 'mongoose';
@@ -660,7 +660,6 @@ export async function verifyCode(req: Request, res: Response): Promise<void> {
 //       .json({ message: "Internal server error during token refresh" });
 //   }
 // }
-
 export async function refreshToken(req: Request, res: Response): Promise<void> {
   const token = req.cookies.refreshToken;
 
@@ -681,26 +680,14 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       httpOnly: true,
       secure: true,
       sameSite: "none",
-      path: "/"
+      path: "/",
     });
     res.status(403).json({ message: "Invalid or expired refresh token" });
     return;
   }
 
   try {
-    const storedToken = await redisClient.get(`refreshToken:${decoded.id}`);
-
-    if (!storedToken || storedToken !== token) {
-      res.clearCookie("refreshToken", {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        path: "/"
-      });
-      res.status(403).json({ message: "Session not found. Please log in again." });
-      return;
-    }
-
+    // No Redis check, just issue new access token
     const accessToken = jwt.sign(
       { id: decoded.id, email: decoded.email, role: decoded.role },
       config.jwtSecret,
@@ -712,6 +699,7 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
     res.status(500).json({ message: "Internal server error during token refresh" });
   }
 }
+
 
 
 /**
@@ -764,28 +752,20 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
  */
 
 export async function logout(req: Request, res: Response): Promise<void> {
-  const refreshToken = req.cookies.refreshToken;
-
   const cookieOptions = {
     httpOnly: true,
     secure: true,
     sameSite: "none" as const,
+    path: "/",
   };
 
+  // Clear refresh token cookie
   res.clearCookie("refreshToken", cookieOptions);
 
-  try {
-    const decoded = jwt.decode(refreshToken) as { id: string };
-    if (decoded && decoded.id) {
-      await redisClient.del(`refreshToken:${decoded.id}`);
-    }
-  } catch (err) {
-    console.error("Logout token invalid or expired:", (err as Error).message);
-  }
-
+  // No Redis cleanup needed since we don’t store refresh tokens
   res.status(200).json({ message: "Logout successful" });
-  return;
 }
+
 
 /**
  * @swagger
@@ -1083,23 +1063,14 @@ async function handleSuccessfulLogin(
   message: string = "Login successful"
 ) {
   try {
-    // Check if refresh token already exists
-    let refreshToken = await redisClient.get(`refreshToken:${user.id}`);
+    // Always issue a new refresh token
+    const refreshToken = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      config.jwtRefreshSecret,
+      { expiresIn: `${REFRESH_TOKEN_EXPIRATION_SECONDS}s` }
+    );
 
-    if (!refreshToken) {
-      // Create a refresh token only if none exists
-      refreshToken = jwt.sign(
-        { id: user.id, email: user.email, role: user.role },
-        config.jwtRefreshSecret,
-        { expiresIn: `${REFRESH_TOKEN_EXPIRATION_SECONDS}s` }
-      );
-
-      await redisClient.set(`refreshToken:${user.id}`, refreshToken, {
-        EX: REFRESH_TOKEN_EXPIRATION_SECONDS,
-      });
-    }
-
-    // Always issue a fresh access token
+    // Always issue a new access token
     const accessToken = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       config.jwtSecret,
@@ -1112,7 +1083,7 @@ async function handleSuccessfulLogin(
       secure: true,
       sameSite: "none",
       maxAge: REFRESH_TOKEN_EXPIRATION_SECONDS * 1000, // cookie expects ms
-      path: "/"
+      path: "/",
     });
 
     const { password: _, ...userResponse } = user.toObject();
@@ -1222,3 +1193,23 @@ export async function getUserById(req: Request, res: Response) {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 }
+
+export async function searchUsers(req: Request, res: Response): Promise<void> {
+        try {
+            const query = req.query.q as string;
+            const exclude = req.query.exclude as string | undefined;
+            const excludeIds = exclude ? exclude.split(',') : [];
+
+            if (!query) {
+                res.status(400).json({ message: "A search query 'q' is required." });
+                return;
+            }
+
+            const users = await UserRepository.searchUsers(query, 10, excludeIds);
+            res.status(200).json(users);
+
+        } catch (error) {
+            console.error("Error searching users:", error);
+            res.status(500).json({ message: "An error occurred while searching for users." });
+        }
+    }

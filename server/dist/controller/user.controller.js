@@ -37,13 +37,14 @@ exports.resetPassword = resetPassword;
 exports.getProfile = getProfile;
 exports.googleAuthenicate = googleAuthenicate;
 exports.getUserById = getUserById;
+exports.searchUsers = searchUsers;
 const encription_1 = require("../service/encription");
 const users_repositories_1 = require("../repositories/users.repositories");
 const generateRandomNumber_1 = require("../service/generateRandomNumber");
 const transporter_1 = require("../service/transporter");
 const verification_repositories_1 = require("../repositories/verification.repositories");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const redis_1 = __importDefault(require("../config/redis"));
+// import redisClient from "../config/redis";
 const google_auth_library_1 = require("google-auth-library");
 const config_1 = require("../config/config");
 const mongoose_1 = require("mongoose");
@@ -661,23 +662,13 @@ function refreshToken(req, res) {
                 httpOnly: true,
                 secure: true,
                 sameSite: "none",
-                path: "/"
+                path: "/",
             });
             res.status(403).json({ message: "Invalid or expired refresh token" });
             return;
         }
         try {
-            const storedToken = yield redis_1.default.get(`refreshToken:${decoded.id}`);
-            if (!storedToken || storedToken !== token) {
-                res.clearCookie("refreshToken", {
-                    httpOnly: true,
-                    secure: true,
-                    sameSite: "none",
-                    path: "/"
-                });
-                res.status(403).json({ message: "Session not found. Please log in again." });
-                return;
-            }
+            // No Redis check, just issue new access token
             const accessToken = jsonwebtoken_1.default.sign({ id: decoded.id, email: decoded.email, role: decoded.role }, config_1.config.jwtSecret, { expiresIn: ACCESS_TOKEN_EXPIRATION });
             res.status(200).json({ accessToken });
         }
@@ -736,24 +727,16 @@ function refreshToken(req, res) {
  */
 function logout(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
-        const refreshToken = req.cookies.refreshToken;
         const cookieOptions = {
             httpOnly: true,
             secure: true,
             sameSite: "none",
+            path: "/",
         };
+        // Clear refresh token cookie
         res.clearCookie("refreshToken", cookieOptions);
-        try {
-            const decoded = jsonwebtoken_1.default.decode(refreshToken);
-            if (decoded && decoded.id) {
-                yield redis_1.default.del(`refreshToken:${decoded.id}`);
-            }
-        }
-        catch (err) {
-            console.error("Logout token invalid or expired:", err.message);
-        }
+        // No Redis cleanup needed since we don’t store refresh tokens
         res.status(200).json({ message: "Logout successful" });
-        return;
     });
 }
 /**
@@ -1034,16 +1017,9 @@ function getProfile(req, res) {
 function handleSuccessfulLogin(user_1, res_1) {
     return __awaiter(this, arguments, void 0, function* (user, res, message = "Login successful") {
         try {
-            // Check if refresh token already exists
-            let refreshToken = yield redis_1.default.get(`refreshToken:${user.id}`);
-            if (!refreshToken) {
-                // Create a refresh token only if none exists
-                refreshToken = jsonwebtoken_1.default.sign({ id: user.id, email: user.email, role: user.role }, config_1.config.jwtRefreshSecret, { expiresIn: `${REFRESH_TOKEN_EXPIRATION_SECONDS}s` });
-                yield redis_1.default.set(`refreshToken:${user.id}`, refreshToken, {
-                    EX: REFRESH_TOKEN_EXPIRATION_SECONDS,
-                });
-            }
-            // Always issue a fresh access token
+            // Always issue a new refresh token
+            const refreshToken = jsonwebtoken_1.default.sign({ id: user.id, email: user.email, role: user.role }, config_1.config.jwtRefreshSecret, { expiresIn: `${REFRESH_TOKEN_EXPIRATION_SECONDS}s` });
+            // Always issue a new access token
             const accessToken = jsonwebtoken_1.default.sign({ id: user.id, email: user.email, role: user.role }, config_1.config.jwtSecret, { expiresIn: ACCESS_TOKEN_EXPIRATION });
             // Set the refresh token cookie
             res.cookie("refreshToken", refreshToken, {
@@ -1051,7 +1027,7 @@ function handleSuccessfulLogin(user_1, res_1) {
                 secure: true,
                 sameSite: "none",
                 maxAge: REFRESH_TOKEN_EXPIRATION_SECONDS * 1000, // cookie expects ms
-                path: "/"
+                path: "/",
             });
             const _a = user.toObject(), { password: _ } = _a, userResponse = __rest(_a, ["password"]);
             res.status(200).json({
@@ -1151,6 +1127,25 @@ function getUserById(req, res) {
         catch (error) {
             console.error('Error fetching user by ID:', error);
             return res.status(500).json({ message: 'Internal server error.' });
+        }
+    });
+}
+function searchUsers(req, res) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const query = req.query.q;
+            const exclude = req.query.exclude;
+            const excludeIds = exclude ? exclude.split(',') : [];
+            if (!query) {
+                res.status(400).json({ message: "A search query 'q' is required." });
+                return;
+            }
+            const users = yield users_repositories_1.UserRepository.searchUsers(query, 10, excludeIds);
+            res.status(200).json(users);
+        }
+        catch (error) {
+            console.error("Error searching users:", error);
+            res.status(500).json({ message: "An error occurred while searching for users." });
         }
     });
 }

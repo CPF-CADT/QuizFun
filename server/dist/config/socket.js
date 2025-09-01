@@ -11,8 +11,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = socketSetup;
 const socket_io_1 = require("socket.io");
-const handlers_1 = require("../sockets/event/handlers");
-const GameSession_1 = require("./data/GameSession");
+const handlers_1 = require("../sockets/event/handlers"); // Adjust path if necessary
+const GameSession_1 = require("../config/data/GameSession"); // Adjust path if necessary
 /**
  * Sets up all Socket.IO event listeners and routing.
  */
@@ -20,12 +20,11 @@ function socketSetup(server) {
     const io = new socket_io_1.Server(server, { cors: { origin: "*" } });
     io.on("connection", (socket) => __awaiter(this, void 0, void 0, function* () {
         console.log(`[Connection] User connected with socket ID: ${socket.id}`);
-        // Handle auto-rejoin on connection
+        // Handle auto-rejoin on page refresh
         const { roomId, userId } = socket.handshake.query;
         if (roomId && userId && typeof roomId === 'string' && typeof userId === 'string') {
             const room = yield GameSession_1.GameSessionManager.getSession(parseInt(roomId, 10));
             if (room && room.participants.some(p => p.user_id === userId)) {
-                // Using a self-invoking async function to handle the promise safely
                 (() => __awaiter(this, void 0, void 0, function* () {
                     try {
                         yield (0, handlers_1.handleRejoinGame)(socket, io, { roomId: parseInt(roomId, 10), userId });
@@ -36,7 +35,7 @@ function socketSetup(server) {
                 }))();
             }
         }
-        // --- Lobby Events ---
+        // --- Core Game Event Listeners ---
         socket.on("create-room", (data) => __awaiter(this, void 0, void 0, function* () {
             try {
                 yield (0, handlers_1.handleCreateRoom)(socket, io, data);
@@ -69,7 +68,6 @@ function socketSetup(server) {
                 console.error("[Socket] Error in start-game:", err);
             }
         }));
-        // --- Game Events ---
         socket.on("submit-answer", (data) => __awaiter(this, void 0, void 0, function* () {
             try {
                 yield (0, handlers_1.handleSubmitAnswer)(socket, io, data);
@@ -94,7 +92,6 @@ function socketSetup(server) {
                 console.error("[Socket] Error in play-again:", err);
             }
         }));
-        // --- Disconnect Event ---
         socket.on("disconnect", () => __awaiter(this, void 0, void 0, function* () {
             try {
                 yield (0, handlers_1.handleDisconnect)(socket, io);

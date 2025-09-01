@@ -29,6 +29,7 @@ const User_1 = require("../model/User");
 const redis_1 = __importDefault(require("../config/redis"));
 const GameSession_1 = require("../model/GameSession");
 const mongoose_1 = require("mongoose");
+const ExcelExportService_1 = require("../service/ExcelExportService");
 class GameController {
     /**
      * @swagger
@@ -651,7 +652,7 @@ class GameController {
                     const session = yield GameSession_1.GameSessionModel.findById(sessionId).select('hostId').lean();
                     if (!session)
                         return res.status(404).json({ message: "Session not found." });
-                    const isHost = !!(userId && session.hostId.equals(userId));
+                    const isHost = !!(userId && session.hostId && session.hostId.equals(userId));
                     const viewType = isHost ? 'host' : (guestName ? 'guest' : 'player');
                     const finalResults = fullResults.map(result => {
                         var _a;
@@ -769,6 +770,102 @@ class GameController {
             catch (error) {
                 console.error("Error fetching guest performance:", error);
                 return res.status(500).json({ message: 'Server error retrieving guest performance.' });
+            }
+        });
+    }
+    /**
+     * @swagger
+     * /api/session/{sessionId}/export:
+     *   get:
+     *     tags:
+     *       - Game Sessions
+     *     summary: Export session results to Excel
+     *     description: Download session results as an Excel file with participant summary, question breakdown, and detailed answers
+     *     parameters:
+     *       - in: path
+     *         name: sessionId
+     *         required: true
+     *         schema:
+     *           type: string
+     *         description: The session ID
+     *       - in: query
+     *         name: includeDetailedAnswers
+     *         schema:
+     *           type: boolean
+     *           default: true
+     *         description: Include detailed answers sheet
+     *       - in: query
+     *         name: includeQuestionBreakdown
+     *         schema:
+     *           type: boolean
+     *           default: true
+     *         description: Include question breakdown sheet
+     *       - in: query
+     *         name: includeParticipantSummary
+     *         schema:
+     *           type: boolean
+     *           default: true
+     *         description: Include participant summary sheet
+     *     responses:
+     *       200:
+     *         description: Excel file download
+     *         content:
+     *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+     *             schema:
+     *               type: string
+     *               format: binary
+     *       404:
+     *         description: Session not found or no results available
+     *       500:
+     *         description: Internal Server Error
+     */
+    static exportSessionResults(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const { sessionId } = req.params;
+                const { includeSessionOverview = 'true', includeSimpleSummary = 'true', includeDetailedAnswers = 'false', includeQuestionBreakdown = 'false', includeParticipantSummary = 'false' } = req.query;
+                const options = {
+                    includeSessionOverview: includeSessionOverview === 'true',
+                    includeSimpleSummary: includeSimpleSummary === 'true',
+                    includeDetailedAnswers: includeDetailedAnswers === 'true',
+                    includeQuestionBreakdown: includeQuestionBreakdown === 'true',
+                    includeParticipantSummary: includeParticipantSummary === 'true'
+                };
+                const excelBuffer = yield ExcelExportService_1.ExcelExportService.exportSessionResults(sessionId, options);
+                // Get session info for filename
+                const session = yield GameSession_1.GameSessionModel.findById(sessionId).populate('quizId', 'title').exec();
+                const quizTitle = ((_a = session === null || session === void 0 ? void 0 : session.quizId) === null || _a === void 0 ? void 0 : _a.title) || 'Quiz';
+                const sanitizedTitle = quizTitle.replace(/[^a-zA-Z0-9]/g, '_');
+                const timestamp = new Date().toISOString().split('T')[0];
+                const filename = `${sanitizedTitle}_Results_${timestamp}.xlsx`;
+                res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+                res.setHeader('Content-Length', excelBuffer.length);
+                return res.send(excelBuffer);
+            }
+            catch (error) {
+                console.error("Error exporting session results:", error);
+                if (error instanceof Error) {
+                    return res.status(404).json({ message: error.message });
+                }
+                return res.status(500).json({ message: 'Server error exporting session results.' });
+            }
+        });
+    }
+    static getSessionAnalytics(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { sessionId } = req.params;
+                const sessionDetails = yield game_repositories_1.GameRepository.getSessionResults(sessionId);
+                if (!sessionDetails) {
+                    return res.status(404).json({ message: 'Session not found.' });
+                }
+                res.status(200).json(sessionDetails);
+            }
+            catch (error) {
+                console.error("Error fetching session details:", error);
+                res.status(500).json({ message: 'Error fetching session details.' });
             }
         });
     }

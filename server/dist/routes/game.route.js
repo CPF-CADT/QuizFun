@@ -9,13 +9,21 @@ const express_1 = __importDefault(require("express"));
 const game_controller_1 = require("../controller/game.controller");
 const validate_1 = require("../middleware/validate");
 const game_schemas_1 = require("../validations/game.schemas");
-const ratelimit_middleware_1 = require("../middleware/ratelimit.middleware");
+// import  quizRateLimit } from '../middleware/ratelimit.middleware';
 exports.gameRouter = express_1.default.Router();
 // Apply validation middleware to each route
-exports.gameRouter.get('/', ratelimit_middleware_1.globalRateLimit, (0, validate_1.validate)(game_schemas_1.gameSchemas.getSessions), game_controller_1.GameController.getSessions);
-exports.gameRouter.get('/:id', ratelimit_middleware_1.globalRateLimit, (0, validate_1.validate)(game_schemas_1.gameSchemas.idParam), game_controller_1.GameController.getSessionDetails);
-exports.gameRouter.get('/:id/history', ratelimit_middleware_1.globalRateLimit, (0, validate_1.validate)(game_schemas_1.gameSchemas.idParam), game_controller_1.GameController.getSessionHistory);
-exports.gameRouter.post('/:sessionId/feedback', ratelimit_middleware_1.globalRateLimit, (0, validate_1.validate)(game_schemas_1.gameSchemas.sessionIdParam), (0, validate_1.validate)(game_schemas_1.gameSchemas.addFeedback), game_controller_1.GameController.addFeedbackToSession);
-exports.gameRouter.get('/:sessionId/results', ratelimit_middleware_1.quizRateLimit, (0, validate_1.validate)(game_schemas_1.gameSchemas.sessionIdParam), (0, validate_1.validate)(game_schemas_1.gameSchemas.getSessionResults), game_controller_1.GameController.getSessionResults);
-exports.gameRouter.get('/:sessionId/performance/guest', ratelimit_middleware_1.quizRateLimit, (0, validate_1.validate)(game_schemas_1.gameSchemas.sessionIdParam), (0, validate_1.validate)(game_schemas_1.gameSchemas.getGuestPerformance), game_controller_1.GameController.getGuestPerformanceInSession);
-exports.gameRouter.get('/:sessionId/performance/:userId', ratelimit_middleware_1.quizRateLimit, (0, validate_1.validate)(game_schemas_1.gameSchemas.userPerformanceParams), game_controller_1.GameController.getUserPerformanceInSession);
+exports.gameRouter.get('/', (0, validate_1.validate)(game_schemas_1.gameSchemas.getSessions), game_controller_1.GameController.getSessions);
+exports.gameRouter.get('/:id', (0, validate_1.validate)(game_schemas_1.gameSchemas.idParam), game_controller_1.GameController.getSessionDetails);
+exports.gameRouter.get('/:id/history', (0, validate_1.validate)(game_schemas_1.gameSchemas.idParam), game_controller_1.GameController.getSessionHistory);
+exports.gameRouter.post('/:sessionId/feedback', (0, validate_1.validate)(game_schemas_1.gameSchemas.sessionIdParam), (0, validate_1.validate)(game_schemas_1.gameSchemas.addFeedback), game_controller_1.GameController.addFeedbackToSession);
+exports.gameRouter.get('/:sessionId/results', 
+// quizRateLimit,
+(0, validate_1.validate)(game_schemas_1.gameSchemas.sessionIdParam), (0, validate_1.validate)(game_schemas_1.gameSchemas.getSessionResults), game_controller_1.GameController.getSessionResults);
+exports.gameRouter.get('/:sessionId/performance/guest', 
+// quizRateLimit,
+(0, validate_1.validate)(game_schemas_1.gameSchemas.sessionIdParam), (0, validate_1.validate)(game_schemas_1.gameSchemas.getGuestPerformance), game_controller_1.GameController.getGuestPerformanceInSession);
+exports.gameRouter.get('/:sessionId/export', (0, validate_1.validate)(game_schemas_1.gameSchemas.sessionIdParam), game_controller_1.GameController.exportSessionResults);
+exports.gameRouter.get('/:sessionId/performance/:userId', 
+// quizRateLimit,
+(0, validate_1.validate)(game_schemas_1.gameSchemas.userPerformanceParams), game_controller_1.GameController.getUserPerformanceInSession);
+exports.gameRouter.get('/:sessionId/analytics', (0, validate_1.validate)(game_schemas_1.gameSchemas.sessionIdParam), game_controller_1.GameController.getSessionAnalytics);

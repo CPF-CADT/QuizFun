@@ -8,10 +8,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserRepository = void 0;
 const mongoose_1 = require("mongoose");
 const User_1 = require("../model/User");
+const calculation_1 = require("../service/calculation");
+const fuzzysort_1 = __importDefault(require("fuzzysort"));
 class UserRepository {
     static findByEmail(email) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -85,6 +90,31 @@ class UserRepository {
                 hasNext: page < totalPages,
                 hasPrev: page > 1
             };
+        });
+    }
+    static searchUsers(query_1) {
+        return __awaiter(this, arguments, void 0, function* (query, limit = 10, excludeIds = []) {
+            if (!query) {
+                return [];
+            }
+            const safeQuery = (0, calculation_1.escapeRegex)(query);
+            const regex = new RegExp(safeQuery, 'i');
+            const candidates = yield User_1.UserModel.find({
+                $and: [
+                    { _id: { $nin: excludeIds } },
+                    {
+                        $or: [
+                            { name: regex },
+                            { email: regex }
+                        ]
+                    }
+                ]
+            }).limit(50).lean();
+            const results = fuzzysort_1.default.go(query, candidates, {
+                keys: ['name', 'email'],
+                threshold: -1000,
+            });
+            return results.slice(0, limit).map(r => r.obj);
         });
     }
 }

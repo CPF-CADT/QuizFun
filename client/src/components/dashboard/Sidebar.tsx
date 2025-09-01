@@ -1,9 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Activity, BookOpen, BarChart3, Settings, Compass, X, Star
+  Activity, BookOpen, BarChart3, Settings, Compass, X, Star,
+  Users // CHANGED: Imported the Users icon for the Teams section
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+
 interface SidebarProps {
   activeSection: string;
   setActiveSection: (section: string) => void;
@@ -15,6 +17,8 @@ interface SidebarProps {
 const sidebarItems = [
   { name: 'Dashboard', icon: Activity, section: 'dashboard', color: 'from-violet-500 to-purple-600' },
   { name: 'My Quizz', icon: Activity, section: 'my-quizz', color: 'from-green-500 to-green-300' },
+  // CHANGED: Added the new "Teams" item to the navigation array
+  { name: 'Teams', icon: Users, section: 'teams', color: 'from-indigo-500 to-blue-600' },
   { name: 'Explore', icon: Compass, section: 'explore', color: 'from-blue-500 to-cyan-500' },
   { name: 'My Library', icon: BookOpen, section: 'library', color: 'from-emerald-500 to-teal-600' },
   { name: 'Report', icon: BarChart3, section: 'report', color: 'from-orange-500 to-red-500' },
@@ -23,7 +27,7 @@ const sidebarItems = [
 
 const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection, sidebarOpen, setSidebarOpen, currentTime }) => {
   const navigate = useNavigate();
-  const { user } = useAuth(); // Get the authenticated user from the context
+  const { user } = useAuth();
 
   return (
     <>
@@ -53,7 +57,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection, side
           <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl p-4 mb-6 border border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <div>
-                {/* Display the user's name from the auth context */}
                 <p className="text-gray-900 font-semibold">{user?.name || 'Guest User'}</p>
                 <p className="text-gray-500 text-sm">Player</p>
               </div>

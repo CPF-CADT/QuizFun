@@ -49,6 +49,7 @@
     "swagger-ui-express": "^5.0.1",
     "twilio": "^5.7.1",
     "uuid": "^11.1.0",
+    "xlsx": "^0.18.5",
     "xss": "^1.0.15"
   },
   "devDependencies": {
@@ -73,6 +74,7 @@
     "@types/supertest": "^6.0.3",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
+    "@types/xlsx": "^0.0.35",
     "cross-env": "^10.0.0",
     "jest": "^30.0.4",
     "nodemon": "^3.1.10",
