@@ -1,9 +1,9 @@
-// GamePage.tsx
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuizGame, type Participant } from '../context/GameContext';
 import { PerformanceDetailModal } from '../components/PerformanceDetailModal';
+import { SoundManager } from '../components/game/SoundManager';
+import { Music, MicOff } from 'lucide-react';
 
 import { LobbyView } from '../components/game/LobbyView';
 import QuestionView from '../components/game/QuestionView';
@@ -15,7 +15,21 @@ export type PlayerIdentifier = { userId: string } | { guestName: string };
 
 const GamePage: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
-    const { gameState, startGame, submitAnswer, requestNextQuestion, endGame, fetchFinalResults, updateSettings, userSeleted } = useQuizGame();
+    const {
+        gameState,
+        sfxToPlay,
+        musicToPlay,
+        isMusicOn,
+        toggleMusic,
+        startGame,
+        submitAnswer,
+        requestNextQuestion,
+        endGame,
+        fetchFinalResults,
+        updateSettings,
+        userSeleted
+    } = useQuizGame();
+    
     const [selectedPlayer, setSelectedPlayer] = useState<PlayerIdentifier | null>(null);
     const navigate = useNavigate();
 
@@ -32,7 +46,6 @@ const GamePage: React.FC = () => {
     }, [userSeleted, gameState.currentQuestionIndex]);
 
     useEffect(() => {
-        // Redirect if no session is found after a short delay
         const timer = setTimeout(() => {
             if (!gameState || !gameState.sessionId) {
                 console.log("No active session found, redirecting.");
@@ -42,14 +55,10 @@ const GamePage: React.FC = () => {
         return () => clearTimeout(timer);
     }, [sessionId, gameState, navigate]);
 
-    const isRegisteredUser = (id: string | null): boolean => {
-        if (!id) return false;
-        return /^[0-9a-fA-F]{24}$/.test(id);
-    };
-
     const handleViewMyPerformance = () => {
         if (!me) return;
-        if (isRegisteredUser(gameState.yourUserId)) {
+        const isRegistered = /^[0-9a-fA-F]{24}$/.test(gameState.yourUserId || '');
+        if (isRegistered) {
             setSelectedPlayer({ userId: gameState.yourUserId! });
         } else {
             setSelectedPlayer({ guestName: me.user_name });
@@ -72,6 +81,7 @@ const GamePage: React.FC = () => {
             return <GameResultDetails
                 payload={gameState.finalResults}
                 yourUserId={gameState.yourUserId}
+                sessionId={gameState.sessionId}
                 onExit={endGame}
                 setSelectedPlayer={setSelectedPlayer}
                 isHost={me?.role === 'host'}
@@ -80,7 +90,7 @@ const GamePage: React.FC = () => {
 
         switch (gameState.gameState) {
             case 'lobby':
-                return <LobbyView gameState={gameState} onStartGame={startGame} onSettingsChange={updateSettings} />;
+                return <LobbyView gameState={gameState} onStartGame={startGame} onSettingsChange={updateSettings} onExit={endGame} />;
             case 'question':
                 return <QuestionView
                     gameState={gameState}
@@ -101,6 +111,7 @@ const GamePage: React.FC = () => {
                     onViewMyPerformance={handleViewMyPerformance}
                     sessionId={gameState.sessionId}
                     userId={gameState.yourUserId}
+                    onExit={endGame}
                 />;
             default:
                 return <div className="text-xl font-semibold animate-pulse">Loading...</div>;
@@ -108,17 +119,33 @@ const GamePage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center p-2 sm:p-4 overflow-auto">
-            <div className="w-full h-full flex items-center justify-center">
-                {renderGameState()}
+        <>
+            <SoundManager soundEffectToPlay={sfxToPlay} musicToPlay={musicToPlay} />
+            <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center p-2 sm:p-4 overflow-auto relative">
+                
+                {/* --- Music Toggle Button --- */}
+                <div className="absolute top-4 right-4 z-50">
+                    <button
+                        onClick={toggleMusic}
+                        className="p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
+                        aria-label={isMusicOn ? "Turn music off" : "Turn music on"}
+                    >
+                        {isMusicOn ? <Music className="w-6 h-6" /> : <MicOff className="w-6 h-6 text-gray-400" />}
+                    </button>
+                </div>
+
+                <div className="w-full h-full flex items-center justify-center">
+                    {renderGameState()}
+                </div>
+
+                <PerformanceDetailModal
+                    isOpen={selectedPlayer !== null}
+                    onClose={() => setSelectedPlayer(null)}
+                    sessionId={gameState.sessionId || ''}
+                    playerIdentifier={selectedPlayer}
+                />
             </div>
-            <PerformanceDetailModal
-                isOpen={selectedPlayer !== null}
-                onClose={() => setSelectedPlayer(null)}
-                sessionId={gameState.sessionId || ''}
-                playerIdentifier={selectedPlayer}
-            />
-        </div>
+        </>
     );
 };
 

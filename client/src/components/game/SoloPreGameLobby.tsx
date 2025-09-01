@@ -1,18 +1,27 @@
-// src/components/game/SoloPreGameLobby.tsx (UPDATED)
-
 import React, { useState, useEffect } from 'react';
 import { quizApi } from '../../service/quizApi';
-import { PlayCircle, User } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { PlayCircle, User, Music, MicOff } from 'lucide-react';
 
+// ✅ FIXED: Add the new props to the interface definition
 interface SoloPreGameLobbyProps {
     quizId: string;
-    onStart: (playerName: string) => void; // Now passes the name back
+    onStart: (playerName: string) => void;
+    isMusicOn: boolean;
+    onToggleMusic: () => void;
 }
 
-export const SoloPreGameLobby: React.FC<SoloPreGameLobbyProps> = ({ quizId, onStart }) => {
+export const SoloPreGameLobby: React.FC<SoloPreGameLobbyProps> = ({ quizId, onStart, isMusicOn, onToggleMusic }) => {
+    const { isAuthenticated, user } = useAuth();
     const [quizTitle, setQuizTitle] = useState('Loading Quiz...');
     const [isLoading, setIsLoading] = useState(true);
-    const [playerName, setPlayerName] = useState(''); // State for player's name
+    const [playerName, setPlayerName] = useState('');
+
+    useEffect(() => {
+        if (isAuthenticated && user) {
+            setPlayerName(user.name);
+        }
+    }, [isAuthenticated, user]);
 
     useEffect(() => {
         quizApi.getQuizById(quizId)
@@ -31,15 +40,27 @@ export const SoloPreGameLobby: React.FC<SoloPreGameLobbyProps> = ({ quizId, onSt
             onStart(playerName.trim());
         }
     };
+    
+    const isPlayerNameDisabled = isAuthenticated && !!user;
 
     return (
-        <div className="w-full max-w-2xl p-8 bg-gray-900/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/10 text-white text-center flex flex-col items-center">
+        <div className="w-full max-w-2xl p-8 bg-gray-900/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/10 text-white text-center flex flex-col items-center relative">
+            
+            <button 
+                onClick={onToggleMusic}
+                className="absolute top-4 right-4 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
+                aria-label={isMusicOn ? "Turn music off" : "Turn music on"}
+            >
+                {isMusicOn ? <Music className="w-6 h-6" /> : <MicOff className="w-6 h-6 text-gray-400" />}
+            </button>
+
             <h1 className="text-4xl font-extrabold mb-3">You are about to begin:</h1>
             <p className="text-2xl text-indigo-300 font-semibold mb-6 h-16">{quizTitle}</p>
             
-            {/* --- NEW: Player Name Input --- */}
             <div className="w-full max-w-xs mb-6">
-                <label htmlFor="playerName" className="block text-sm font-medium text-gray-400 mb-2">Enter your nickname to start</label>
+                <label htmlFor="playerName" className="block text-sm font-medium text-gray-400 mb-2">
+                    {isPlayerNameDisabled ? 'Starting as:' : 'Enter your nickname to start'}
+                </label>
                 <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
                     <input
@@ -48,7 +69,8 @@ export const SoloPreGameLobby: React.FC<SoloPreGameLobbyProps> = ({ quizId, onSt
                         value={playerName}
                         onChange={(e) => setPlayerName(e.target.value)}
                         placeholder="Your Name..."
-                        className="w-full bg-gray-800 border border-gray-600 rounded-lg py-3 pl-10 pr-4 text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        disabled={isPlayerNameDisabled}
+                        className="w-full bg-gray-800 border border-gray-600 rounded-lg py-3 pl-10 pr-4 text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-700 disabled:cursor-not-allowed"
                     />
                 </div>
             </div>

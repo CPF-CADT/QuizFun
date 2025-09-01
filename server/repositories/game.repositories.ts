@@ -4,6 +4,7 @@ import { GameHistoryModel } from '../model/GameHistory';
 import { GameSessionManager } from '../config/data/GameSession';
 import { FinalResultData, DetailedAnswer } from '../sockets/type';
 import { QuizModel } from '../model/Quiz';
+import { TeamModel } from '../model/Team';
 interface AnswerAttemptData {
     selectedOptionId: Types.ObjectId;
     isCorrect: boolean;
@@ -27,10 +28,12 @@ export interface ResultsPayload {
     results: FinalResultData[];
 }
 export interface IDetailedAnswer {
+    questionId?: string; // Adding questionId for Excel export
     questionText: string;
     wasUltimatelyCorrect: boolean;
     finalScoreGained: number;
     thinkingTimeSeconds: number;
+    selectedOptionText?: string; // Adding selected option text
     attempts: {
         selectedOptionText: string;
         isCorrect: boolean;
@@ -668,10 +671,12 @@ export class GameRepository {
                                         question: { $first: { $filter: { input: "$quizInfo.questions", as: "q", cond: { $eq: ["$$q._id", "$$doc.questionId"] } } } }
                                     },
                                     in: {
+                                        questionId: { $toString: "$$doc.questionId" },
                                         questionText: "$$question.questionText",
                                         wasUltimatelyCorrect: "$$doc.isUltimatelyCorrect",
                                         finalScoreGained: "$$doc.finalScoreGained",
                                         thinkingTimeSeconds: { $round: [{ $divide: [{ $last: "$$doc.attempts.answerTimeMs" }, 1000] }, 2] },
+                                        selectedOptionText: { $first: { $map: { input: "$$doc.attempts", as: "attempt", in: { $let: { vars: { option: { $first: { $filter: { input: "$$question.options", as: "opt", cond: { $eq: ["$$opt._id", "$$attempt.selectedOptionId"] } } } } }, in: "$$option.text" } } } } },
                                         attempts: {
                                             $map: {
                                                 input: "$$doc.attempts",
@@ -706,5 +711,95 @@ export class GameRepository {
             ...result,
             rank: index + 1
         }));
+    }
+    static async getSessionResults(sessionId: string) {
+        if (!Types.ObjectId.isValid(sessionId)) return null;
+
+        const session = await GameSessionModel.findById(sessionId)
+            .populate({
+                path: 'results.userId',
+                select: 'name profileUrl'
+            })
+            .populate('quizId', 'title')
+            .lean();
+
+        if (!session) return null;
+
+        const participants = session.results
+            .sort((a, b) => (a.finalRank || 999) - (b.finalRank || 999))
+            .map(p => ({
+                // @ts-ignore
+                userId: p.userId?._id?.toString(), // Ensure userId is a string
+                // @ts-ignore
+                name: p.userId?.name || p.nickname,
+                // @ts-ignore
+                profileUrl: p.userId?.profileUrl,
+                score: p.finalScore,
+                rank: p.finalRank
+            }));
+
+        return {
+             // @ts-ignore
+            quizTitle: session.quizId?.title,
+            endedAt: session.endedAt,
+            participants
+        };
+    }
+
+    /**
+     * ✅ NEW: Fetches all completed sessions for a team.
+     */
+    static async getCompletedSessionsForTeam(teamId: string) {
+        if (!Types.ObjectId.isValid(teamId)) return [];
+        return GameSessionModel.find({ teamId: new Types.ObjectId(teamId), status: 'completed' })
+            .populate('quizId', 'title')
+            .select('_id quizId endedAt results')
+            .sort({ endedAt: -1 })
+            .lean();
+    }
+
+    /**
+     * ✅ FIXED: Correctly aggregates total scores for each member and excludes the owner.
+     */
+    static async getOverallTeamLeaderboard(teamId: string) {
+        if (!Types.ObjectId.isValid(teamId)) return [];
+
+        const team = await TeamModel.findById(teamId).lean();
+        if (!team) return [];
+        
+        const ownerId = team.members.find(m => m.role === 'owner')?.userId;
+
+        return GameSessionModel.aggregate([
+            { $match: { teamId: new Types.ObjectId(teamId), status: 'completed', 'results.0': { $exists: true } } },
+            { $unwind: "$results" },
+            { $match: { "results.userId": { $ne: ownerId } } },
+            {
+                $group: {
+                    _id: "$results.userId",
+                    totalScore: { $sum: "$results.finalScore" },
+                    quizzesPlayed: { $sum: 1 }
+                }
+            },
+            { $sort: { totalScore: -1 } },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'userDetails'
+                }
+            },
+            { $unwind: "$userDetails" },
+            {
+                $project: {
+                    _id: 0,
+                    userId: "$userDetails._id",
+                    name: "$userDetails.name",
+                    profileUrl: "$userDetails.profileUrl",
+                    totalScore: "$totalScore",
+                    quizzesPlayed: "$quizzesPlayed"
+                }
+            }
+        ]);
     }
 }

@@ -28,6 +28,7 @@ export interface PlayerAnswer {
 export interface SessionData {
     sessionId: string;
     quizId: string;
+    teamId?: string; 
     hostId: string;
     participants: Participant[];
     questions?: IQuestion[];
@@ -54,7 +55,6 @@ export interface SanitizedQuestion {
     options: SanitizedQuestionOption[];
 }
 
-// The question structure when results are shown, including answer details.
 export interface ResultsQuestion extends SanitizedQuestion {
     correctAnswerIndex: number;
     yourAnswer?: {
@@ -84,8 +84,8 @@ class Manager {
 
     public async addSession(
         roomId: number,
-        data: Pick<SessionData, 'quizId' | 'hostId' | 'settings' | 'sessionId'>
-    ):Promise<void> {
+        data: Pick<SessionData, 'quizId' | 'hostId' | 'settings' | 'sessionId' | 'teamId'>
+    ): Promise<void> {
         const session: SessionData = {
             ...data,
             participants: [],
@@ -96,29 +96,30 @@ class Manager {
             answerCounts: [],
         };
         this.sessions.set(roomId, session);
-        await redisClient.set(`session= ${roomId}`,JSON.stringify(session));
+        await redisClient.set(`session:${roomId}`, JSON.stringify(session));
         console.log(`[GameSession] In-memory session created for room ${roomId} (SessionID: ${data.sessionId}).`);
     }
 
-
-
-    public  async getSession(roomId: number): Promise<SessionData | undefined > {
+    public async getSession(roomId: number): Promise<SessionData | undefined > {
         const local = this.sessions.get(roomId);
-        if(local) return local;
-        const redisData = await redisClient.get(`room session${roomId}`);
-        if(redisData){
-            return JSON.parse(redisData) as SessionData;
+        if (local) return local;
+        
+        const redisData = await redisClient.get(`session=${roomId}`); 
+        if (redisData) {
+            const parsedData = JSON.parse(redisData) as SessionData;
+            parsedData.answers = new Map(Object.entries(parsedData.answers));
+            return parsedData;
         }
         return undefined;
     }
 
     public async removeSession(roomId: number): Promise<void> {
-        const room = this.getSession(roomId);
+        const room = await this.getSession(roomId);
         if (room) {
-            if ((await room)?.questionTimer) clearTimeout((await room)?.questionTimer);
-            if ((await room)?.autoNextTimer) clearTimeout((await room)?.autoNextTimer);
+            if (room.questionTimer) clearTimeout(room.questionTimer);
+            if (room.autoNextTimer) clearTimeout(room.autoNextTimer);
             this.sessions.delete(roomId);
-            await redisClient.del(`sessionId:${roomId}`)
+            await redisClient.del(`session=${roomId}`); // Note: Fixed key to match
             console.log(`[GameSession] Room ${roomId} removed.`);
         }
     }
@@ -133,6 +134,12 @@ class Manager {
         }
         return undefined;
     }
+    public getAllSessions(): { roomId: number; session: SessionData }[] {
+    return Array.from(this.sessions.entries(), ([roomId, session]) => ({
+        roomId,
+        session,
+    }));
+}
 }
 
 export const GameSessionManager = new Manager();

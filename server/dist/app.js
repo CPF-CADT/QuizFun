@@ -18,9 +18,10 @@ const config_1 = require("./config/config");
 const bug_report_route_1 = __importDefault(require("./routes/bug.report.route"));
 const authenicate_middleware_1 = require("./middleware/authenicate.middleware");
 const solo_routes_1 = __importDefault(require("./routes/solo.routes"));
+const team_route_1 = __importDefault(require("./routes/team.route"));
 // import { } from './middleware/apiKeyVerification.middleware';
 const swaggerProtect_middleware_1 = require("./middleware/swaggerProtect.middleware");
-const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
+// import rateLimit from 'express-rate-limit';
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
     origin: config_1.config.frontEndUrl,
@@ -31,14 +32,14 @@ app.use((0, cookie_parser_1.default)());
 app.get('/', (req, res) => {
     res.redirect('/api-docs/');
 });
-const limiter = (0, express_rate_limit_1.default)({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per window
-    standardHeaders: true,
-    legacyHeaders: false,
-    // The 'trustProxy' setting is no longer needed here if set globally
-});
-app.use(limiter);
+// const limiter = rateLimit({
+//     windowMs: 15 * 60 * 1000, // 15 minutes
+//     max: 100, // Limit each IP to 100 requests per window
+//     standardHeaders: true,
+//     legacyHeaders: false,
+//     // The 'trustProxy' setting is no longer needed here if set globally
+// });
+// app.use(limiter);
 // API Routes
 app.use('/api/user', users_route_1.default);
 app.use('/api/quizz', quizz_route_1.default);
@@ -47,6 +48,7 @@ app.use('/api/service', service_route_1.default);
 app.use('/api/session', game_route_1.gameRouter);
 app.use('/api', bug_report_route_1.default);
 app.use('/api/solo', solo_routes_1.default);
+app.use('/api/teams', team_route_1.default);
 app.use('/api/reports', authenicate_middleware_1.authenticateToken, report_route_1.reportRouter);
 app.use(errHandle_middleware_1.errHandle);
 exports.default = app;

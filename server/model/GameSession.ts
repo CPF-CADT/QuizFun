@@ -1,7 +1,5 @@
-// No longer need 'joi' if it's not being used in this file
 import { Schema, model, Document, Types } from 'mongoose';
 
-// Interface for a single feedback entry (no changes needed)
 export interface IFeedback extends Document {
     rating: number;
     comment?: string;
@@ -15,6 +13,7 @@ export interface IGameSessionParticipant {
 export interface IGameSession extends Document {
     _id: Types.ObjectId;
     quizId: Types.ObjectId;
+    teamId?: Types.ObjectId; // <-- NEW: Added to link sessions to a team
     hostId?: Types.ObjectId;
     guestNickname?: string;
     joinCode?: number;
@@ -25,7 +24,6 @@ export interface IGameSession extends Document {
     startedAt?: Date;
     endedAt?: Date;
 }
-
 
 const GameSessionFeedbackSchema = new Schema<IFeedback>({
     rating: { type: Number, required: true, min: 1, max: 5 },
@@ -41,13 +39,12 @@ const GameSessionParticipantSchema = new Schema<IGameSessionParticipant>({
 
 const GameSessionSchema = new Schema<IGameSession>({
     quizId: { type: Schema.Types.ObjectId, ref: 'Quiz', required: true, index: true },
-
+    teamId: { type: Schema.Types.ObjectId, ref: 'Team', index: true }, 
     hostId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     guestNickname: { type: String, trim: true }, 
     joinCode: {
         type: Number,
-        unique: false, 
-        sparse: true  
+        sparse: true // Allows multiple nulls, but unique if a value exists
     },
     status: {
         type: String,
@@ -63,6 +60,5 @@ const GameSessionSchema = new Schema<IGameSession>({
     timestamps: true,
     collection: 'gamesessions'
 });
-
 
 export const GameSessionModel = model<IGameSession>('GameSession', GameSessionSchema);

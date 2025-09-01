@@ -1,5 +1,3 @@
-// GameOverView.tsx
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Home } from 'lucide-react';
@@ -13,6 +11,7 @@ interface GameOverViewProps {
     isHost: boolean;
     sessionId: string | null;
     userId: string | null;
+    onExit: () => void; // ✅ onExit prop is used for cleanup
 }
 
 export const GameOverView: React.FC<GameOverViewProps> = ({ 
@@ -20,17 +19,16 @@ export const GameOverView: React.FC<GameOverViewProps> = ({
     onViewMyPerformance, 
     isHost,
     sessionId,
-    userId 
+    userId,
+    onExit 
 }) => {
     const [showFireworks, setShowFireworks] = useState(true);
     const [isFeedbackModalOpen, setFeedbackModalOpen] = useState(false);
 
     useEffect(() => {
-        // Automatically fetch results for the host
         if (isHost) {
             onFetchResults();
         }
-        // Optimized firework animation
         const timer = setTimeout(() => setShowFireworks(false), 3000);
         return () => clearTimeout(timer);
     }, [isHost, onFetchResults]);
@@ -42,16 +40,10 @@ export const GameOverView: React.FC<GameOverViewProps> = ({
     
     const handleFeedbackSubmit = useCallback(async (rating: number, comment: string) => {
         if (!sessionId) {
-            console.error("Cannot submit feedback: Session ID is missing.");
             proceedToResults(); 
             return;
         }
-
-        const feedbackData: IFeedbackRequest = {
-            rating,
-            comment: comment || undefined,
-        };
-
+        const feedbackData: IFeedbackRequest = { rating, comment: comment || undefined };
         try {
             await gameApi.addFeedback(sessionId, feedbackData);
         } catch (error) {
@@ -61,15 +53,10 @@ export const GameOverView: React.FC<GameOverViewProps> = ({
         }
     }, [sessionId, userId, proceedToResults]);
     
-    const handleBackToHome = () => {
-        sessionStorage.removeItem("quizSessionId");
-        sessionStorage.removeItem("quizRoomId");
-        sessionStorage.removeItem("quizUserId");
-    };
-
     return (
         <>
             <div className="relative w-full min-h-screen flex items-center justify-center p-4">
+                {/* Fireworks Animation */}
                 {showFireworks && (
                     <div className="absolute inset-0 pointer-events-none overflow-hidden">
                         {[...Array(8)].map((_, i) => (
@@ -96,7 +83,6 @@ export const GameOverView: React.FC<GameOverViewProps> = ({
 
                     <div className="w-full animate-scale-in">
                         {isHost ? (
-                            // Host sees a loading/confirmation state, as results are fetched automatically
                             <div className="text-center p-4">
                                 <p className="text-xl font-semibold animate-pulse">Fetching final results...</p>
                             </div>
@@ -107,9 +93,9 @@ export const GameOverView: React.FC<GameOverViewProps> = ({
                         )}
                     </div>
                     
-                    {/* Back to home button is always visible */}
+                    {/* ✅ FIXED: The onClick handler now calls onExit to clean up the session */}
                     <div className="animate-slide-up">
-                        <Link to="/dashboard" onClick={handleBackToHome} className="text-indigo-400 hover:text-indigo-300 transition-all duration-300 font-medium flex items-center gap-2 p-2 rounded-lg hover:bg-white/10">
+                        <Link to="/dashboard" onClick={onExit} className="text-indigo-400 hover:text-indigo-300 transition-all duration-300 font-medium flex items-center gap-2 p-2 rounded-lg hover:bg-white/10">
                             <Home size={18} />
                             <span>Back to Home</span>
                         </Link>
@@ -125,6 +111,7 @@ export const GameOverView: React.FC<GameOverViewProps> = ({
                 />
             )}
 
+            {/* CSS Animations */}
             <style>{`
                 @keyframes firework { 0% { transform: scale(0); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
                 @keyframes bounce-in { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }

@@ -1,5 +1,7 @@
 import { Types } from 'mongoose';
 import { UserModel,IUserData } from '../model/User';
+import { escapeRegex } from '../service/calculation';
+import fuzzysort from 'fuzzysort';
 
 export type UserData = Omit<IUserData, '_id' | 'createdAt' | 'updatedAt'>;
 
@@ -88,4 +90,31 @@ export class UserRepository {
       hasPrev: page > 1
     };
   }
+  static async searchUsers(query: string, limit: number = 10, excludeIds: string[] = []): Promise<IUserData[]> {
+        if (!query) {
+            return [];
+        }
+
+        const safeQuery = escapeRegex(query);
+        const regex = new RegExp(safeQuery, 'i'); 
+
+        const candidates = await UserModel.find({
+            $and: [
+                { _id: { $nin: excludeIds } }, 
+                {
+                    $or: [
+                        { name: regex },
+                        { email: regex }
+                    ]
+                }
+            ]
+        }).limit(50).lean();
+
+        const results = fuzzysort.go(query, candidates, {
+            keys: ['name', 'email'],
+            threshold: -1000, 
+        });
+
+        return results.slice(0, limit).map(r => r.obj);
+    }
 }   

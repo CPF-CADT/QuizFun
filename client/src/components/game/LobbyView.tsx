@@ -49,7 +49,10 @@ const ParticleEffect: React.FC = () => (
   </div>
 );
 
-const FloatingEmoji: React.FC<{ emoji: string; delay: number }> = ({ emoji, delay }) => (
+const FloatingEmoji: React.FC<{ emoji: string; delay: number }> = ({
+  emoji,
+  delay,
+}) => (
   <div
     className="absolute text-sm animate-bounce opacity-70"
     style={{
@@ -66,12 +69,15 @@ interface LobbyViewProps {
   gameState: GameState;
   onStartGame: (roomId: number) => void;
   onSettingsChange: (settings: GameSettings) => void;
+      onExit: () => void;
+
 }
 
 export const LobbyView: React.FC<LobbyViewProps> = ({
   gameState,
   onStartGame,
   onSettingsChange,
+  onExit
 }) => {
   const { roomId, participants, yourUserId, settings } = gameState;
   const shareableLink = `${window.location.origin}/join?joinRoomCode=${roomId}`;
@@ -123,12 +129,16 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         >
           🎉 Game Lobby
         </h1>
-        <p className="text-gray-700 mb-4 text-sm">Invite your friends & get ready 🚀</p>
+        <p className="text-gray-700 mb-4 text-sm">
+          Invite your friends & get ready 🚀
+        </p>
 
         {/* PIN + QR */}
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-white/70 p-4 rounded-xl shadow-inner">
           <div className="text-center md:text-left">
-            <p className="font-semibold mb-1 text-gray-600 text-xs">Join with Game PIN:</p>
+            <p className="font-semibold mb-1 text-gray-600 text-xs">
+              Join with Game PIN:
+            </p>
             <p
               className={`text-4xl font-extrabold tracking-widest ${
                 pulseEffect ? "scale-110" : ""
@@ -148,7 +158,9 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
 
         {/* Share Link */}
         <div className="mt-4">
-          <p className="font-semibold text-xs mb-1 text-left text-gray-600">Or share this link:</p>
+          <p className="font-semibold text-xs mb-1 text-left text-gray-600">
+            Or share this link:
+          </p>
           <div className="flex gap-2">
             <input
               type="text"
@@ -178,7 +190,9 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                 className="flex items-center justify-between p-2 rounded-lg transition-colors"
                 style={{ backgroundColor: "rgb(245,230,255)" }}
               >
-                <span className="font-medium text-gray-800">{player.user_name}</span>
+                <span className="font-medium text-gray-800">
+                  {player.user_name}
+                </span>
                 {player.role === "host" && (
                   <span className="text-xs font-bold flex items-center gap-1" style={{ color: "rgb(186,85,211)" }}>
                     <FaCrown className="w-3 h-3" /> HOST
@@ -192,7 +206,9 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         {/* Settings (Host Only) */}
         {isHost && (
           <div className="mt-4 bg-white/70 p-4 rounded-xl space-y-3 border border-purple-200">
-            <h3 className="text-sm font-semibold text-left text-gray-700">⚙️ Game Settings</h3>
+            <h3 className="text-sm font-semibold text-left text-gray-700">
+              ⚙️ Game Settings
+            </h3>
             <ToggleSwitch
               label="Auto-Advance to Next Round"
               enabled={settings.autoNext}
@@ -225,32 +241,19 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                 : `🚀 Start Game (${participants.length} players)`}
             </button>
           ) : (
-            <p className="text-sm animate-pulse text-gray-600">Waiting for host to start...</p>
+            <p className="text-sm animate-pulse text-gray-600">
+              Waiting for host to start...
+            </p>
           )}
         </div>
+        <button
+          onClick={onExit}
+          className="w-full bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-bold py-3 px-6 rounded-xl transition-transform duration-300 hover:scale-105 shadow-lg"
+        >
+          Exit Game
+        </button>
       </div>
 
-      {/* QR Modal */}
-      {showQrModal && (
-        <div
-          className="fixed inset-0 flex items-center justify-center bg-black/60 z-50"
-          onClick={() => setShowQrModal(false)}
-        >
-          <div
-            className="bg-white p-6 rounded-2xl shadow-lg relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setShowQrModal(false)}
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
-            >
-              ✖
-            </button>
-            <QRCodeSVG value={shareableLink} size={250} level="H" />
-            <p className="text-xs text-gray-600 mt-2 text-center">Scan this QR code to join</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

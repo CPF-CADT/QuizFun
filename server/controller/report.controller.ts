@@ -3,6 +3,7 @@ import { IActivityFeedResponse, ReportRepository } from "../repositories/report.
 import { QuizModel } from "../model/Quiz";
 import { GameSessionModel } from "../model/GameSession";
 import { QuestionReportModel } from '../model/QuestionReport';
+import { ExcelExportService } from '../service/ExcelExportService';
 
 const MIN_REPORTS = 50;
 const REPORT_PERCENTAGE = 0.7; // 70%
@@ -507,6 +508,67 @@ export class ReportController {
     }
   }
 
+  /**
+   * @swagger
+   * /api/reports/quiz/{quizId}/export:
+   *   get:
+   *     summary: Export quiz analytics to Excel
+   *     tags: [Reports]
+   *     parameters:
+   *       - in: path
+   *         name: quizId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The ID of the quiz
+   *     responses:
+   *       200:
+   *         description: Excel file download
+   *         content:
+   *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+   *             schema:
+   *               type: string
+   *               format: binary
+   *       401:
+   *         description: Unauthorized
+   *       404:
+   *         description: Quiz not found or access denied
+   *       500:
+   *         description: Server error
+   */
+  static async exportQuizAnalytics(req: Request, res: Response): Promise<Response> {
+    try {
+      const { quizId } = req.params;
+      const creatorId = req.user?.id;
+      
+      if (!creatorId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const excelBuffer = await ExcelExportService.exportQuizAnalytics(quizId, creatorId);
+
+      // Get quiz info for filename
+      const quiz = await QuizModel.findOne({ _id: quizId, creatorId }).select('title').exec();
+      const quizTitle = quiz?.title || 'Quiz';
+      const sanitizedTitle = quizTitle.replace(/[^a-zA-Z0-9]/g, '_');
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `${sanitizedTitle}_Analytics_${timestamp}.xlsx`;
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', excelBuffer.length);
+
+      return res.send(excelBuffer);
+
+    } catch (error) {
+      console.error("Error exporting quiz analytics:", error);
+      if (error instanceof Error) {
+        return res.status(404).json({ message: error.message });
+      }
+      return res.status(500).json({ message: 'Server error exporting quiz analytics.' });
+    }
+  }
+
 }
 
 
@@ -621,4 +683,6 @@ async function checkAndFlagQuestion(quizId: string, questionId: string) {
   } catch (error) {
     console.error('Error in checkAndFlagQuestion:', error);
   }
+
+  
 }

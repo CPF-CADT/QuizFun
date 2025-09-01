@@ -72,6 +72,18 @@ export interface ResultsPayload {
   }[];
 }
 
+export interface ISessionAnalytics {
+  quizTitle: string;
+  endedAt: string;
+  participants: {
+    userId: string;
+    name: string;
+    profileUrl?: string;
+    score: number;
+    rank: number;
+  }[];
+}
+
 
 export const gameApi = {
 
@@ -109,5 +121,9 @@ export const gameApi = {
   getSessionResults: (sessionId: string, params: { userId?: string; guestName?: string }) => {
     return apiClient.get<ResultsPayload>(`/session/${sessionId}/results`, { params });
   },
+  getSessionAnalytics: (sessionId: string) => {
+    return apiClient.get<ISessionAnalytics>(`/session/${sessionId}/analytics`);
+  },
+
 
 };
