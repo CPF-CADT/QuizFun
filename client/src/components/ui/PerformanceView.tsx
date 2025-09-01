@@ -127,7 +127,7 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({ player, perfor
                 <QuestionReportModal
                     isOpen={isReportModalOpen}
                     onClose={handleCloseReportModal}
-                    quizId={(quizzId)??''}
+                    quizId={(quizzId)??performance.at(0)?.quizId??'no quizzId'}
                     question={reportingQuestion}
                 />
             )}
