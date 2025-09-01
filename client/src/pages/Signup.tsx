@@ -48,7 +48,7 @@ const handleSignup = async () => {
     });
 
     if (res.data?.message) {
-      navigate("/verifycode", { state: { email: formData.email } });
+      navigate("/verify", { state: { email: formData.email } });
     }
   } catch (err: any) {
     console.error("Backend error response:", err.response?.data);
