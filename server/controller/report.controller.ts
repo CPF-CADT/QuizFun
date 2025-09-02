@@ -111,80 +111,81 @@ export class ReportController {
       return res.status(500).json({ message: "Server error generating quiz analytics." });
     }
   }
+/**
+ * @swagger
+ * /api/reports/activity-feed:
+ *   get:
+ *     summary: Get paginated user activity feed (sessions played/hosted)
+ *     tags: [Reports]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: roleFilter
+ *         schema:
+ *           type: string
+ *           enum: [all, host, player]
+ *           default: all
+ *         description: Filter activities by user's role (all, host, or player)
+ *     responses:
+ *       200:
+ *         description: Paginated user activity feed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 activities:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ActivitySession'
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 totalPages:
+ *                   type: integer
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
 
-  /**
-   * @swagger
-   * /api/reports/activity-feed:
-   *   get:
-   *     summary: Get paginated user activity feed (sessions played/hosted)
-   *     tags: [Reports]
-   *     parameters:
-   *       - in: query
-   *         name: page
-   *         schema:
-   *           type: integer
-   *           default: 1
-   *         description: Page number for pagination
-   *       - in: query
-   *         name: limit
-   *         schema:
-   *           type: integer
-   *           default: 10
-   *         description: Number of items per page
-   *     responses:
-   *       200:
-   *         description: Paginated user activity feed
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 activities:
-   *                   type: array
-   *                   items:
-   *                     $ref: '#/components/schemas/ActivitySession'
-   *                 total:
-   *                   type: integer
-   *                 page:
-   *                   type: integer
-   *                 totalPages:
-   *                   type: integer
-   *       401:
-   *         description: Unauthorized
-   *       500:
-   *         description: Server error
-   */
 
   static async getUserActivityFeed(req: Request, res: Response): Promise<Response> {
     try {
-      // 1. Authenticate the user (this part is good)
-      const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
 
-      // 2. Sanitize and validate query parameters
-      let page = parseInt(req.query.page as string, 10);
-      let limit = parseInt(req.query.limit as string, 10);
+        const page = parseInt(req.query.page as string, 10) || 1;
+        const limit = parseInt(req.query.limit as string, 10) || 10;
+        const roleFilter = req.query.roleFilter as string;
 
-      // Set default values and ensure they are positive
-      if (isNaN(page) || page < 1) {
-        page = 1;
-      }
-      if (isNaN(limit) || limit < 1 || limit > 50) { // Added a max limit
-        limit = 5;
-      }
+        const validFilters = ['all', 'host', 'player'];
+        const filter = validFilters.includes(roleFilter) ? roleFilter : 'all';
 
-      const activityFeedData: IActivityFeedResponse = await ReportRepository.fetchUserActivityFeed(userId, page, limit);
+        const activityFeedData: IActivityFeedResponse = await ReportRepository.fetchUserActivityFeed(userId, page, limit, filter );
 
-      // 4. Simply return the data from the repository
-      return res.status(200).json(activityFeedData);
+        return res.status(200).json(activityFeedData);
 
     } catch (error) {
-      console.error("Error fetching user activity feed:", error);
-      return res.status(500).json({ message: "Server error fetching activity feed." });
+        console.error("Error fetching user activity feed:", error);
+        return res.status(500).json({ message: "Server error fetching activity feed." });
     }
-  }
+}
+
 
   /**
  * @swagger

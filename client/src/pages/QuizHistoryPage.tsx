@@ -39,7 +39,7 @@ const QuizHistoryPage: React.FC = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await reportApi.getUserActivityFeed(pageNum, LIMIT);
+            const response = await reportApi.getUserActivityFeed(pageNum, LIMIT,'player');
             
             const playerSessions = response.data.activities.filter(s => s.role === 'player');
             setActivities(playerSessions);
