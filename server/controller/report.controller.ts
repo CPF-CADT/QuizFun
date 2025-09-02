@@ -1,9 +1,10 @@
 import { Request, Response } from "express";
-import { IActivityFeedResponse, ReportRepository } from "../repositories/report.repositories";
+import { IActivityFeedResponse, ILeaderboardResponse, ReportRepository } from "../repositories/report.repositories";
 import { QuizModel } from "../model/Quiz";
 import { GameSessionModel } from "../model/GameSession";
 import { QuestionReportModel } from '../model/QuestionReport';
 import { ExcelExportService } from '../service/ExcelExportService';
+import redisClient from "../config/redis";
 
 const MIN_REPORTS = 50;
 const REPORT_PERCENTAGE = 0.7; // 70%
@@ -111,80 +112,80 @@ export class ReportController {
       return res.status(500).json({ message: "Server error generating quiz analytics." });
     }
   }
-/**
- * @swagger
- * /api/reports/activity-feed:
- *   get:
- *     summary: Get paginated user activity feed (sessions played/hosted)
- *     tags: [Reports]
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *         description: Page number for pagination
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 10
- *         description: Number of items per page
- *       - in: query
- *         name: roleFilter
- *         schema:
- *           type: string
- *           enum: [all, host, player]
- *           default: all
- *         description: Filter activities by user's role (all, host, or player)
- *     responses:
- *       200:
- *         description: Paginated user activity feed
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 activities:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/ActivitySession'
- *                 total:
- *                   type: integer
- *                 page:
- *                   type: integer
- *                 totalPages:
- *                   type: integer
- *       401:
- *         description: Unauthorized
- *       500:
- *         description: Server error
- */
+  /**
+   * @swagger
+   * /api/reports/activity-feed:
+   *   get:
+   *     summary: Get paginated user activity feed (sessions played/hosted)
+   *     tags: [Reports]
+   *     parameters:
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *           default: 1
+   *         description: Page number for pagination
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           default: 10
+   *         description: Number of items per page
+   *       - in: query
+   *         name: roleFilter
+   *         schema:
+   *           type: string
+   *           enum: [all, host, player]
+   *           default: all
+   *         description: Filter activities by user's role (all, host, or player)
+   *     responses:
+   *       200:
+   *         description: Paginated user activity feed
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 activities:
+   *                   type: array
+   *                   items:
+   *                     $ref: '#/components/schemas/ActivitySession'
+   *                 total:
+   *                   type: integer
+   *                 page:
+   *                   type: integer
+   *                 totalPages:
+   *                   type: integer
+   *       401:
+   *         description: Unauthorized
+   *       500:
+   *         description: Server error
+   */
 
 
   static async getUserActivityFeed(req: Request, res: Response): Promise<Response> {
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            return res.status(401).json({ message: "Unauthorized" });
-        }
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
 
-        const page = parseInt(req.query.page as string, 10) || 1;
-        const limit = parseInt(req.query.limit as string, 10) || 10;
-        const roleFilter = req.query.roleFilter as string;
+      const page = parseInt(req.query.page as string, 10) || 1;
+      const limit = parseInt(req.query.limit as string, 10) || 10;
+      const roleFilter = req.query.roleFilter as string;
 
-        const validFilters = ['all', 'host', 'player'];
-        const filter = validFilters.includes(roleFilter) ? roleFilter : 'all';
+      const validFilters = ['all', 'host', 'player'];
+      const filter = validFilters.includes(roleFilter) ? roleFilter : 'all';
 
-        const activityFeedData: IActivityFeedResponse = await ReportRepository.fetchUserActivityFeed(userId, page, limit, filter );
+      const activityFeedData: IActivityFeedResponse = await ReportRepository.fetchUserActivityFeed(userId, page, limit, filter);
 
-        return res.status(200).json(activityFeedData);
+      return res.status(200).json(activityFeedData);
 
     } catch (error) {
-        console.error("Error fetching user activity feed:", error);
-        return res.status(500).json({ message: "Server error fetching activity feed." });
+      console.error("Error fetching user activity feed:", error);
+      return res.status(500).json({ message: "Server error fetching activity feed." });
     }
-}
+  }
 
 
   /**
@@ -541,7 +542,7 @@ export class ReportController {
     try {
       const { quizId } = req.params;
       const creatorId = req.user?.id;
-      
+
       if (!creatorId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
@@ -567,6 +568,63 @@ export class ReportController {
         return res.status(404).json({ message: error.message });
       }
       return res.status(500).json({ message: 'Server error exporting quiz analytics.' });
+    }
+  }
+
+  /**
+ * @swagger
+ * /api/reports/leaderboard:
+ *   get:
+ *     summary: Get the system-wide player leaderboard (cached for 15 mins)
+ *     tags: [Reports]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: The number of top players to retrieve.
+ *     responses:
+ *       200:
+ *         description: An object containing the top players and the current user's rank.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 leaderboard:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/LeaderboardPlayer'
+ *                 userRank:
+ *                   $ref: '#/components/schemas/LeaderboardPlayer'
+ *                   description: The current user's rank. Only present if the user is authenticated and not in the main leaderboard list.
+ *       400:
+ *         description: Invalid limit. Limit must be between 1 and 100.
+ *       500:
+ *         description: Server error
+ *       503:
+ *         description: Cache service is unavailable
+ */
+  static async getLeaderboard(req: Request, res: Response): Promise<Response> {
+    try {
+      const limit = parseInt(req.query.limit as string, 10) || 10;
+      const userId = req.user?.id; // Get the user ID from the authenticated request
+
+      if (limit <= 0 || limit > 100) {
+        return res.status(400).json({ message: "Limit must be between 1 and 100." });
+      }
+      
+      const leaderboardData: ILeaderboardResponse = await ReportRepository.getLeaderboardAndUserRank(limit, userId);
+
+      return res.status(200).json(leaderboardData);
+
+    } catch (error) {
+      console.error("Error fetching leaderboard:", error);
+      if (error instanceof Error && error.message.includes('Redis')) {
+        return res.status(503).json({ message: "Cache service is unavailable." });
+      }
+      return res.status(500).json({ message: "Server error fetching leaderboard." });
     }
   }
 
@@ -685,5 +743,5 @@ async function checkAndFlagQuestion(quizId: string, questionId: string) {
     console.error('Error in checkAndFlagQuestion:', error);
   }
 
-  
+
 }
