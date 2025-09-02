@@ -3,12 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 import type { GameState, GameSettings } from "../../context/GameContext";
 
 const FaCrown: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg
-    {...props}
-    fill="currentColor"
-    viewBox="0 0 20 20"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg {...props} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
     <path d="M10 1L6.6 6.4L1 7.2l4.5 4.4L4.2 18L10 15.2L15.8 18l-1.3-6.4L19 7.2l-5.6-.8L10 1z" />
   </svg>
 );
@@ -23,7 +18,7 @@ const ToggleSwitch: React.FC<{
     <button
       type="button"
       className={`${
-        enabled ? "bg-purple-400" : "bg-gray-300"
+        enabled ? "bg-[rgb(186,85,211)]" : "bg-[rgb(200,200,200)]"
       } relative inline-flex h-5 w-10 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`}
       onClick={() => onChange(!enabled)}
     >
@@ -41,8 +36,9 @@ const ParticleEffect: React.FC = () => (
     {[...Array(6)].map((_, i) => (
       <div
         key={i}
-        className="absolute w-1.5 h-1.5 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full opacity-60 animate-ping"
+        className="absolute w-1.5 h-1.5 rounded-full opacity-60 animate-ping"
         style={{
+          background: "linear-gradient(to right, rgb(186,85,211), rgb(255,105,180))",
           left: `${20 + i * 15}%`,
           top: `${10 + i * 8}%`,
           animationDelay: `${i * 0.5}s`,
@@ -89,6 +85,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   const isHost = me?.role === "host";
   const [isCopied, setIsCopied] = useState(false);
   const [pulseEffect, setPulseEffect] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -116,11 +113,20 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         ))}
       </div>
 
-      <div className="relative bg-gradient-to-br from-purple-100 via-purple-50 to-purple-200 backdrop-blur-md rounded-2xl p-6 shadow-md border border-purple-200 text-center">
+      <div
+        className="relative rounded-2xl p-6 shadow-md border text-center"
+        style={{
+          background: "linear-gradient(to bottom right, rgb(245,230,255), rgb(250,240,255))", // lighter purple
+          borderColor: "rgb(230,200,250)",
+        }}
+      >
         <ParticleEffect />
 
         {/* Title */}
-        <h1 className="text-3xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-500 via-purple-400 to-purple-300">
+        <h1
+          className="text-3xl font-extrabold mb-2 text-transparent bg-clip-text"
+          style={{ backgroundImage: "linear-gradient(to right, rgb(186,85,211), rgb(238,130,238), rgb(221,160,221))" }}
+        >
           🎉 Game Lobby
         </h1>
         <p className="text-gray-700 mb-4 text-sm">
@@ -134,14 +140,18 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               Join with Game PIN:
             </p>
             <p
-              className={`text-4xl font-extrabold tracking-widest text-purple-600 ${
-                pulseEffect ? "scale-110 text-pink-500" : ""
+              className={`text-4xl font-extrabold tracking-widest ${
+                pulseEffect ? "scale-110" : ""
               }`}
+              style={{ color: pulseEffect ? "rgb(255,105,180)" : "rgb(186,85,211)" }}
             >
               {roomId}
             </p>
           </div>
-          <div className="flex justify-center items-center bg-white p-2 rounded-lg shadow-md">
+          <div
+            onClick={() => setShowQrModal(true)}
+            className="flex justify-center items-center bg-white p-2 rounded-lg shadow-md cursor-pointer hover:scale-105 transition"
+          >
             <QRCodeSVG value={shareableLink} size={120} level="H" />
           </div>
         </div>
@@ -161,7 +171,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             />
             <button
               onClick={handleCopy}
-              className="bg-purple-400 text-white font-bold px-3 py-1.5 rounded-lg hover:bg-purple-300 transition-colors w-24 shadow-sm text-xs"
+              className="bg-[rgb(186,85,211)] text-white font-bold px-3 py-1.5 rounded-lg hover:bg-[rgb(221,160,221)] transition-colors w-24 shadow-sm text-xs"
             >
               {isCopied ? "✅ Copied!" : "📋 Copy"}
             </button>
@@ -177,13 +187,14 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             {participants.map((player) => (
               <li
                 key={player.user_id}
-                className="flex items-center justify-between bg-purple-100 p-2 rounded-lg hover:bg-purple-200 transition-colors"
+                className="flex items-center justify-between p-2 rounded-lg transition-colors"
+                style={{ backgroundColor: "rgb(245,230,255)" }}
               >
                 <span className="font-medium text-gray-800">
                   {player.user_name}
                 </span>
                 {player.role === "host" && (
-                  <span className="text-xs font-bold text-purple-600 flex items-center gap-1">
+                  <span className="text-xs font-bold flex items-center gap-1" style={{ color: "rgb(186,85,211)" }}>
                     <FaCrown className="w-3 h-3" /> HOST
                   </span>
                 )}
@@ -201,16 +212,12 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             <ToggleSwitch
               label="Auto-Advance to Next Round"
               enabled={settings.autoNext}
-              onChange={(enabled) =>
-                onSettingsChange({ ...settings, autoNext: enabled })
-              }
+              onChange={(enabled) => onSettingsChange({ ...settings, autoNext: enabled })}
             />
             <ToggleSwitch
               label="Allow Players to Change Answer"
               enabled={settings.allowAnswerChange}
-              onChange={(enabled) =>
-                onSettingsChange({ ...settings, allowAnswerChange: enabled })
-              }
+              onChange={(enabled) => onSettingsChange({ ...settings, allowAnswerChange: enabled })}
             />
           </div>
         )}
@@ -221,7 +228,13 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             <button
               onClick={() => roomId && onStartGame(roomId)}
               disabled={participants.length < 2}
-              className="w-full bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-300 hover:to-emerald-400 disabled:bg-gray-300 disabled:cursor-not-allowed font-bold py-2.5 rounded-lg text-sm shadow-md transition-all hover:scale-[1.02]"
+              className="w-full font-bold py-2.5 rounded-lg text-sm shadow-md transition-all hover:scale-[1.02] disabled:bg-gray-300 disabled:cursor-not-allowed"
+              style={{
+                background: participants.length < 2
+                  ? "rgb(200,200,200)"
+                  : "linear-gradient(to right, rgb(60,179,113), rgb(46,139,87))",
+                color: "white",
+              }}
             >
               {participants.length < 2
                 ? "Waiting for at least 1 player..."
@@ -240,6 +253,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
           Exit Game
         </button>
       </div>
+
     </div>
   );
 };

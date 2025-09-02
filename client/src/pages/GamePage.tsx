@@ -7,7 +7,7 @@ import { Music, MicOff } from 'lucide-react';
 import Cookies from "js-cookie";
 
 import { LobbyView } from '../components/game/LobbyView';
-import { QuestionView } from '../components/game/QuestionView';
+import QuestionView from '../components/game/QuestionView';
 import { ResultsView } from '../components/game/ResultsView';
 import { GameOverView } from '../components/game/GameOverView';
 import { GameResultDetails } from '../components/game/GameResultDetails';
