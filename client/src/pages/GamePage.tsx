@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuizGame, type Participant } from '../context/GameContext';
 import { PerformanceDetailModal } from '../components/PerformanceDetailModal';
-import { SoundManager } from '../components/game/SoundManager';
+import { SoundManager, type SoundEffect, type MusicTrack, unlockAudioContext } from '../components/game/SoundManager';
 import { Music, MicOff } from 'lucide-react';
 import Cookies from "js-cookie";
 
@@ -18,10 +18,8 @@ const GamePage: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
     const {
         gameState,
-        sfxToPlay,
-        musicToPlay,
-        isMusicOn,
-        toggleMusic,
+        // isMusicOn is now handled locally
+        // toggleMusic is now handled locally
         startGame,
         submitAnswer,
         requestNextQuestion,
@@ -31,7 +29,12 @@ const GamePage: React.FC = () => {
         endGame
     } = useQuizGame();
     
+    // --- Local state for music, following the SoloGamePage pattern ---
+    const [isMusicOn, setIsMusicOn] = useState(false);
+    
     const [selectedPlayer, setSelectedPlayer] = useState<PlayerIdentifier | null>(null);
+    const [sfxToPlay, setSfxToPlay] = useState<SoundEffect>(null);
+    const [musicToPlay, setMusicToPlay] = useState<MusicTrack>(null);
     const navigate = useNavigate();
 
     const me = useMemo(() =>
@@ -45,6 +48,34 @@ const GamePage: React.FC = () => {
         }
         return null;
     }, [userSeleted, gameState.currentQuestionIndex]);
+
+    // Sound effect and music logic
+    useEffect(() => {
+        if (isMusicOn) {
+            switch (gameState.gameState) {
+                case 'lobby': setMusicToPlay('lobby'); break;
+                case 'question': setMusicToPlay('in-game'); break;
+                case 'end': setMusicToPlay('game-over'); break;
+                default: setMusicToPlay(null);
+            }
+        } else {
+            setMusicToPlay(null);
+        }
+
+        if (gameState.gameState === 'question') {
+             setSfxToPlay('tick');
+        } else if (gameState.gameState === 'results') {
+            const myResult = gameState.currentQuestion?.results?.find((r: { userId: any; }) => r.userId === gameState.yourUserId);
+            if (myResult) {
+                setSfxToPlay(myResult.isCorrect ? 'correct' : 'incorrect');
+            } else {
+                 setSfxToPlay(null);
+            }
+        } else {
+            setSfxToPlay(null);
+        }
+    }, [gameState.gameState, gameState.currentQuestion, gameState.yourUserId, isMusicOn]);
+
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -65,6 +96,7 @@ const GamePage: React.FC = () => {
             setSelectedPlayer({ guestName: me.user_name });
         }
     };
+    
     const handleLeftGame=() =>{
         Cookies.remove("quizSessionId");
         Cookies.remove("quizRoomId");
@@ -72,6 +104,17 @@ const GamePage: React.FC = () => {
         Cookies.remove("quizUserName");
         navigate("/dashboard");
     }
+
+    const handleToggleMusic = async () => {
+        await unlockAudioContext();
+        setIsMusicOn(prev => !prev);
+    }
+
+    const handleStartGame = async (roomId: number) => {
+        await unlockAudioContext();
+        setIsMusicOn(true);
+        startGame(roomId);
+    };
 
     if (!gameState || !gameState.sessionId) {
         return (
@@ -98,7 +141,7 @@ const GamePage: React.FC = () => {
 
         switch (gameState.gameState) {
             case 'lobby':
-                return <LobbyView gameState={gameState} onStartGame={startGame} onSettingsChange={updateSettings} onExit={endGame} />;
+                return <LobbyView gameState={gameState} onStartGame={handleStartGame} onSettingsChange={updateSettings} onExit={endGame} />;
             case 'question':
                 return <QuestionView
                     gameState={gameState}
@@ -134,7 +177,7 @@ const GamePage: React.FC = () => {
                 {/* --- Music Toggle Button --- */}
                 <div className="absolute top-4 right-4 z-50">
                     <button
-                        onClick={toggleMusic}
+                        onClick={handleToggleMusic}
                         className="p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
                         aria-label={isMusicOn ? "Turn music off" : "Turn music on"}
                     >
@@ -158,3 +201,4 @@ const GamePage: React.FC = () => {
 };
 
 export default GamePage;
+

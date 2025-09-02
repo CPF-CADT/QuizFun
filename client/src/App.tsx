@@ -32,7 +32,7 @@ import TeamManagementPage from './pages/TeamManagementPage';
 import TeamQuizResultPage from './pages/TeamQuizResultPage';
 import TeamSessionResultPage from './pages/TeamSessionResultPage';
 import JoinTeamPage from "./pages/JoinTeamPage";
-import QuizHistory from "./components/quizz/QuizHistory";
+import QuizHistoryPage from "./pages/QuizHistoryPage"; 
 
 const PrivateRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -86,7 +86,7 @@ function App() {
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/result/:sessionId" element={<ResultPage />} />
-        <Route path="/my-history" element={<QuizHistory />} />
+        <Route path="/my-history" element={<QuizHistoryPage />} />
         
         <Route path="/teams" element={<TeamDashboardPage />} />
         <Route path="/teams/:teamId" element={<TeamManagementPage />} />

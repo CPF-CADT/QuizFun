@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as Tone from 'tone';
-import lobbySound from '../../../public/sound/lobby.mp3'
-import inGameSound from '../../../public/sound/in-game.mp3'
-import correctSound from '../../../public/sound/correct.mp3'
-import incorrrectSound from '../../../public/sound/incorrect.mp3'
-import gameOverSound from '../../../public/sound/game-over.mp3'
+import lobbySound from '../../assets/sound/lobby.mp3'
+import inGameSound from '../../assets/sound/in-game.mp3'
+import correctSound from '../../assets/sound/correct.mp3'
+import incorrrectSound from '../../assets/sound/incorrect.mp3'
+import gameOverSound from '../../assets/sound/game-over.mp3'
 
 
 // --- TYPE DEFINITIONS ---
