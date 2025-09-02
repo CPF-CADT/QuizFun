@@ -76,8 +76,8 @@ export const reportApi = {
         return apiClient.get(`/reports/quiz/${quizId}`);
     },
 
-    getUserActivityFeed: (page: number = 1, limit: number = 5): Promise<AxiosResponse<IActivityFeedResponse>> => {
-        return apiClient.get<IActivityFeedResponse>(`/reports/activity-feed?page=${page}&limit=${limit}`);
+    getUserActivityFeed: (page: number = 1, limit: number = 10, roleFilter: 'all' | 'host' | 'player' = 'all'): Promise<AxiosResponse<IActivityFeedResponse>> => {
+        return apiClient.get<IActivityFeedResponse>(`/reports/activity-feed?page=${page}&limit=${limit}&roleFilter=${roleFilter}`);
     },
     
     getQuizFeedback: (quizId: string, page: number = 1, limit: number = 5): Promise<AxiosResponse<IFeedbackResponse>> => {

@@ -130,157 +130,137 @@ export class ReportRepository {
         };
     }
 
-    static async fetchUserActivityFeed(userId: string, page: number, limit: number): Promise<IActivityFeedResponse> {
-        const userObjectId = new Types.ObjectId(userId);
-        const skip = (page - 1) * limit;
+    static async fetchUserActivityFeed(userId: string, page: number, limit: number, roleFilter:string): Promise<IActivityFeedResponse> {
+    const userObjectId = new Types.ObjectId(userId);
+    const skip = (page - 1) * limit;
 
-        const [sessions, total] = await Promise.all([
-            GameSessionModel.aggregate([
-                // 1. Match completed sessions for the user
-                {
-                    $match: {
-                        status: "completed",
-                        $or: [
-                            // Always include if user is a participant
-                            { "results.userId": userObjectId },
+    // --- DYNAMIC MATCH QUERY ---
+    const matchQuery: any = {
+        status: "completed",
+    };
 
-                            {
-                                $and: [
-                                    { hostId: userObjectId },
-                                    { mode: { $ne: "solo" } }
-                                ]
+    const playerCondition = { "results.userId": userObjectId };
+    const hostCondition = { hostId: userObjectId, mode: { $ne: "solo" } };
+
+    if (roleFilter === 'player') {
+        matchQuery.$or = [playerCondition];
+    } else if (roleFilter === 'host') {
+        matchQuery.$or = [hostCondition];
+    } else { // 'all' is the default
+        matchQuery.$or = [playerCondition, hostCondition];
+    }
+    // --- END DYNAMIC MATCH QUERY ---
+
+    const [sessions, total] = await Promise.all([
+        GameSessionModel.aggregate([
+            { $match: matchQuery },
+            { $sort: { endedAt: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+            { $unwind: "$results" },
+            {
+                $lookup: {
+                    from: "gamehistories",
+                    let: { sessionId: "$_id", participantId: "$results.userId" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ["$gameSessionId", "$$sessionId"] },
+                                        { $eq: ["$userId", "$$participantId"] },
+                                        { $eq: ["$isUltimatelyCorrect", true] }
+                                    ]
+                                }
                             }
-                        ]
-                    }
-                },
-                // 2. Sort by most recent and paginate
-                { $sort: { endedAt: -1 } },
-                { $skip: skip },
-                { $limit: limit },
-
-                // 3. Unwind results to process each participant
-                { $unwind: "$results" },
-
-                // 4. Lookup correct answer count for each participant
-                {
-                    $lookup: {
-                        from: "gamehistories",
-                        let: { sessionId: "$_id", participantId: "$results.userId" },
-                        pipeline: [
-                            {
-                                $match: {
-                                    $expr: {
-                                        $and: [
-                                            { $eq: ["$gameSessionId", "$$sessionId"] },
-                                            { $eq: ["$userId", "$$participantId"] },
-                                            { $eq: ["$isUltimatelyCorrect", true] }
-                                        ]
+                        },
+                        { $count: "count" }
+                    ],
+                    as: "correctAnswersLookup"
+                }
+            },
+            {
+                $addFields: {
+                    "results.correctAnswers": { $ifNull: [{ $first: "$correctAnswersLookup.count" }, 0] }
+                }
+            },
+            {
+                $group: {
+                    _id: "$_id",
+                    hostId: { $first: "$hostId" },
+                    quizId: { $first: "$quizId" },
+                    endedAt: { $first: "$endedAt" },
+                    results: { $push: "$results" }
+                }
+            },
+            { $sort: { endedAt: -1 } },
+            {
+                $lookup: {
+                    from: "quizzes",
+                    localField: "quizId",
+                    foreignField: "_id",
+                    as: "quiz"
+                }
+            },
+            { $unwind: "$quiz" },
+            {
+                $addFields: {
+                    totalQuestions: { $size: "$quiz.questions" }
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    quizTitle: "$quiz.title",
+                    quizzId: "$quiz._id",
+                    endedAt: 1,
+                    role: { $cond: { if: { $eq: ["$hostId", userObjectId] }, then: "host", else: "player" } },
+                    playerCount: { $size: "$results" },
+                    averageScore: {
+                        $cond: {
+                            if: { $and: [{ $gt: ["$totalQuestions", 0] }, { $gt: [{ $size: "$results" }, 0] }] },
+                            then: {
+                                $avg: {
+                                    $map: {
+                                        input: "$results",
+                                        as: "r",
+                                        in: { $multiply: [{ $divide: ["$$r.correctAnswers", "$totalQuestions"] }, 100] }
                                     }
                                 }
                             },
-                            { $count: "count" }
-                        ],
-                        as: "correctAnswersLookup"
-                    }
-                },
-
-                // 5. Add correct answer count to results
-                {
-                    $addFields: {
-                        "results.correctAnswers": {
-                            $ifNull: [{ $first: "$correctAnswersLookup.count" }, 0]
+                            else: 0
                         }
-                    }
-                },
-
-                // 6. Group participants back into session documents
-                {
-                    $group: {
-                        _id: "$_id",
-                        hostId: { $first: "$hostId" },
-                        quizId: { $first: "$quizId" },
-                        endedAt: { $first: "$endedAt" },
-                        results: { $push: "$results" }
-                    }
-                },
-
-                // 7. Re-sort after grouping to guarantee chronological order
-                { $sort: { endedAt: -1 } },
-
-                // 8. Lookup quiz details
-                {
-                    $lookup: {
-                        from: "quizzes",
-                        localField: "quizId",
-                        foreignField: "_id",
-                        as: "quiz"
-                    }
-                },
-                { $unwind: "$quiz" },
-                {
-                    $addFields: {
-                        totalQuestions: { $size: "$quiz.questions" }
-                    }
-                },
-
-                // 9. Project the final shape for the activity feed
-                {
-                    $project: {
-                        _id: 1,
-                        quizTitle: "$quiz.title",
-                        quizzId: "$quiz._id",
-                        endedAt: 1,
-                        role: { $cond: { if: { $eq: ["$hostId", userObjectId] }, then: "host", else: "player" } },
-                        playerCount: { $size: "$results" },
-                        averageScore: {
-                            $cond: {
-                                if: { $and: [{ $gt: ["$totalQuestions", 0] }, { $gt: [{ $size: "$results" }, 0] }] },
-                                then: {
-                                    $avg: {
-                                        $map: {
-                                            input: "$results",
-                                            as: "r",
-                                            in: { $multiply: [{ $divide: ["$$r.correctAnswers", "$totalQuestions"] }, 100] }
-                                        }
-                                    }
-                                },
-                                else: 0
-                            }
-                        },
-                        playerResult: {
-                            $first: {
-                                $map: {
-                                    input: { $filter: { input: "$results", as: "r", cond: { $eq: ["$$r.userId", userObjectId] } } },
-                                    as: "self",
-                                    in: {
-                                        finalScore: "$$self.finalScore",
-                                        finalRank: "$$self.finalRank"
-                                    }
+                    },
+                    playerResult: {
+                        $first: {
+                            $map: {
+                                input: { $filter: { input: "$results", as: "r", cond: { $eq: ["$$r.userId", userObjectId] } } },
+                                as: "self",
+                                in: {
+                                    finalScore: "$$self.finalScore",
+                                    finalRank: "$$self.finalRank"
                                 }
                             }
                         }
                     }
                 }
-            ]),
-            // Get the total count of matching documents for pagination
-            GameSessionModel.countDocuments({
-                status: "completed",
-                $or: [{ hostId: userObjectId }, { "results.userId": userObjectId }]
-            })
-        ]);
+            }
+        ]),
+        // Count documents using the same dynamic query for accurate pagination
+        GameSessionModel.countDocuments(matchQuery)
+    ]);
 
-        // Construct the full response object with all pagination details
-        const totalPages = Math.ceil(total / limit);
-        return {
-            activities: sessions,
-            total,
-            page,
-            limit,
-            totalPages,
-            hasNext: page < totalPages,
-            hasPrev: page > 1
-        };
-    }
+    const totalPages = Math.ceil(total / limit);
+    return {
+        activities: sessions,
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+    };
+}
     static async fetchQuizFeedback(
         quizId: string,
         page: number,
