@@ -569,6 +569,62 @@ class ReportController {
             }
         });
     }
+    /**
+   * @swagger
+   * /api/reports/leaderboard:
+   *   get:
+   *     summary: Get the system-wide player leaderboard (cached for 15 mins)
+   *     tags: [Reports]
+   *     parameters:
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           default: 10
+   *         description: The number of top players to retrieve.
+   *     responses:
+   *       200:
+   *         description: An object containing the top players and the current user's rank.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 leaderboard:
+   *                   type: array
+   *                   items:
+   *                     $ref: '#/components/schemas/LeaderboardPlayer'
+   *                 userRank:
+   *                   $ref: '#/components/schemas/LeaderboardPlayer'
+   *                   description: The current user's rank. Only present if the user is authenticated and not in the main leaderboard list.
+   *       400:
+   *         description: Invalid limit. Limit must be between 1 and 100.
+   *       500:
+   *         description: Server error
+   *       503:
+   *         description: Cache service is unavailable
+   */
+    static getLeaderboard(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const limit = parseInt(req.query.limit, 10) || 10;
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id; // Get the user ID from the authenticated request
+                if (limit <= 0 || limit > 100) {
+                    return res.status(400).json({ message: "Limit must be between 1 and 100." });
+                }
+                const leaderboardData = yield report_repositories_1.ReportRepository.getLeaderboardAndUserRank(limit, userId);
+                return res.status(200).json(leaderboardData);
+            }
+            catch (error) {
+                console.error("Error fetching leaderboard:", error);
+                if (error instanceof Error && error.message.includes('Redis')) {
+                    return res.status(503).json({ message: "Cache service is unavailable." });
+                }
+                return res.status(500).json({ message: "Server error fetching leaderboard." });
+            }
+        });
+    }
 }
 exports.ReportController = ReportController;
 /**

@@ -1,5 +1,3 @@
-// FILE: src/service/reportApi.ts
-
 import { apiClient } from './api';
 import type { AxiosResponse } from 'axios';
 
@@ -67,6 +65,22 @@ export interface IActivityFeedResponse {
     hasPrev: boolean;
 }
 
+export interface ILeaderboardPlayer {
+    _id: string | object;
+    rank: number;
+    isGuest: boolean;
+    name: string;
+    profileUrl?: string;
+    averageScore: number;
+    totalGamesPlayed: number;
+    accuracy: number;
+}
+
+export interface ILeaderboardResponse {
+    leaderboard: ILeaderboardPlayer[];
+    userRank?: ILeaderboardPlayer | null; 
+}
+
 export const reportApi = {
     getMyQuizzesForReport: (): Promise<AxiosResponse<IReportQuizListItem[]>> => {
         return apiClient.get('/reports/my-quizzes');
@@ -82,5 +96,9 @@ export const reportApi = {
     
     getQuizFeedback: (quizId: string, page: number = 1, limit: number = 5): Promise<AxiosResponse<IFeedbackResponse>> => {
         return apiClient.get(`/reports/quiz/${quizId}/feedback?page=${page}&limit=${limit}`);
+    },
+
+    getLeaderboard: (limit: number = 10): Promise<AxiosResponse<ILeaderboardResponse>> => {
+        return apiClient.get<ILeaderboardResponse>(`/reports/leaderboard?limit=${limit}`);
     },
 };

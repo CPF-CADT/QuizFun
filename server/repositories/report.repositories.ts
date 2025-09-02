@@ -1,8 +1,9 @@
-import { Types } from 'mongoose';
+import { PipelineStage, Types } from 'mongoose';
 import { GameSessionModel } from '../model/GameSession';
 import { GameHistoryModel } from '../model/GameHistory';
 import { QuizModel } from '../model/Quiz';
 import { IReportQuizListItem, IQuizAnalytics, IFeedback, IFeedbackResponse } from '../dto/ReportDTOs';
+import redisClient from '../config/redis';
 export interface IActivitySession {
     _id: Types.ObjectId;
     quizTitle: string;
@@ -27,8 +28,123 @@ export interface IActivityFeedResponse {
     hasPrev: boolean;
 }
 
+export interface ILeaderboardPlayer {
+    _id: Types.ObjectId | string;
+    rank: number;
+    isGuest: boolean;
+    name: string;
+    profileUrl?: string;
+    averageScore: number;
+    totalGamesPlayed: number;
+    accuracy: number; // <-- Added this new field
+}
+
+export interface ILeaderboardResponse {
+    leaderboard: ILeaderboardPlayer[];
+    userRank?: ILeaderboardPlayer | null; 
+}
 export class ReportRepository {
 
+
+    static async getLeaderboardAndUserRank(limit: number, userId?: string): Promise<ILeaderboardResponse> {
+        try {
+            const aggregationPipeline: PipelineStage[] = [
+                // 1. Filter for completed games
+                { $match: { status: 'completed', 'results.0': { $exists: true } } },
+
+                // 2. Unwind participants to process each one
+                { $unwind: '$results' },
+
+                // 3. Group players: registered users by ID, guests by nickname
+                {
+                    $group: {
+                        _id: {
+                            id: { $ifNull: ['$results.userId', '$results.nickname'] },
+                            type: { $cond: { if: '$results.userId', then: 'user', else: 'guest' } }
+                        },
+                        name: { $first: '$results.nickname' },
+                        userId: { $first: '$results.userId' },
+                        totalScore: { $sum: '$results.finalScore' },
+                        totalGamesPlayed: { $sum: 1 },
+                    }
+                },
+
+                // 4. Calculate the average score for each player
+                {
+                    $addFields: {
+                        averageScore: {
+                            $cond: {
+                                if: { $gt: ['$totalGamesPlayed', 0] },
+                                then: { $round: [{ $divide: ['$totalScore', '$totalGamesPlayed'] }, 0] },
+                                else: 0
+                            }
+                        }
+                    }
+                },
+
+                // 5. Sort by the 'averageScore' to ensure correct order
+                { $sort: { averageScore: -1, totalGamesPlayed: -1 } },
+
+                // 6. Group all players to create a ranked list
+                {
+                    $group: {
+                        _id: null,
+                        players: { $push: '$$ROOT' }
+                    }
+                },
+
+                // 7. Unwind the list to assign a rank based on the sorted order
+                {
+                    $unwind: {
+                        path: '$players',
+                        includeArrayIndex: 'rank'
+                    }
+                },
+                
+                // 8. Lookup user data for profile pictures
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'players.userId',
+                        foreignField: '_id',
+                        as: 'userData'
+                    }
+                },
+                
+                // 9. Shape the final output
+                {
+                    $project: {
+                        _id: '$players._id.id',
+                        rank: { $add: ['$rank', 1] }, // Make rank 1-based
+                        name: { $ifNull: [{ $first: '$userData.name' }, '$players.name'] },
+                        profileUrl: { $ifNull: [{ $first: '$userData.profileUrl' }, null] },
+                        averageScore: '$players.averageScore',
+                        totalGamesPlayed: '$players.totalGamesPlayed',
+                        isGuest: { $eq: ['$players._id.type', 'guest'] },
+                    }
+                }
+            ];
+
+            const allPlayersRanked: ILeaderboardPlayer[] = await GameSessionModel.aggregate(aggregationPipeline);
+
+            const leaderboard = allPlayersRanked.slice(0, limit);
+            let userRank: ILeaderboardPlayer | null = null;
+
+            // Find the specific user's rank only if a userId was provided
+            if (userId) {
+                const userIdString = new Types.ObjectId(userId).toString();
+                userRank = allPlayersRanked.find(player => player._id.toString() === userIdString) || null;
+            }
+
+            const response: ILeaderboardResponse = { leaderboard, userRank };
+            
+            return response;
+        } catch (error) {
+            console.error("Error fetching leaderboard:", error);
+            throw error; // Re-throw to be caught by the controller
+        }
+    }
+      
     static async findQuizzesByCreator(creatorId: string): Promise<IReportQuizListItem[]> {
         const results = await QuizModel.find({ creatorId: new Types.ObjectId(creatorId) })
             .select('title dificulty createdAt')

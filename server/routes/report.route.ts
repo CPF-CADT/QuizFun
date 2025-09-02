@@ -11,3 +11,4 @@ reportRouter.get("/activity-feed", authenticateToken,ReportController.getUserAct
 reportRouter.get("/quiz/:quizId/feedback",ReportController.getQuizFeedback);
 reportRouter.post('/question', optionalAuthMiddleware, ReportController.submitQuestionReport);
 reportRouter.get("/quiz/:quizId/export", authenticateToken, ReportController.exportQuizAnalytics);
+reportRouter.get('/leaderboard',optionalAuthMiddleware, ReportController.getLeaderboard);
