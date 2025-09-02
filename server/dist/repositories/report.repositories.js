@@ -114,35 +114,33 @@ class ReportRepository {
             };
         });
     }
-    static fetchUserActivityFeed(userId, page, limit) {
+    static fetchUserActivityFeed(userId, page, limit, roleFilter) {
         return __awaiter(this, void 0, void 0, function* () {
             const userObjectId = new mongoose_1.Types.ObjectId(userId);
             const skip = (page - 1) * limit;
+            // --- DYNAMIC MATCH QUERY ---
+            const matchQuery = {
+                status: "completed",
+            };
+            const playerCondition = { "results.userId": userObjectId };
+            const hostCondition = { hostId: userObjectId, mode: { $ne: "solo" } };
+            if (roleFilter === 'player') {
+                matchQuery.$or = [playerCondition];
+            }
+            else if (roleFilter === 'host') {
+                matchQuery.$or = [hostCondition];
+            }
+            else { // 'all' is the default
+                matchQuery.$or = [playerCondition, hostCondition];
+            }
+            // --- END DYNAMIC MATCH QUERY ---
             const [sessions, total] = yield Promise.all([
                 GameSession_1.GameSessionModel.aggregate([
-                    // 1. Match completed sessions for the user
-                    {
-                        $match: {
-                            status: "completed",
-                            $or: [
-                                // Always include if user is a participant
-                                { "results.userId": userObjectId },
-                                {
-                                    $and: [
-                                        { hostId: userObjectId },
-                                        { mode: { $ne: "solo" } }
-                                    ]
-                                }
-                            ]
-                        }
-                    },
-                    // 2. Sort by most recent and paginate
+                    { $match: matchQuery },
                     { $sort: { endedAt: -1 } },
                     { $skip: skip },
                     { $limit: limit },
-                    // 3. Unwind results to process each participant
                     { $unwind: "$results" },
-                    // 4. Lookup correct answer count for each participant
                     {
                         $lookup: {
                             from: "gamehistories",
@@ -164,15 +162,11 @@ class ReportRepository {
                             as: "correctAnswersLookup"
                         }
                     },
-                    // 5. Add correct answer count to results
                     {
                         $addFields: {
-                            "results.correctAnswers": {
-                                $ifNull: [{ $first: "$correctAnswersLookup.count" }, 0]
-                            }
+                            "results.correctAnswers": { $ifNull: [{ $first: "$correctAnswersLookup.count" }, 0] }
                         }
                     },
-                    // 6. Group participants back into session documents
                     {
                         $group: {
                             _id: "$_id",
@@ -182,9 +176,7 @@ class ReportRepository {
                             results: { $push: "$results" }
                         }
                     },
-                    // 7. Re-sort after grouping to guarantee chronological order
                     { $sort: { endedAt: -1 } },
-                    // 8. Lookup quiz details
                     {
                         $lookup: {
                             from: "quizzes",
@@ -199,7 +191,6 @@ class ReportRepository {
                             totalQuestions: { $size: "$quiz.questions" }
                         }
                     },
-                    // 9. Project the final shape for the activity feed
                     {
                         $project: {
                             _id: 1,
@@ -238,13 +229,9 @@ class ReportRepository {
                         }
                     }
                 ]),
-                // Get the total count of matching documents for pagination
-                GameSession_1.GameSessionModel.countDocuments({
-                    status: "completed",
-                    $or: [{ hostId: userObjectId }, { "results.userId": userObjectId }]
-                })
+                // Count documents using the same dynamic query for accurate pagination
+                GameSession_1.GameSessionModel.countDocuments(matchQuery)
             ]);
-            // Construct the full response object with all pagination details
             const totalPages = Math.ceil(total / limit);
             return {
                 activities: sessions,

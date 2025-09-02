@@ -145,6 +145,13 @@ class ReportController {
      *           type: integer
      *           default: 10
      *         description: Number of items per page
+     *       - in: query
+     *         name: roleFilter
+     *         schema:
+     *           type: string
+     *           enum: [all, host, player]
+     *           default: all
+     *         description: Filter activities by user's role (all, host, or player)
      *     responses:
      *       200:
      *         description: Paginated user activity feed
@@ -172,23 +179,16 @@ class ReportController {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
             try {
-                // 1. Authenticate the user (this part is good)
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
                 if (!userId) {
                     return res.status(401).json({ message: "Unauthorized" });
                 }
-                // 2. Sanitize and validate query parameters
-                let page = parseInt(req.query.page, 10);
-                let limit = parseInt(req.query.limit, 10);
-                // Set default values and ensure they are positive
-                if (isNaN(page) || page < 1) {
-                    page = 1;
-                }
-                if (isNaN(limit) || limit < 1 || limit > 50) { // Added a max limit
-                    limit = 5;
-                }
-                const activityFeedData = yield report_repositories_1.ReportRepository.fetchUserActivityFeed(userId, page, limit);
-                // 4. Simply return the data from the repository
+                const page = parseInt(req.query.page, 10) || 1;
+                const limit = parseInt(req.query.limit, 10) || 10;
+                const roleFilter = req.query.roleFilter;
+                const validFilters = ['all', 'host', 'player'];
+                const filter = validFilters.includes(roleFilter) ? roleFilter : 'all';
+                const activityFeedData = yield report_repositories_1.ReportRepository.fetchUserActivityFeed(userId, page, limit, filter);
                 return res.status(200).json(activityFeedData);
             }
             catch (error) {
