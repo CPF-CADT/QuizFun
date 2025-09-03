@@ -12,7 +12,7 @@ import {
     Play, 
     BarChart3, 
     Calendar,
-    Menu
+    Menu,
 } from 'lucide-react';
 import Sidebar from '../components/dashboard/Sidebar';
 import { reportApi, type IActivitySession } from '../service/reportApi';
@@ -189,13 +189,15 @@ const QuizHistoryPage: React.FC = () => {
                         >
                             <Menu className="w-6 h-6" />
                         </button>
-                        <h1 className="text-xl font-bold text-slate-800 ml-4">My Quiz History</h1>
+                        <h1 className="text-xl font-bold font-black bg-gradient-to-r from-gray-900 via-indigo-800 to-purple-800 bg-clip-text text-transparent ml-4">My Quiz History</h1>
                     </div>
 
                     {/* Desktop Header */}
+                    <div className="text-center mb-10 ">
                     <div className="hidden lg:block">
-                        <h1 className="text-3xl font-bold text-slate-900 mb-1">My Quiz History</h1>
-                        <p className="text-slate-600">Review your performance and track your progress over time.</p>
+                        <h1 className="text:4xl lg:text-5xl font-black bg-gradient-to-r from-gray-900 via-indigo-800 to-purple-800 bg-clip-text text-transparent mb-4 mt-5">My Quiz History</h1>
+                        <p className="text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed">Review your performance and track your progress over time.</p>
+                    </div>
                     </div>
                 </header>
 
