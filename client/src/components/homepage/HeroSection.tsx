@@ -1,12 +1,12 @@
 import React from 'react';
-import { FaPlus, FaHistory, FaChartLine, FaStar, FaUsers, FaTrophy, FaGamepad } from 'react-icons/fa';
+import { FaChartLine, FaStar, FaUsers, FaTrophy, FaGamepad,FaWpexplorer } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 
 interface HeroSectionProps {
   handleProtectedRoute: (path: string) => void;
 }
 
-const HeroSection: React.FC<HeroSectionProps> = ({ handleProtectedRoute }) => {
+const HeroSection: React.FC<HeroSectionProps> = () => {
   return (
     <div
       className="flex flex-col items-center justify-center text-center px-4 py-20 bg-cover bg-center bg-no-repeat w-full relative min-h-screen"
@@ -40,22 +40,17 @@ const HeroSection: React.FC<HeroSectionProps> = ({ handleProtectedRoute }) => {
           smart adaptive learning, and instant progress tracking that students absolutely love!
         </p>
 
-        <div className="flex flex-wrap justify-center gap-4 mb-12">
-          <button onClick={() => handleProtectedRoute("/create-quiz")}
-            className="group flex items-center gap-2 bg-gradient-to-r from-emerald-400 to-teal-500 text-white font-bold px-8 py-4 rounded-xl hover:from-emerald-500 hover:to-teal-600 transition-all transform hover:scale-110 shadow-2xl border border-emerald-300">
-            <FaPlus className="group-hover:rotate-90 transition-transform" /> Create Quiz
-          </button>
-          <Link to="/history" className="group flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold px-8 py-4 rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all transform hover:scale-110 shadow-2xl border border-indigo-400">
-              <FaHistory className="group-hover:rotate-12 transition-transform" /> Check History
+        <div className="flex flex-wrap justify-center gap-4 mb-12">   
+          <Link to="/Explore" className="group flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold px-8 py-4 rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all transform hover:scale-110 shadow-2xl border border-indigo-400">
+              <FaWpexplorer className="group-hover:rotate-12 transition-transform w-6 h-6" /> Explore
           </Link>
-          <button onClick={() => handleProtectedRoute("/Dashboard")}
-            className="group flex items-center gap-2 bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold px-8 py-4 rounded-xl hover:from-pink-600 hover:to-rose-700 transition-all transform hover:scale-110 shadow-2xl border border-pink-400">
+          <Link to="/Report" className="group flex items-center gap-2 bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold px-10 py-4 rounded-xl hover:from-pink-600 hover:to-rose-700 transition-all transform hover:scale-110 shadow-2xl border border-pink-400">
             <FaChartLine className="group-hover:bounce transition-transform" /> Reports
-          </button>
-          <button className="group bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold px-8 py-4 rounded-xl hover:from-cyan-600 hover:to-blue-700 transition-all transform hover:scale-110 shadow-2xl border border-cyan-400"
-            onClick={() => (window.location.href = "/join")}>
+          </Link>
+          
+          <Link to="/join" className="group bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold px-8 py-4 rounded-xl hover:from-cyan-600 hover:to-blue-700 transition-all transform hover:scale-110 shadow-2xl border border-cyan-400">
             <FaGamepad className="inline mr-2 group-hover:rotate-12 transition-transform" /> Enter Code
-          </button>
+          </Link>
         </div>
 
         <div className="flex flex-wrap justify-center items-center gap-8 text-center">
