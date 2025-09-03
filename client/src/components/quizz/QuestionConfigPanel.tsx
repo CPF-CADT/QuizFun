@@ -18,7 +18,7 @@ export const QuestionConfigPanel: React.FC<QuestionConfigPanelProps> = ({
   timeLimit, onTimeLimitChange
 }) => {
   return (
-    <div className="w-80 flex-shrink-0 ml-8 p-6 bg-white/90 backdrop-blur-lg rounded-2xl shadow-lg border border-white/40 self-start mt-10">
+    <div className="p-6 bg-white/90 backdrop-blur-lg rounded-2xl shadow-lg border border-white/40 lg:sticky lg:top-8">
       <h3 className="text-lg font-bold text-gray-800 mb-6">Question Settings</h3>
       <div className="space-y-6">
         <div>
