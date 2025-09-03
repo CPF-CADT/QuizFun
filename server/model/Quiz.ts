@@ -32,8 +32,6 @@ export interface IQuiz extends Document {
 }
 
 
-
-
 export const OptionSchema = new Schema<IOption>({
     text: { type: String, required: true },
     isCorrect: { type: Boolean, required: true },
@@ -43,7 +41,7 @@ export const OptionSchema = new Schema<IOption>({
 export const QuestionSchema = new Schema<IQuestion>({
     questionText: { type: String, required: true },
     imageUrl: {type:String,required:false},
-    point: { type: Number, required: true, min: 0 },
+    point: { type: Number, required: true, min: 1,max:10 },
     timeLimit: { type: Number, required: true, min: 5 },
     options: {
         type: [OptionSchema],

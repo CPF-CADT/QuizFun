@@ -9,7 +9,7 @@ exports.OptionSchema = new mongoose_1.Schema({
 exports.QuestionSchema = new mongoose_1.Schema({
     questionText: { type: String, required: true },
     imageUrl: { type: String, required: false },
-    point: { type: Number, required: true, min: 0 },
+    point: { type: Number, required: true, min: 1, max: 10 },
     timeLimit: { type: Number, required: true, min: 5 },
     options: {
         type: [exports.OptionSchema],

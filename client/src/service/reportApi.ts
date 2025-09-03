@@ -66,19 +66,21 @@ export interface IActivityFeedResponse {
 }
 
 export interface ILeaderboardPlayer {
-    _id: string | object;
-    rank: number;
-    isGuest: boolean;
-    name: string;
-    profileUrl?: string;
-    averageScore: number;
-    totalGamesPlayed: number;
-    accuracy: number;
+  _id: string | object;   
+  rank: number;                   
+  isGuest: boolean;              
+  name: string;                   
+  profileUrl?: string;
+
+  totalGamesPlayed: number;      
+  totalScore: number;            
+  averageScore: number;           
+  averageAccuracy: number;     
 }
 
 export interface ILeaderboardResponse {
-    leaderboard: ILeaderboardPlayer[];
-    userRank?: ILeaderboardPlayer | null; 
+  leaderboard: ILeaderboardPlayer[];
+  userRank?: ILeaderboardPlayer | null;
 }
 
 export const reportApi = {
