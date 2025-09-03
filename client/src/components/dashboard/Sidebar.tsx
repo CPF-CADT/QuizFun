@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
     Activity, BookOpen, BarChart3, Settings, Compass, X, Star,
-    Users
+    Users, Layers,History
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -15,10 +15,10 @@ interface SidebarProps {
 }
 
 const sidebarItems = [
-    { name: 'Dashboard', icon: Activity, section: 'dashboard', color: 'from-violet-500 to-purple-600' },
-    { name: 'My Quizz', icon: Activity, section: 'my-quizz', color: 'from-green-500 to-green-300' },
-    { name: 'My History', icon: Activity, section: 'my-history', color: 'from-blue-500 to-blue-300' },
-    { name: 'Teams', icon: Users, section: 'teams', color: 'from-indigo-500 to-blue-600' },
+    { name: 'Dashboard', icon: Activity, section: 'dashboard', color: 'from-violet-500 to-purple-400' },
+    { name: 'My Quizz', icon: Layers, section: 'my-quizz', color: 'from-green-500 to-green-300' },
+    { name: 'My History', icon: History, section: 'my-history', color: 'from-rose-500 to-pink-400' },
+    { name: 'Teams', icon: Users, section: 'teams', color: 'from-cyan-500 to-teal-400' },
     { name: 'Explore', icon: Compass, section: 'explore', color: 'from-blue-500 to-cyan-500' },
     { name: 'My Library', icon: BookOpen, section: 'library', color: 'from-emerald-500 to-teal-600' },
     { name: 'Report', icon: BarChart3, section: 'report', color: 'from-orange-500 to-red-500' },
