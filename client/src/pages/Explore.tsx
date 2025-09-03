@@ -166,7 +166,21 @@ const Explore: React.FC = () => {
         return () => { if (sentinelRef.current) observer.unobserve(sentinelRef.current); };
     }, [hasNextPage, loadingMore]);
 
-    const getCategoryColor = (category: string) => categoryColors[category as keyof typeof categoryColors] || categoryColors.Default;
+    // utility function
+const getCategoryColor = () => {
+  const colors = [
+    "bg-pink-500",
+    "bg-green-500",
+    "bg-indigo-500",
+    "bg-yellow-500",
+    "bg-cyan-500",
+  ];
+  
+  // Pick a random index
+  const randomIndex = Math.floor(Math.random() * colors.length);
+  return colors[randomIndex];
+};
+
 
     return (
         <div className="flex min-h-screen bg-slate-50">
@@ -255,7 +269,7 @@ const Explore: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
                                 {quizzes.map((quiz, index) => (
                                     <div key={`${quiz.id}-${index}`} className="group relative bg-white/80 backdrop-blur-sm rounded-3xl p-5 lg:p-6 shadow-lg border border-white/20 hover:shadow-2xl hover:scale-105 transform transition-all duration-500 overflow-hidden">
-                                        <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${getCategoryColor(quiz.category)}`}></div>
+                                        <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${getCategoryColor()}`}></div>
                                         <div className="absolute top-4 right-4 text-right">
                                             {quiz.popularity > 1000 && (
                                                 <div className="inline-flex items-center gap-1 bg-gradient-to-r from-orange-500 to-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold mb-1">
@@ -272,7 +286,7 @@ const Explore: React.FC = () => {
                                         </div>
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="flex items-center gap-2">
-                                                <div className={`w-8 h-8 bg-gradient-to-r ${getCategoryColor(quiz.category)} rounded-lg flex items-center justify-center`}>
+                                                <div className={`w-8 h-8 bg-gradient-to-r ${getCategoryColor()} rounded-lg flex items-center justify-center`}>
                                                     <BookOpen className="w-4 h-4 text-white" />
                                                 </div>
                                                 <span className="text-sm font-medium text-gray-700">{quiz.category}</span>
