@@ -17,90 +17,72 @@ const Quiz_1 = require("../model/Quiz");
 class ReportRepository {
     static getLeaderboardAndUserRank(limit, userId) {
         return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const aggregationPipeline = [
-                    // 1. Filter for completed games
-                    { $match: { status: 'completed', 'results.0': { $exists: true } } },
-                    // 2. Unwind participants to process each one
-                    { $unwind: '$results' },
-                    // 3. Group players: registered users by ID, guests by nickname
-                    {
-                        $group: {
-                            _id: {
-                                id: { $ifNull: ['$results.userId', '$results.nickname'] },
-                                type: { $cond: { if: '$results.userId', then: 'user', else: 'guest' } }
-                            },
-                            name: { $first: '$results.nickname' },
-                            userId: { $first: '$results.userId' },
-                            totalScore: { $sum: '$results.finalScore' },
-                            totalGamesPlayed: { $sum: 1 },
-                        }
-                    },
-                    // 4. Calculate the average score for each player
-                    {
-                        $addFields: {
-                            averageScore: {
-                                $cond: {
-                                    if: { $gt: ['$totalGamesPlayed', 0] },
-                                    then: { $round: [{ $divide: ['$totalScore', '$totalGamesPlayed'] }, 0] },
-                                    else: 0
-                                }
-                            }
-                        }
-                    },
-                    // 5. Sort by the 'averageScore' to ensure correct order
-                    { $sort: { averageScore: -1, totalGamesPlayed: -1 } },
-                    // 6. Group all players to create a ranked list
-                    {
-                        $group: {
-                            _id: null,
-                            players: { $push: '$$ROOT' }
-                        }
-                    },
-                    // 7. Unwind the list to assign a rank based on the sorted order
-                    {
-                        $unwind: {
-                            path: '$players',
-                            includeArrayIndex: 'rank'
-                        }
-                    },
-                    // 8. Lookup user data for profile pictures
-                    {
-                        $lookup: {
-                            from: 'users',
-                            localField: 'players.userId',
-                            foreignField: '_id',
-                            as: 'userData'
-                        }
-                    },
-                    // 9. Shape the final output
-                    {
-                        $project: {
-                            _id: '$players._id.id',
-                            rank: { $add: ['$rank', 1] }, // Make rank 1-based
-                            name: { $ifNull: [{ $first: '$userData.name' }, '$players.name'] },
-                            profileUrl: { $ifNull: [{ $first: '$userData.profileUrl' }, null] },
-                            averageScore: '$players.averageScore',
-                            totalGamesPlayed: '$players.totalGamesPlayed',
-                            isGuest: { $eq: ['$players._id.type', 'guest'] },
+            const pipeline = [
+                // 1) Only completed games
+                { $match: { status: "completed", "results.0": { $exists: true } } },
+                // 2) Unwind participants
+                { $unwind: "$results" },
+                // 3) Group by userId (or nickname for guest)
+                {
+                    $group: {
+                        _id: {
+                            id: { $ifNull: ["$results.userId", "$results.nickname"] },
+                            type: { $cond: { if: "$results.userId", then: "user", else: "guest" } }
+                        },
+                        name: { $first: "$results.nickname" },
+                        userId: { $first: "$results.userId" },
+                        totalGamesPlayed: { $sum: 1 },
+                        totalScore: { $sum: "$results.finalScore" }
+                    }
+                },
+                // 4) Compute average points per game
+                {
+                    $addFields: {
+                        averageScore: {
+                            $cond: [
+                                { $gt: ["$totalGamesPlayed", 0] },
+                                { $round: [{ $divide: ["$totalScore", "$totalGamesPlayed"] }, 0] },
+                                0
+                            ]
                         }
                     }
-                ];
-                const allPlayersRanked = yield GameSession_1.GameSessionModel.aggregate(aggregationPipeline);
-                const leaderboard = allPlayersRanked.slice(0, limit);
-                let userRank = null;
-                // Find the specific user's rank only if a userId was provided
-                if (userId) {
-                    const userIdString = new mongoose_1.Types.ObjectId(userId).toString();
-                    userRank = allPlayersRanked.find(player => player._id.toString() === userIdString) || null;
+                },
+                // 5) Sort purely by totalScore (descending)
+                { $sort: { totalScore: -1 } },
+                // 6) Group to prepare ranking
+                { $group: { _id: null, players: { $push: "$$ROOT" } } },
+                { $unwind: { path: "$players", includeArrayIndex: "rank" } },
+                // 7) Lookup user profile (optional)
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "players.userId",
+                        foreignField: "_id",
+                        as: "userData"
+                    }
+                },
+                // 8) Final output
+                {
+                    $project: {
+                        _id: "$players._id.id",
+                        rank: { $add: ["$rank", 1] }, // 1-based
+                        name: { $ifNull: [{ $first: "$userData.name" }, "$players.name"] },
+                        profileUrl: { $ifNull: [{ $first: "$userData.profileUrl" }, null] },
+                        totalGamesPlayed: "$players.totalGamesPlayed",
+                        totalScore: "$players.totalScore",
+                        averageScore: "$players.averageScore",
+                        isGuest: { $eq: ["$players._id.type", "guest"] }
+                    }
                 }
-                const response = { leaderboard, userRank };
-                return response;
+            ];
+            const allPlayers = yield GameSession_1.GameSessionModel.aggregate(pipeline);
+            const leaderboard = allPlayers.slice(0, limit);
+            let userRank = null;
+            if (userId) {
+                const userIdStr = new mongoose_1.Types.ObjectId(userId).toString();
+                userRank = allPlayers.find(p => { var _a, _b; return ((_b = (_a = p._id) === null || _a === void 0 ? void 0 : _a.toString) === null || _b === void 0 ? void 0 : _b.call(_a)) === userIdStr || p._id === userIdStr; }) || null;
             }
-            catch (error) {
-                console.error("Error fetching leaderboard:", error);
-                throw error; // Re-throw to be caught by the controller
-            }
+            return { leaderboard, userRank };
         });
     }
     static findQuizzesByCreator(creatorId) {
@@ -122,7 +104,13 @@ class ReportRepository {
             var _a;
             const quizObjectId = new mongoose_1.Types.ObjectId(quizId);
             const creatorObjectId = new mongoose_1.Types.ObjectId(creatorId);
-            const quiz = yield Quiz_1.QuizModel.findOne({ _id: quizObjectId, creatorId: creatorObjectId }).lean();
+            const quiz = yield Quiz_1.QuizModel.findOne({
+                _id: quizObjectId,
+                $or: [
+                    { creatorId: creatorObjectId },
+                    { forkBy: creatorObjectId }
+                ]
+            }).lean();
             if (!quiz) {
                 return null;
             }

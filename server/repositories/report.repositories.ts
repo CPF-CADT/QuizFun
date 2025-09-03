@@ -29,122 +29,109 @@ export interface IActivityFeedResponse {
 }
 
 export interface ILeaderboardPlayer {
-    _id: Types.ObjectId | string;
+    _id: string | object;
     rank: number;
     isGuest: boolean;
     name: string;
     profileUrl?: string;
-    averageScore: number;
     totalGamesPlayed: number;
-    accuracy: number; // <-- Added this new field
+    totalScore: number;
+    averageScore: number;
+    averageAccuracy: number;
 }
 
 export interface ILeaderboardResponse {
     leaderboard: ILeaderboardPlayer[];
-    userRank?: ILeaderboardPlayer | null; 
+    userRank?: ILeaderboardPlayer | null;
 }
 export class ReportRepository {
 
-
     static async getLeaderboardAndUserRank(limit: number, userId?: string): Promise<ILeaderboardResponse> {
-        try {
-            const aggregationPipeline: PipelineStage[] = [
-                // 1. Filter for completed games
-                { $match: { status: 'completed', 'results.0': { $exists: true } } },
+        const pipeline: PipelineStage[] = [
+            // 1) Only completed games
+            { $match: { status: "completed", "results.0": { $exists: true } } },
 
-                // 2. Unwind participants to process each one
-                { $unwind: '$results' },
+            // 2) Unwind participants
+            { $unwind: "$results" },
 
-                // 3. Group players: registered users by ID, guests by nickname
-                {
-                    $group: {
-                        _id: {
-                            id: { $ifNull: ['$results.userId', '$results.nickname'] },
-                            type: { $cond: { if: '$results.userId', then: 'user', else: 'guest' } }
-                        },
-                        name: { $first: '$results.nickname' },
-                        userId: { $first: '$results.userId' },
-                        totalScore: { $sum: '$results.finalScore' },
-                        totalGamesPlayed: { $sum: 1 },
-                    }
-                },
+            // 3) Group by userId (or nickname for guest)
+            {
+                $group: {
+                    _id: {
+                        id: { $ifNull: ["$results.userId", "$results.nickname"] },
+                        type: { $cond: { if: "$results.userId", then: "user", else: "guest" } }
+                    },
+                    name: { $first: "$results.nickname" },
+                    userId: { $first: "$results.userId" },
 
-                // 4. Calculate the average score for each player
-                {
-                    $addFields: {
-                        averageScore: {
-                            $cond: {
-                                if: { $gt: ['$totalGamesPlayed', 0] },
-                                then: { $round: [{ $divide: ['$totalScore', '$totalGamesPlayed'] }, 0] },
-                                else: 0
-                            }
-                        }
-                    }
-                },
+                    totalGamesPlayed: { $sum: 1 },
+                    totalScore: { $sum: "$results.finalScore" }
+                }
+            },
 
-                // 5. Sort by the 'averageScore' to ensure correct order
-                { $sort: { averageScore: -1, totalGamesPlayed: -1 } },
-
-                // 6. Group all players to create a ranked list
-                {
-                    $group: {
-                        _id: null,
-                        players: { $push: '$$ROOT' }
-                    }
-                },
-
-                // 7. Unwind the list to assign a rank based on the sorted order
-                {
-                    $unwind: {
-                        path: '$players',
-                        includeArrayIndex: 'rank'
-                    }
-                },
-                
-                // 8. Lookup user data for profile pictures
-                {
-                    $lookup: {
-                        from: 'users',
-                        localField: 'players.userId',
-                        foreignField: '_id',
-                        as: 'userData'
-                    }
-                },
-                
-                // 9. Shape the final output
-                {
-                    $project: {
-                        _id: '$players._id.id',
-                        rank: { $add: ['$rank', 1] }, // Make rank 1-based
-                        name: { $ifNull: [{ $first: '$userData.name' }, '$players.name'] },
-                        profileUrl: { $ifNull: [{ $first: '$userData.profileUrl' }, null] },
-                        averageScore: '$players.averageScore',
-                        totalGamesPlayed: '$players.totalGamesPlayed',
-                        isGuest: { $eq: ['$players._id.type', 'guest'] },
+            // 4) Compute average points per game
+            {
+                $addFields: {
+                    averageScore: {
+                        $cond: [
+                            { $gt: ["$totalGamesPlayed", 0] },
+                            { $round: [{ $divide: ["$totalScore", "$totalGamesPlayed"] }, 0] },
+                            0
+                        ]
                     }
                 }
-            ];
+            },
 
-            const allPlayersRanked: ILeaderboardPlayer[] = await GameSessionModel.aggregate(aggregationPipeline);
+            // 5) Sort purely by totalScore (descending)
+            { $sort: { totalScore: -1 } },
 
-            const leaderboard = allPlayersRanked.slice(0, limit);
-            let userRank: ILeaderboardPlayer | null = null;
+            // 6) Group to prepare ranking
+            { $group: { _id: null, players: { $push: "$$ROOT" } } },
+            { $unwind: { path: "$players", includeArrayIndex: "rank" } },
 
-            // Find the specific user's rank only if a userId was provided
-            if (userId) {
-                const userIdString = new Types.ObjectId(userId).toString();
-                userRank = allPlayersRanked.find(player => player._id.toString() === userIdString) || null;
+            // 7) Lookup user profile (optional)
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "players.userId",
+                    foreignField: "_id",
+                    as: "userData"
+                }
+            },
+
+            // 8) Final output
+            {
+                $project: {
+                    _id: "$players._id.id",
+                    rank: { $add: ["$rank", 1] }, // 1-based
+                    name: { $ifNull: [{ $first: "$userData.name" }, "$players.name"] },
+                    profileUrl: { $ifNull: [{ $first: "$userData.profileUrl" }, null] },
+
+                    totalGamesPlayed: "$players.totalGamesPlayed",
+                    totalScore: "$players.totalScore",
+                    averageScore: "$players.averageScore",
+
+                    isGuest: { $eq: ["$players._id.type", "guest"] }
+                }
             }
+        ];
 
-            const response: ILeaderboardResponse = { leaderboard, userRank };
-            
-            return response;
-        } catch (error) {
-            console.error("Error fetching leaderboard:", error);
-            throw error; // Re-throw to be caught by the controller
+        const allPlayers = await GameSessionModel.aggregate(pipeline);
+
+        const leaderboard = allPlayers.slice(0, limit);
+        let userRank: ILeaderboardPlayer | null = null;
+
+        if (userId) {
+            const userIdStr = new Types.ObjectId(userId).toString();
+            userRank = allPlayers.find(
+                p => p._id?.toString?.() === userIdStr || p._id === userIdStr
+            ) || null;
         }
+
+        return { leaderboard, userRank };
     }
-      
+
+
     static async findQuizzesByCreator(creatorId: string): Promise<IReportQuizListItem[]> {
         const results = await QuizModel.find({ creatorId: new Types.ObjectId(creatorId) })
             .select('title dificulty createdAt')
@@ -164,7 +151,13 @@ export class ReportRepository {
         const quizObjectId = new Types.ObjectId(quizId);
         const creatorObjectId = new Types.ObjectId(creatorId);
 
-        const quiz = await QuizModel.findOne({ _id: quizObjectId, creatorId: creatorObjectId }).lean();
+        const quiz = await QuizModel.findOne({
+            _id: quizObjectId,
+            $or: [
+                { creatorId: creatorObjectId },
+                { forkBy: creatorObjectId }
+            ]
+        }).lean();
         if (!quiz) {
             return null;
         }
@@ -246,137 +239,137 @@ export class ReportRepository {
         };
     }
 
-    static async fetchUserActivityFeed(userId: string, page: number, limit: number, roleFilter:string): Promise<IActivityFeedResponse> {
-    const userObjectId = new Types.ObjectId(userId);
-    const skip = (page - 1) * limit;
+    static async fetchUserActivityFeed(userId: string, page: number, limit: number, roleFilter: string): Promise<IActivityFeedResponse> {
+        const userObjectId = new Types.ObjectId(userId);
+        const skip = (page - 1) * limit;
 
-    // --- DYNAMIC MATCH QUERY ---
-    const matchQuery: any = {
-        status: "completed",
-    };
+        // --- DYNAMIC MATCH QUERY ---
+        const matchQuery: any = {
+            status: "completed",
+        };
 
-    const playerCondition = { "results.userId": userObjectId };
-    const hostCondition = { hostId: userObjectId, mode: { $ne: "solo" } };
+        const playerCondition = { "results.userId": userObjectId };
+        const hostCondition = { hostId: userObjectId, mode: { $ne: "solo" } };
 
-    if (roleFilter === 'player') {
-        matchQuery.$or = [playerCondition];
-    } else if (roleFilter === 'host') {
-        matchQuery.$or = [hostCondition];
-    } else { // 'all' is the default
-        matchQuery.$or = [playerCondition, hostCondition];
-    }
-    // --- END DYNAMIC MATCH QUERY ---
+        if (roleFilter === 'player') {
+            matchQuery.$or = [playerCondition];
+        } else if (roleFilter === 'host') {
+            matchQuery.$or = [hostCondition];
+        } else { // 'all' is the default
+            matchQuery.$or = [playerCondition, hostCondition];
+        }
+        // --- END DYNAMIC MATCH QUERY ---
 
-    const [sessions, total] = await Promise.all([
-        GameSessionModel.aggregate([
-            { $match: matchQuery },
-            { $sort: { endedAt: -1 } },
-            { $skip: skip },
-            { $limit: limit },
-            { $unwind: "$results" },
-            {
-                $lookup: {
-                    from: "gamehistories",
-                    let: { sessionId: "$_id", participantId: "$results.userId" },
-                    pipeline: [
-                        {
-                            $match: {
-                                $expr: {
-                                    $and: [
-                                        { $eq: ["$gameSessionId", "$$sessionId"] },
-                                        { $eq: ["$userId", "$$participantId"] },
-                                        { $eq: ["$isUltimatelyCorrect", true] }
-                                    ]
-                                }
-                            }
-                        },
-                        { $count: "count" }
-                    ],
-                    as: "correctAnswersLookup"
-                }
-            },
-            {
-                $addFields: {
-                    "results.correctAnswers": { $ifNull: [{ $first: "$correctAnswersLookup.count" }, 0] }
-                }
-            },
-            {
-                $group: {
-                    _id: "$_id",
-                    hostId: { $first: "$hostId" },
-                    quizId: { $first: "$quizId" },
-                    endedAt: { $first: "$endedAt" },
-                    results: { $push: "$results" }
-                }
-            },
-            { $sort: { endedAt: -1 } },
-            {
-                $lookup: {
-                    from: "quizzes",
-                    localField: "quizId",
-                    foreignField: "_id",
-                    as: "quiz"
-                }
-            },
-            { $unwind: "$quiz" },
-            {
-                $addFields: {
-                    totalQuestions: { $size: "$quiz.questions" }
-                }
-            },
-            {
-                $project: {
-                    _id: 1,
-                    quizTitle: "$quiz.title",
-                    quizzId: "$quiz._id",
-                    endedAt: 1,
-                    role: { $cond: { if: { $eq: ["$hostId", userObjectId] }, then: "host", else: "player" } },
-                    playerCount: { $size: "$results" },
-                    averageScore: {
-                        $cond: {
-                            if: { $and: [{ $gt: ["$totalQuestions", 0] }, { $gt: [{ $size: "$results" }, 0] }] },
-                            then: {
-                                $avg: {
-                                    $map: {
-                                        input: "$results",
-                                        as: "r",
-                                        in: { $multiply: [{ $divide: ["$$r.correctAnswers", "$totalQuestions"] }, 100] }
+        const [sessions, total] = await Promise.all([
+            GameSessionModel.aggregate([
+                { $match: matchQuery },
+                { $sort: { endedAt: -1 } },
+                { $skip: skip },
+                { $limit: limit },
+                { $unwind: "$results" },
+                {
+                    $lookup: {
+                        from: "gamehistories",
+                        let: { sessionId: "$_id", participantId: "$results.userId" },
+                        pipeline: [
+                            {
+                                $match: {
+                                    $expr: {
+                                        $and: [
+                                            { $eq: ["$gameSessionId", "$$sessionId"] },
+                                            { $eq: ["$userId", "$$participantId"] },
+                                            { $eq: ["$isUltimatelyCorrect", true] }
+                                        ]
                                     }
                                 }
                             },
-                            else: 0
-                        }
-                    },
-                    playerResult: {
-                        $first: {
-                            $map: {
-                                input: { $filter: { input: "$results", as: "r", cond: { $eq: ["$$r.userId", userObjectId] } } },
-                                as: "self",
-                                in: {
-                                    finalScore: "$$self.finalScore",
-                                    finalRank: "$$self.finalRank"
+                            { $count: "count" }
+                        ],
+                        as: "correctAnswersLookup"
+                    }
+                },
+                {
+                    $addFields: {
+                        "results.correctAnswers": { $ifNull: [{ $first: "$correctAnswersLookup.count" }, 0] }
+                    }
+                },
+                {
+                    $group: {
+                        _id: "$_id",
+                        hostId: { $first: "$hostId" },
+                        quizId: { $first: "$quizId" },
+                        endedAt: { $first: "$endedAt" },
+                        results: { $push: "$results" }
+                    }
+                },
+                { $sort: { endedAt: -1 } },
+                {
+                    $lookup: {
+                        from: "quizzes",
+                        localField: "quizId",
+                        foreignField: "_id",
+                        as: "quiz"
+                    }
+                },
+                { $unwind: "$quiz" },
+                {
+                    $addFields: {
+                        totalQuestions: { $size: "$quiz.questions" }
+                    }
+                },
+                {
+                    $project: {
+                        _id: 1,
+                        quizTitle: "$quiz.title",
+                        quizzId: "$quiz._id",
+                        endedAt: 1,
+                        role: { $cond: { if: { $eq: ["$hostId", userObjectId] }, then: "host", else: "player" } },
+                        playerCount: { $size: "$results" },
+                        averageScore: {
+                            $cond: {
+                                if: { $and: [{ $gt: ["$totalQuestions", 0] }, { $gt: [{ $size: "$results" }, 0] }] },
+                                then: {
+                                    $avg: {
+                                        $map: {
+                                            input: "$results",
+                                            as: "r",
+                                            in: { $multiply: [{ $divide: ["$$r.correctAnswers", "$totalQuestions"] }, 100] }
+                                        }
+                                    }
+                                },
+                                else: 0
+                            }
+                        },
+                        playerResult: {
+                            $first: {
+                                $map: {
+                                    input: { $filter: { input: "$results", as: "r", cond: { $eq: ["$$r.userId", userObjectId] } } },
+                                    as: "self",
+                                    in: {
+                                        finalScore: "$$self.finalScore",
+                                        finalRank: "$$self.finalRank"
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-        ]),
-        // Count documents using the same dynamic query for accurate pagination
-        GameSessionModel.countDocuments(matchQuery)
-    ]);
+            ]),
+            // Count documents using the same dynamic query for accurate pagination
+            GameSessionModel.countDocuments(matchQuery)
+        ]);
 
-    const totalPages = Math.ceil(total / limit);
-    return {
-        activities: sessions,
-        total,
-        page,
-        limit,
-        totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1
-    };
-}
+        const totalPages = Math.ceil(total / limit);
+        return {
+            activities: sessions,
+            total,
+            page,
+            limit,
+            totalPages,
+            hasNext: page < totalPages,
+            hasPrev: page > 1
+        };
+    }
     static async fetchQuizFeedback(
         quizId: string,
         page: number,

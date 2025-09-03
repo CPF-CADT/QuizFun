@@ -20,7 +20,6 @@ const LeaderboardRow: React.FC<{
             </span>
         );
     };
-    
     return (
         <div 
             className={`flex items-center p-3 rounded-xl transition-all duration-300 ${
@@ -60,9 +59,9 @@ const LeaderboardRow: React.FC<{
             <div className="text-right ml-4 flex-shrink-0">
                 <p className="font-bold text-xl text-indigo-600 flex items-center gap-1.5 justify-end">
                     <Star className="w-4 h-4 text-amber-400" fill="currentColor" />
-                    {Math.round(player.averageScore)}
+                    {Math.round(player.totalScore)}
                 </p>
-                <p className="text-xs text-slate-500">Avg Points</p>
+                <p className="text-xs text-slate-500">total Points</p>
             </div>
         </div>
     );
