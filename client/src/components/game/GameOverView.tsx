@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useCallback } from 'react';
 import { Home } from 'lucide-react';
 import { FeedbackModal } from '../ui/FeedbackModal'; 
 import { gameApi, type IFeedbackRequest } from '../../service/gameApi'; 
 
 interface GameOverViewProps {
-    onFetchResults: () => void;
+    // onFetchResults: () => void;
     onViewMyPerformance: () => void;
     isHost: boolean;
     sessionId: string | null;
@@ -14,23 +13,23 @@ interface GameOverViewProps {
 }
 
 export const GameOverView: React.FC<GameOverViewProps> = ({ 
-    onFetchResults, 
+    // onFetchResults, 
     onViewMyPerformance, 
     isHost,
     sessionId,
     userId,
     onExit 
 }) => {
-    const [showFireworks, setShowFireworks] = useState(true);
+    // const [showFireworks, setShowFireworks] = useState(true);
     const [isFeedbackModalOpen, setFeedbackModalOpen] = useState(false);
 
-    useEffect(() => {
-        if (isHost) {
-            onFetchResults();
-        }
-        const timer = setTimeout(() => setShowFireworks(false), 3000);
-        return () => clearTimeout(timer);
-    }, [isHost, onFetchResults]);
+    // useEffect(() => {
+    //     if (isHost) {
+    //         onFetchResults();
+    //     }
+    //     const timer = setTimeout(() => setShowFireworks(false), 3000);
+    //     return () => clearTimeout(timer);
+    // }, [isHost, onFetchResults]);
 
     const proceedToResults = useCallback(() => {
         setFeedbackModalOpen(false);
@@ -56,7 +55,7 @@ export const GameOverView: React.FC<GameOverViewProps> = ({
         <>
             <div className="relative w-full min-h-screen flex items-center justify-center p-4">
                 {/* Fireworks Animation */}
-                {showFireworks && (
+                {/* {showFireworks && (
                     <div className="absolute inset-0 pointer-events-none overflow-hidden">
                         {[...Array(8)].map((_, i) => (
                             <div key={i} className="absolute animate-firework" style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 1.5}s` }}>
@@ -64,7 +63,7 @@ export const GameOverView: React.FC<GameOverViewProps> = ({
                             </div>
                         ))}
                     </div>
-                )}
+                )} */}
 
                 <div className="w-full max-w-md p-6 md:p-12 bg-gray-900/70 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 text-white text-center flex flex-col items-center gap-6 relative z-10">
                     <div className="animate-bounce-in">
@@ -94,10 +93,10 @@ export const GameOverView: React.FC<GameOverViewProps> = ({
                     
                     {/* ✅ FIXED: The onClick handler now calls onExit to clean up the session */}
                     <div className="animate-slide-up">
-                        <Link to="/dashboard" onClick={onExit} className="text-indigo-400 hover:text-indigo-300 transition-all duration-300 font-medium flex items-center gap-2 p-2 rounded-lg hover:bg-white/10">
+                        <button onClick={onExit} className="text-indigo-400 hover:text-indigo-300 transition-all duration-300 font-medium flex items-center gap-2 p-2 rounded-lg hover:bg-white/10">
                             <Home size={18} />
                             <span>Back to Home</span>
-                        </Link>
+                        </button>
                     </div>
                 </div>
             </div>

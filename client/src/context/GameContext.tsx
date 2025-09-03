@@ -116,7 +116,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             setGameState((prev) => ({ ...prev, finalResults: response.data }));
         } catch (error) {
             console.error("Failed to fetch final results:", error);
-            alert("Could not load game results.");
         }
     }, []);
 
