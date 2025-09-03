@@ -27,15 +27,6 @@ const difficultyConfig = {
     Hard: { bg: 'bg-gradient-to-r from-red-100 to-rose-50', text: 'text-red-700', border: 'border-red-200' },
 };
 
-const categoryColors = {
-    Frontend: 'from-blue-500 to-cyan-500',
-    Design: 'from-purple-500 to-pink-500',
-    Programming: 'from-green-500 to-emerald-500',
-    Backend: 'from-orange-500 to-red-500',
-    'Data Science': 'from-indigo-500 to-blue-500',
-    'AI/ML': 'from-violet-500 to-purple-500',
-    Default: 'from-gray-500 to-slate-500',
-};
 
 const formatDistanceToNow = (dateString: string): string => {
     const date = new Date(dateString);
