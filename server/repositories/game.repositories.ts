@@ -398,14 +398,18 @@ export class GameRepository {
         );
     }
 
-    static async fetchFinalResults(sessionId: string, identifier: { userId?: string; guestName?: string }): Promise<ResultsPayload | null> {
+    static async fetchFinalResults(sessionId: string, identifier: { userId?: string; guestName?: string }, view?: 'summary'): Promise<ResultsPayload | null> {
         const sessionObjectId = new Types.ObjectId(sessionId);
 
         const session = await GameSessionModel.findById(sessionObjectId).lean();
         if (!session) return null;
-        if(!session.hostId) return null;
+        if (!session.hostId) return null;
         const isHost = !!(identifier.userId && session.hostId.equals(identifier.userId));
         const viewType: 'host' | 'player' | 'guest' = isHost ? 'host' : (identifier.guestName ? 'guest' : 'player');
+
+        // This is the core change: conditionally fetch detailed answers.
+        // We only need detailed answers if the view is not 'summary' AND the user is a host or the player themselves.
+        const shouldFetchDetailedAnswers = view !== 'summary';
 
         const pipeline: any[] = [
             { $match: { gameSessionId: sessionObjectId } },
@@ -444,46 +448,48 @@ export class GameRepository {
 
         let allResults: FinalResultData[] = await GameHistoryModel.aggregate(pipeline);
 
-        for (const result of allResults) {
-            const isSelf = (identifier.userId && result.participantId?.toString() === identifier.userId) || (identifier.guestName && result.name === identifier.guestName);
-            if (isHost || isSelf) {
-                const query = result.participantId ? { userId: result.participantId } : { guestNickname: result.name };
-                const historyDocs = await GameHistoryModel.find({
-                    gameSessionId: sessionObjectId,
-                    ...query
-                }).lean();
+        if (shouldFetchDetailedAnswers) {
+            for (const result of allResults) {
+                const isSelf = (identifier.userId && result.participantId?.toString() === identifier.userId) || (identifier.guestName && result.name === identifier.guestName);
+                if (isHost || isSelf) {
+                    const query = result.participantId ? { userId: result.participantId } : { guestNickname: result.name };
+                    const historyDocs = await GameHistoryModel.find({
+                        gameSessionId: sessionObjectId,
+                        ...query
+                    }).lean();
 
-                if (historyDocs.length === 0) {
-                    result.detailedAnswers = [];
-                    continue;
-                }
-                const quiz = await QuizModel.findById(historyDocs[0].quizId)
-                    .select('questions')
-                    .lean();
+                    if (historyDocs.length === 0) {
+                        result.detailedAnswers = [];
+                        continue;
+                    }
+                    const quiz = await QuizModel.findById(historyDocs[0].quizId)
+                        .select('questions')
+                        .lean();
 
-                const questionsMap = new Map(quiz?.questions.map(q => [q._id.toString(), q]));
-                result.detailedAnswers = historyDocs.map((doc): DetailedAnswer => {
-                    const question = questionsMap.get(doc.questionId.toString());
-                    const detailedAttempts = doc.attempts.map(attempt => {
-                        const selectedOption = question?.options.find(
-                            opt => opt._id.equals(attempt.selectedOptionId)
-                        );
+                    const questionsMap = new Map(quiz?.questions.map(q => [q._id.toString(), q]));
+                    result.detailedAnswers = historyDocs.map((doc): any => { // Adjust with your actual type
+                        const question = questionsMap.get(doc.questionId.toString());
+                        const detailedAttempts = doc.attempts.map(attempt => {
+                            const selectedOption = question?.options.find(
+                                opt => opt._id.equals(attempt.selectedOptionId)
+                            );
+                            return {
+                                selectedOptionText: selectedOption?.text || "N/A",
+                                answerTimeMs: attempt.answerTimeMs,
+                                isCorrect: attempt.isCorrect
+                            };
+                        });
+
                         return {
-                            selectedOptionText: selectedOption?.text || "N/A",
-                            answerTimeMs: attempt.answerTimeMs,
-                            isCorrect: attempt.isCorrect
+                            _id: doc._id.toString(),
+                            isUltimatelyCorrect: doc.isUltimatelyCorrect,
+                            questionId: {
+                                questionText: question?.questionText || "Question not found",
+                            },
+                            attempts: detailedAttempts
                         };
                     });
-
-                    return {
-                        _id: doc._id.toString(),
-                        isUltimatelyCorrect: doc.isUltimatelyCorrect,
-                        questionId: {
-                            questionText: question?.questionText || "Question not found",
-                        },
-                        attempts: detailedAttempts
-                    };
-                });
+                }
             }
         }
 

@@ -189,7 +189,7 @@ const QuizHistoryPage: React.FC = () => {
                         >
                             <Menu className="w-6 h-6" />
                         </button>
-                        <h1 className="text-xl font-bold font-black bg-gradient-to-r from-gray-900 via-indigo-800 to-purple-800 bg-clip-text text-transparent ml-4">My Quiz History</h1>
+                        <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 via-indigo-800 to-purple-800 bg-clip-text text-transparent ml-4">My Quiz History</h1>
                     </div>
 
                     {/* Desktop Header */}
