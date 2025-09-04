@@ -24,8 +24,6 @@ export const GameResultDetails: React.FC<GameResultDetailsProps> = ({
   const { results } = payload;
   const [revealedPlayers, setRevealedPlayers] = useState<number[]>([]);
 
-  // ✅ FIXED: Filter results based on the user's role.
-  // Host sees everyone, players only see themselves.
   const visibleResults = useMemo(() => {
     if (isHost) {
       return [...results].sort((a, b) => b.score - a.score);
@@ -77,11 +75,23 @@ export const GameResultDetails: React.FC<GameResultDetailsProps> = ({
   return (
     <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 bg-gray-800/60 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 text-white relative overflow-hidden flex flex-col h-full">
       <div className="relative z-10 flex-grow flex flex-col">
-        <header className="text-center mb-4 sm:mb-6">
-          <h1 className="text-3xl sm:text-4xl font-bold flex items-center justify-center gap-3">
+        {/* Updated Header with Export Button */}
+        <header className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4 sm:mb-6">
+          <h1 className="text-3xl sm:text-4xl font-bold flex items-center gap-3">
             <Trophy className="w-8 h-8 text-yellow-400" />
             {isHost ? "Final Rankings" : "Your Result"}
           </h1>
+          {isHost && sessionId && (
+            <div className="flex-shrink-0">
+              <ExcelExportButton
+                type="session"
+                sessionId={sessionId}
+                buttonText="Export"
+                buttonClass="flex items-center gap-2 text-sm text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg font-medium transition-colors"
+                showOptions={true}
+              />
+            </div>
+          )}
         </header>
 
         {/* Podium for top 3 on larger screens (only for host) */}
@@ -152,20 +162,8 @@ export const GameResultDetails: React.FC<GameResultDetailsProps> = ({
           })}
         </ul>
 
+        {/* Removed Export Button from here */}
         <footer className="mt-6 space-y-3">
-          {/* Excel Export Button - Show only for hosts */}
-          {sessionId && (
-            <div className="flex-shrink-0">
-              <ExcelExportButton
-                type="session"
-                sessionId={sessionId}
-                buttonText="Export Results"
-                buttonClass="group bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold py-4 px-8 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center gap-3"
-                showOptions={true}
-              />
-            </div>
-          )}
-
           <button
             onClick={onExit}
             className="w-full bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-bold py-3 px-6 rounded-xl transition-transform duration-300 hover:scale-105 shadow-lg"

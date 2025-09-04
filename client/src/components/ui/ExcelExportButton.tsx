@@ -46,7 +46,7 @@ export const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
             } else {
                 throw new Error('Invalid export configuration');
             }
-            setShowOptionsPanel(false); // Close the panel after export
+            setShowOptionsPanel(false);
         } catch (error) {
             console.error('Export failed:', error);
             alert(error instanceof Error ? error.message : 'Export failed. Please try again.');
@@ -113,10 +113,12 @@ export const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
             </button>
 
             {showOptionsPanel && showOptions && (
-                <div className="absolute top-full right-0 mt-2 w-64 md:w-80 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
+                <div className="absolute top-full right-0 mt-2 w-64 md:w-80 bg-white border border-gray-200 rounded-lg shadow-xl z-50">
                     <div className="p-4">
-                        <h4 className="font-semibold text-gray-800 mb-4 text-sm">Choose what to export:</h4>
-                        <div className="space-y-3">
+                        <h4 className="font-semibold text-gray-800 mb-4 text-sm">Choose what to include in your Excel export:</h4>
+                        
+                        {/* THIS IS THE FIX: The max-h-64 and overflow-y-auto classes */}
+                        <div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar">
                             {/* Option: Session Overview */}
                             <label className="flex items-start cursor-pointer hover:bg-gray-50 p-2 rounded-md transition-colors duration-150">
                                 <input

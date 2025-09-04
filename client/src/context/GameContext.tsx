@@ -112,6 +112,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             const response = await gameApi.getSessionResults(sessionId, {
                 userId: userId || undefined,
                 guestName: guestName || undefined,
+                view:'summary'
             });
             setGameState((prev) => ({ ...prev, finalResults: response.data }));
         } catch (error) {
