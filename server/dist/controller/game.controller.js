@@ -657,19 +657,19 @@ class GameController {
                     const finalResults = fullResults.map(result => {
                         var _a;
                         if (view === 'summary') {
-                            const { detailedPerformance } = result, leaderboardData = __rest(result, ["detailedPerformance"]);
+                            const _b = result, { detailedPerformance } = _b, leaderboardData = __rest(_b, ["detailedPerformance"]);
                             return leaderboardData;
                         }
                         const isSelf = (userId && ((_a = result.participantId) === null || _a === void 0 ? void 0 : _a.toString()) === userId) || (guestName && result.name === guestName);
                         if (isHost || isSelf)
                             return result;
-                        const { detailedPerformance } = result, leaderboardData = __rest(result, ["detailedPerformance"]);
+                        const _c = result, { detailedPerformance } = _c, leaderboardData = __rest(_c, ["detailedPerformance"]);
                         return leaderboardData;
                     });
                     return res.status(200).json({ viewType, results: finalResults });
                 }
                 console.log(`[Cache] MISS for session results: ${sessionId}. Falling back to DB.`);
-                const resultsPayload = yield game_repositories_1.GameRepository.fetchFinalResults(sessionId, { userId, guestName });
+                const resultsPayload = yield game_repositories_1.GameRepository.fetchFinalResults(sessionId, { userId, guestName }, view);
                 if (!resultsPayload) {
                     return res.status(404).json({ message: 'Results for this game session could not be found.' });
                 }
