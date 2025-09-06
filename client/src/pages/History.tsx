@@ -1,62 +1,37 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Calendar, Clock, Users } from "lucide-react";
-// import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/dashboard/Sidebar";
+import { gameApi } from "../service/gameApi";
+import { useAuth } from "../context/AuthContext";
 
 const History: React.FC = () => {
-  // const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("history");
   const currentTime = new Date();
 
-  // Dummy quiz history data
-  const quizHistory = [
-    {
-      id: 1,
-      title: "JavaScript Fundamentals",
-      date: "May 15, 2025",
-      score: 85,
-      timeTaken: "3m 42s",
-      status: "Completed",
-      players: 120,
-    },
-    {
-      id: 2,
-      title: "React Components",
-      date: "May 12, 2025",
-      score: 92,
-      timeTaken: "4m 10s",
-      status: "Completed",
-      players: 98,
-    },
-    {
-      id: 3,
-      title: "CSS Grid Layout",
-      date: "May 10, 2025",
-      score: 74,
-      timeTaken: "2m 58s",
-      status: "Completed",
-      players: 76,
-    },
-    {
-      id: 4,
-      title: "Node.js Basics",
-      date: "May 8, 2025",
-      score: 67,
-      timeTaken: "5m 21s",
-      status: "Incomplete",
-      players: 89,
-    },
-    {
-      id: 5,
-      title: "Database Design",
-      date: "May 5, 2025",
-      score: 90,
-      timeTaken: "6m 03s",
-      status: "Completed",
-      players: 65,
-    },
-  ];
+  const [quizHistory, setQuizHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (user?._id && user?.lastQuizId) {
+        setLoading(true);
+        try {
+          const res = await gameApi.getUserQuizHistoryForQuiz(user._id, user.lastQuizId);
+          setQuizHistory(res.data || []);
+        } catch (e) {
+          setQuizHistory([]);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+    fetchHistory();
+  }, [user]);
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return "text-emerald-600";
@@ -108,46 +83,60 @@ const History: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {quizHistory.map((quiz) => (
-                    <tr
-                      key={quiz.id}
-                      className="border-b border-gray-200 hover:bg-blue-50/50 transition"
-                    >
-                      <td className="px-6 py-4 font-medium text-gray-800">
-                        {quiz.title}
-                      </td>
-                      <td className="px-6 py-4 flex items-center text-gray-600">
-                        <Calendar className="w-4 h-4 mr-2 text-blue-600" />
-                        {quiz.date}
-                      </td>
-                      <td
-                        className={`px-6 py-4 font-semibold ${getScoreColor(
-                          quiz.score
-                        )}`}
-                      >
-                        {quiz.score}%
-                      </td>
-                      <td className="px-6 py-4 flex items-center text-gray-600">
-                        <Clock className="w-4 h-4 mr-2 text-orange-600" />
-                        {quiz.timeTaken}
-                      </td>
-                      <td className="px-6 py-4 flex items-center text-gray-600">
-                        <Users className="w-4 h-4 mr-2 text-teal-600" />
-                        {quiz.players}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            quiz.status === "Completed"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700"
-                          }`}
-                        >
-                          {quiz.status}
-                        </span>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-8 text-gray-500">
+                        Loading...
                       </td>
                     </tr>
-                  ))}
+                  ) : quizHistory.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-8 text-gray-500">
+                        No quiz history found.
+                      </td>
+                    </tr>
+                  ) : (
+                    quizHistory.map((quiz: any) => (
+                      <tr
+                        key={quiz.id}
+                        className="border-b border-gray-200 hover:bg-blue-50/50 transition"
+                      >
+                        <td className="px-6 py-4 font-medium text-gray-800">
+                          {quiz.title}
+                        </td>
+                        <td className="px-6 py-4 flex items-center text-gray-600">
+                          <Calendar className="w-4 h-4 mr-2 text-blue-600" />
+                          {quiz.date}
+                        </td>
+                        <td
+                          className={`px-6 py-4 font-semibold ${getScoreColor(
+                            quiz.score
+                          )}`}
+                        >
+                          {quiz.score}%
+                        </td>
+                        <td className="px-6 py-4 flex items-center text-gray-600">
+                          <Clock className="w-4 h-4 mr-2 text-orange-600" />
+                          {quiz.duration}
+                        </td>
+                        <td className="px-6 py-4 flex items-center text-gray-600">
+                          <Users className="w-4 h-4 mr-2 text-teal-600" />
+                          {quiz.participants}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              quiz.status === "Completed"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {quiz.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

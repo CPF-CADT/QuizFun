@@ -84,6 +84,12 @@ export interface ISessionAnalytics {
   }[];
 }
 
+export interface IGetSessionByQuizHostParams {
+  hostId: string;
+  quizId: string;
+}
+
+
 
 export const gameApi = {
 
@@ -123,6 +129,12 @@ export const gameApi = {
   },
   getSessionAnalytics: (sessionId: string) => {
     return apiClient.get<ISessionAnalytics>(`/session/${sessionId}/analytics`);
+  },
+   getSessionByQuizAndHost: ({ hostId, quizId }: IGetSessionByQuizHostParams) => {
+    return apiClient.get(`/session/${hostId}/${quizId}`);
+  },
+  getUserQuizHistoryForQuiz: (userId: string, quizId: string) => {
+    return apiClient.get(`/session/${userId}/quiz-history/${quizId}`);
   },
 
 

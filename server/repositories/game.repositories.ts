@@ -23,6 +23,7 @@ interface GameHistoryCreationData {
     username?: string,
 }
 
+
 export interface ResultsPayload {
     viewType: 'host' | 'player' | 'guest';
     results: FinalResultData[];
@@ -53,6 +54,7 @@ export interface IParticipantResult {
     averageTime: number; // in seconds
     detailedPerformance: IDetailedAnswer[];
 }
+
 
 
 export class GameRepository {
@@ -184,6 +186,12 @@ export class GameRepository {
             .populate('userId', 'name email')
             .lean();
     }
+     static async findSessionByQuizAndHost(quizId: string, hostId: string): Promise<IGameSession | null> {
+        if (!Types.ObjectId.isValid(quizId) || !Types.ObjectId.isValid(hostId)) return null;
+        return GameSessionModel.findOne({
+            quizId: new Types.ObjectId(quizId),
+            hostId: new Types.ObjectId(hostId)
+        }).lean();}
 
     static async fetchGuestPerformanceInSession(sessionId: string, guestName: string) {
         if (!Types.ObjectId.isValid(sessionId)) return null;
@@ -802,4 +810,88 @@ export class GameRepository {
             }
         ]);
     }
+static formatSessionToQuizHistory(
+  session: IGameSession & { quiz?: any },
+  userId?: string
+): {
+  id: string;
+  title: string;
+  category: string;
+  date: string;
+  score: number;
+  totalQuestions: number;
+  duration: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  status: string;
+  rating: number;
+  participants: number;
+  lastUpdated: string;
+  description: string;
+} {
+  const startedAt = session.startedAt ? new Date(session.startedAt) : null;
+  const endedAt = session.endedAt ? new Date(session.endedAt) : null;
+
+  // Calculate duration
+  let duration = "N/A";
+  if (startedAt && endedAt) {
+    const diffMs = endedAt.getTime() - startedAt.getTime();
+    const minutes = Math.floor(diffMs / 60000);
+    duration = `${minutes} min`;
+  }
+
+  // Find the user's score if available
+  let score = 0;
+  if (userId && Array.isArray(session.results)) {
+    const userResult = session.results.find(
+      (r: any) => r.userId?.toString() === userId
+    );
+    score = userResult?.finalScore || 0;
+  }
+
+  // Fallbacks for quiz info
+  const quiz = session.quiz || {};
+  const title = quiz.title || "Untitled Quiz";
+  const category = Array.isArray(quiz.categories) && quiz.categories.length > 0
+    ? quiz.categories[0]
+    : (quiz.category || "General");
+  const totalQuestions = quiz.questions?.length || 0;
+  const difficulty = quiz.difficulty || "Medium";
+  const rating = quiz.rating || 0; // Mocked or fallback
+  const description = quiz.description || "";
+  const lastUpdated = quiz.updatedAt
+    ? `${Math.round((Date.now() - new Date(quiz.updatedAt).getTime()) / (1000 * 60 * 60 * 24))} days ago`
+    : "Recently";
+  const participants = Array.isArray(session.results) ? session.results.length : 0;
+
+  return {
+    id: session._id.toString(),
+    title,
+    category,
+    date: startedAt
+      ? startedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+      : "N/A",
+    score,
+    totalQuestions,
+    duration,
+    difficulty,
+    status: session.status === "in_progress" ? "In Progress" : "Completed",
+    rating,
+    participants,
+    lastUpdated,
+    description,
+  };
+};
+static async fetchUserQuizHistoryByQuizId(userId: string, quizId: string) {
+    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(quizId)) return [];
+    // Find all sessions for this user and quiz
+    const sessions = await GameSessionModel.find({
+        quizId: new Types.ObjectId(quizId),
+        'hostId': new Types.ObjectId(userId)
+    })
+    .populate('quizId')
+    .sort({ startedAt: -1 })
+    .lean();
+
+    return sessions;
+};
 }
