@@ -12,6 +12,7 @@ import Sidebar from '../components/dashboard/Sidebar';
 import QuizCardHistory from "../components/Quizhistory";
 import { userApi } from "../service/userApi";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 // --- Best Practice: Import the interface from a dedicated types file ---
 // import { IQuizHistory } from "../types/quiz";
@@ -27,7 +28,7 @@ export interface IQuizHistory {
   duration: string;
   difficulty: 'Easy' | 'Medium' | 'Hard';
   status: string;
-  rating: number;
+  rating: number; 
   participants: number;
   lastUpdated: string;
   description: string;
@@ -83,6 +84,11 @@ const Library: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);  
   const [activeSection, setActiveSection] = useState('library');
   const currentTime = new Date();
+  const navigate = useNavigate();
+
+const handleViewQuiz = (quizId: string) => {
+  navigate(`/history/${quizId}`);
+};
 
   // Display a loading indicator while data is being fetched
   if (loading) {
@@ -277,7 +283,7 @@ const Library: React.FC = () => {
                 <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                   {filteredQuizzes.map((quiz, index) => (
                     // Make sure your QuizCardHistory component expects a 'quiz' prop of type IQuizHistory
-                    <QuizCardHistory key={quiz.id} quiz={quiz} index={index} />
+                    <QuizCardHistory key={quiz.id} quiz={quiz} index={index}   onView={handleViewQuiz}/>
                   ))}
                 </div>
               )}

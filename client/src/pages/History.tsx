@@ -3,6 +3,7 @@ import { Calendar, Clock, Users } from "lucide-react";
 import Sidebar from "../components/dashboard/Sidebar";
 import { gameApi } from "../service/gameApi";
 import { useAuth } from "../context/AuthContext";
+import { useParams } from "react-router-dom";
 
 const History: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -13,13 +14,14 @@ const History: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const { user } = useAuth();
+    const { quizid } = useParams<{ quizid: string }>();
 
   useEffect(() => {
     const fetchHistory = async () => {
-      if (user?._id && user?.lastQuizId) {
+      if (user?._id && quizid) {
         setLoading(true);
         try {
-          const res = await gameApi.getUserQuizHistoryForQuiz(user._id, user.lastQuizId);
+          const res = await gameApi.getUserQuizHistoryForQuiz(user._id, quizid);
           setQuizHistory(res.data || []);
         } catch (e) {
           setQuizHistory([]);
@@ -33,12 +35,8 @@ const History: React.FC = () => {
     fetchHistory();
   }, [user]);
 
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return "text-emerald-600";
-    if (score >= 75) return "text-yellow-600";
-    return "text-red-500";
-  };
-
+  console.log(user?._id);
+  console.log(quizid);
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
@@ -76,10 +74,9 @@ const History: React.FC = () => {
                   <tr>
                     <th className="px-6 py-3">Quiz Title</th>
                     <th className="px-6 py-3">Date</th>
-                    <th className="px-6 py-3">Score</th>
                     <th className="px-6 py-3">Time Taken</th>
-                    <th className="px-6 py-3">Players</th>
                     <th className="px-6 py-3">Status</th>
+                    <th className="px-6 py-3">View details</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -104,16 +101,9 @@ const History: React.FC = () => {
                         <td className="px-6 py-4 font-medium text-gray-800">
                           {quiz.title}
                         </td>
-                        <td className="px-6 py-4 flex items-center text-gray-600">
+                        <td className="px-6 py-4  text-gray-600">
                           <Calendar className="w-4 h-4 mr-2 text-blue-600" />
                           {quiz.date}
-                        </td>
-                        <td
-                          className={`px-6 py-4 font-semibold ${getScoreColor(
-                            quiz.score
-                          )}`}
-                        >
-                          {quiz.score}%
                         </td>
                         <td className="px-6 py-4 flex items-center text-gray-600">
                           <Clock className="w-4 h-4 mr-2 text-orange-600" />

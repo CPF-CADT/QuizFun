@@ -130,7 +130,7 @@ export const getUserQuizHistory = async (req: Request, res: Response): Promise<R
             return res.status(400).json({ message: "Invalid user ID format." });
         }
 
-        const formattedHistory = await QuizHistoryRepository.getFormattedQuizHistory(userId);
+        const formattedHistory = await QuizHistoryRepository.getHostedQuizzesByUser(userId);
 
         return res.status(200).json(formattedHistory);
 

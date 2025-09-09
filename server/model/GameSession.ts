@@ -61,4 +61,4 @@ const GameSessionSchema = new Schema<IGameSession>({
     collection: 'gamesessions'
 });
 
-export const GameSessionModel = model<IGameSession>('GameSession', GameSessionSchema);
+export const    GameSessionModel = model<IGameSession>('GameSession', GameSessionSchema);

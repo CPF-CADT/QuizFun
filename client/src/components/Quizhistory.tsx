@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Users, Clock, Calendar, Eye } from 'lucide-react';
-import { FaUser } from 'react-icons/fa';
+
 
 // Type definitions for the component props
 interface Quiz {
@@ -19,6 +19,7 @@ interface Quiz {
 interface QuizCardProps {
   quiz: Quiz;
   index: number;
+  onView: (quizId: string) => void;
 }
 
 // Color configurations (can be moved to a shared constants file)
@@ -96,14 +97,11 @@ const QuizCardHistory: React.FC<QuizCardProps> = ({ quiz, index }) => {
 
       {/* Action Buttons */}
       <div className="flex gap-2">
-        <Link to="/history" className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-2.5 px-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-sm group-hover:shadow-lg">
+        <Link   to={`/history/${quiz.id}`}className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-2.5 px-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-sm group-hover:shadow-lg">
           <Eye className="w-4 h-4" />
           View History
         </Link>
-        <button className="flex-1 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white py-2.5 px-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-sm group-hover:shadow-lg">
-          <FaUser className="w-4 h-4" />
-          Top Performance
-        </button>
+
       </div>
 
       {/* Hover Effect Overlay */}

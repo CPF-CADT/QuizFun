@@ -1,4 +1,6 @@
 import { GameHistoryModel,IGameHistory } from '../model/GameHistory'; 
+import { GameSessionModel } from '../model/GameSession';
+
 import { IQuestion,QuizModel } from '../model/Quiz';
 import mongoose, { Types } from 'mongoose';
 
@@ -18,112 +20,53 @@ export interface IFormattedQuizHistory {
     description: string;
 }
 
-const calculateTotalPossiblePoints = (questions: IQuestion[]): number => {
-    return questions.reduce((acc, q) => acc + q.point, 0);
-};
-
-const calculateTotalDuration = (questions: IQuestion[]): number => {
-    const totalSeconds = questions.reduce((acc, q) => acc + q.timeLimit, 0);
-    return Math.round(totalSeconds / 60);
-};
 
 
 export const QuizHistoryRepository = {
-
-    async getFormattedQuizHistory(userId: string): Promise<IFormattedQuizHistory[]> {
-
-        const completedQuizzes = await GameHistoryModel.aggregate([
-
-            {
-                $match: {
-                    userId: new mongoose.Types.ObjectId(userId)
-                }
-            },
-
-            {
-                $sort: {
-                    createdAt: -1
-                }
-            },
-
-            {
-                $group: {
-                    _id: "$quizId",
-                    totalScoreGained: { $sum: "$finalScoreGained" },
-                    lastPlayedDate: { $first: "$createdAt" },
-                }
-            },
-
-            {
-                $lookup: {
-                    from: "quizzes", 
-                    localField: "_id",
-                    foreignField: "_id",
-                    as: "quizDetails"
-                }
-            },
-
-            {
-                $unwind: "$quizDetails"
-            },
-
-            {
-                $lookup: {
-                    from: "gamesessions", 
-                    localField: "_id",
-                    foreignField: "quizId",
-                    as: "sessions"
-                }
-            },
-            {
-                $project: {
-                    _id: 0, 
-                    id: "$_id",
-                    title: "$quizDetails.title",
-                    description: "$quizDetails.description",
-                    category: { $ifNull: [{ $arrayElemAt: ["$quizDetails.tags", 0] }, "General"] },
-                    date: "$lastPlayedDate",
-                    totalPossiblePoints: { $sum: "$quizDetails.questions.point" },
-                    totalScoreGained: "$totalScoreGained",
-                    totalQuestions: { $size: "$quizDetails.questions" },
-                    totalDurationSeconds: { $sum: "$quizDetails.questions.timeLimit" },
-                    difficulty: "$quizDetails.dificulty",
-                    participants: { $sum: { $size: "$sessions.results" } },
-                }
-            },
-             {
-                $project: {
-                    id: { $toString: "$id" },
-                    title: 1,
-                    description: 1,
-                    category: 1,
-                    date: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
-                    score: {
-                        $cond: {
-                            if: { $gt: ["$totalPossiblePoints", 0] },
-                            then: { 
-                                $round: [
-                                    { $multiply: [{ $divide: ["$totalScoreGained", "$totalPossiblePoints"] }, 100] },
-                                    0
-                                ]
-                            },
-                            else: 0
-                        }
-                    },
-                    totalQuestions: 1,
-                    duration: { $concat: [{ $toString: { $round: [{ $divide: ["$totalDurationSeconds", 60] }, 0] } }, " min"] },
-                    difficulty: 1,
-                    status: "Completed", 
-                    participants: 1,
-
-                    rating: { $add: [3.5, { $multiply: [{ $rand: {} }, 1.5] }] },
-                    lastUpdated: "a few days ago", 
-                }
-            }
-        ]);
-
-        return completedQuizzes;
-    }
+  async getHostedQuizzesByUser(userId: string): Promise<IFormattedQuizHistory[]> {
+    const quizzes = await GameSessionModel.aggregate([
+      {
+        $match: {
+          hostId: new mongoose.Types.ObjectId(userId)
+        }
+      },
+      {
+        $group: {
+          _id: "$quizId",
+          lastSessionId: { $last: "$_id" },
+          lastStartedAt: { $max: "$startedAt" },
+          participants: { $sum: { $size: { $ifNull: ["$results", []] } } }
+        }
+      },
+      {
+        $lookup: {
+          from: "quizzes",
+          localField: "_id",
+          foreignField: "_id",
+          as: "quizDetails"
+        }
+      },
+      { $unwind: "$quizDetails" },
+      {
+        $project: {
+          id: { $toString: "$_id" },
+          title: "$quizDetails.title",
+          description: "$quizDetails.description",
+          category: { $ifNull: [{ $arrayElemAt: ["$quizDetails.tags", 0] }, "General"] },
+          date: { $dateToString: { format: "%Y-%m-%d", date: "$lastStartedAt" } },
+          score: { $literal: 0 },
+          totalQuestions: { $size: "$quizDetails.questions" },
+          duration: { $concat: [{ $toString: { $divide: [{ $sum: "$quizDetails.questions.timeLimit" }, 60] } }, " min"] },
+          difficulty: "$quizDetails.dificulty",
+          status: { $literal: "Completed" },
+          rating: { $literal: 5 },
+          participants: 1,
+          lastUpdated: { $dateToString: { format: "%Y-%m-%d", date: "$quizDetails.updatedAt" } }
+        }
+      }
+    ]);
+    return quizzes as IFormattedQuizHistory[];
+  }
 };
 
 // Example usage:

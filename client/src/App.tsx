@@ -83,7 +83,7 @@ function App() {
         <Route path="/report/" element={<Report />} />
         <Route path="/library" element={<Library />} />
         <Route path="/session/:sessionId/performance" element={<PerformanceDetailPage />} />
-        <Route path="/history" element={<HistoryPage />} />
+        <Route path="/history/:quizid" element={<HistoryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/result/:sessionId" element={<ResultPage />} />
         <Route path="/my-history" element={<QuizHistoryPage />} />
