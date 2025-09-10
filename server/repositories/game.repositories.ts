@@ -186,9 +186,9 @@ export class GameRepository {
             .populate('userId', 'name email')
             .lean();
     }
-     static async findSessionByQuizAndHost(quizId: string, hostId: string): Promise<IGameSession | null> {
+     static async findSessionByQuizAndHost(quizId: string, hostId: string): Promise<IGameSession[] | null> {
         if (!Types.ObjectId.isValid(quizId) || !Types.ObjectId.isValid(hostId)) return null;
-        return GameSessionModel.findOne({
+        return GameSessionModel.find({
             quizId: new Types.ObjectId(quizId),
             hostId: new Types.ObjectId(hostId)
         }).lean();}
