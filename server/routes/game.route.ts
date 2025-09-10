@@ -5,6 +5,7 @@ import { GameController } from '../controller/game.controller';
 import { validate } from '../middleware/validate';
 import { gameSchemas } from '../validations/game.schemas'; 
 // import  quizRateLimit } from '../middleware/ratelimit.middleware';
+import { getUserQuizHistory } from '../controller/quizzHistory.controller';
 
 export const gameRouter = express.Router();
 
@@ -58,3 +59,8 @@ gameRouter.get('/:sessionId/analytics',
     validate(gameSchemas.sessionIdParam),
     GameController.getSessionAnalytics
 );
+gameRouter.get('/:userId/quiz-history', 
+    getUserQuizHistory
+);
+gameRouter.get('/:hostId/:quizId',GameController.getSessionByQuizAndHost);
+gameRouter.get('/:userId/quiz-history/:quizId',GameController.getUserQuizHistoryForQuiz);

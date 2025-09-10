@@ -109,6 +109,7 @@ export interface IUser {
   google_id?: string;
   createdAt: string;
   updatedAt: string;
+  lastQuizId?: string;
 }
 
 export interface ILoginResponse {

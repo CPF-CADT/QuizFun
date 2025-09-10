@@ -107,6 +107,23 @@ export interface IPaginatedUserReports {
   hasNext: boolean;
   hasPrev: boolean;
 }
+// src/types/quiz.ts (or a similar file)
+
+export interface IQuizHistory {
+  id: string;
+  title: string;
+  category: string;
+  date: string; // Or Date if you plan to parse it
+  score: number;
+  totalQuestions: number;
+  duration: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard'; // Using literal types for specificity
+  status: string; // Could also be a literal type e.g., 'Completed' | 'In Progress'
+  rating: number;
+  participants: number;
+  lastUpdated: string;
+  description: string;
+}
 
 
 

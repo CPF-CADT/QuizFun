@@ -3,6 +3,7 @@ import { validate } from '../middleware/validate';
 import { userSchemas } from '../validations/user.schemas';
 import { authenticateToken } from '../middleware/authenicate.middleware';
 import { GameController } from '../controller/game.controller';
+import { getUserQuizHistory } from '../controller/quizzHistory.controller';
 import {
     getAllUsers,
     getUsersByRole,
@@ -49,5 +50,7 @@ router.get('/search', searchUsers);
 
 // Game History route related to a user
 router.get('/:userId/history', authenticateToken, GameController.getUserHistory);
+
+router.get('/:id/quiz-history', getUserQuizHistory);
 
 export default router;

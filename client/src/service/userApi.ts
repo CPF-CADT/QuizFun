@@ -79,4 +79,7 @@ export const userApi = {
   getUserById: (userId: string) => {
     return apiClient.get(`/user/${userId}`);
   },
+    getUserQuizHistory: (userId: string) => {
+    return apiClient.get(`/user/${userId}/quiz-history`);
+  },
 };
