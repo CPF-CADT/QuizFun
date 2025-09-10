@@ -8,6 +8,7 @@ const validate_1 = require("../middleware/validate");
 const user_schemas_1 = require("../validations/user.schemas");
 const authenicate_middleware_1 = require("../middleware/authenicate.middleware");
 const game_controller_1 = require("../controller/game.controller");
+const quizzHistory_controller_1 = require("../controller/quizzHistory.controller");
 const user_controller_1 = require("../controller/user.controller");
 // import { quizRateLimit} from '../middleware/ratelimit.middleware';
 const router = express_1.default.Router();
@@ -33,4 +34,5 @@ router.put('/:id', authenicate_middleware_1.authenticateToken, (0, validate_1.va
 router.get('/search', user_controller_1.searchUsers);
 // Game History route related to a user
 router.get('/:userId/history', authenicate_middleware_1.authenticateToken, game_controller_1.GameController.getUserHistory);
+router.get('/:id/quiz-history', quizzHistory_controller_1.getUserQuizHistory);
 exports.default = router;

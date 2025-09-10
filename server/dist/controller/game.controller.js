@@ -869,5 +869,128 @@ class GameController {
             }
         });
     }
+    /**
+ * @swagger
+ * /api/session/{hostId}/{quizId}:
+ *   get:
+ *     tags:
+ *       - Game Sessions
+ *     summary: Get Session by Quiz and Host
+ *     description: Retrieves the details of a game session by matching both the quiz ID and the host ID.
+ *     parameters:
+ *       - name: quizId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: "^[a-fA-F0-9]{24}$"
+ *         description: The MongoDB ObjectId of the quiz.
+ *       - name: hostId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: "^[a-fA-F0-9]{24}$"
+ *         description: The MongoDB ObjectId of the host.
+ *     responses:
+ *       200:
+ *         description: Successful response with the session details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/GameSession'
+ *       404:
+ *         description: Session not found for the given quiz and host IDs.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+    static getSessionByQuizAndHost(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { quizId, hostId } = req.params;
+                const session = yield game_repositories_1.GameRepository.findSessionByQuizAndHost(quizId, hostId);
+                if (!session) {
+                    return res.status(404).json({ message: "Session not found for the given quiz and host." });
+                }
+                return res.status(200).json(session);
+            }
+            catch (error) {
+                console.error("Error fetching session by quiz and host:", error);
+                return res.status(500).json({ message: "Server error retrieving session details." });
+            }
+        });
+    }
+    ;
+    /**
+     * @swagger
+     * /api/session/{userId}/quiz-history/{quizId}:
+     *   get:
+     *     tags:
+     *       - Analytics & History
+     *     summary: Get User's Quiz History for a Specific Quiz
+     *     description: |
+     *       Retrieves all sessions of a specific quiz that a given user has participated in,
+     *       formatted for frontend consumption.
+     *     parameters:
+     *       - name: userId
+     *         in: path
+     *         required: true
+     *         schema:
+     *           type: string
+     *           pattern: "^[a-fA-F0-9]{24}$"
+     *         description: The MongoDB ObjectId of the user.
+     *       - name: quizId
+     *         in: path
+     *         required: true
+     *         schema:
+     *           type: string
+     *           pattern: "^[a-fA-F0-9]{24}$"
+     *         description: The MongoDB ObjectId of the quiz.
+     *     responses:
+     *       200:
+     *         description: Successfully retrieved the formatted quiz history for the user.
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: array
+     *               items:
+     *                 $ref: '#/components/schemas/FormattedQuizHistory'
+     *       404:
+     *         description: No quiz history found for the given user and quiz.
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/Error'
+     *       500:
+     *         description: Internal Server Error.
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/Error'
+     */
+    static getUserQuizHistoryForQuiz(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { userId, quizId } = req.params;
+                const sessions = yield game_repositories_1.GameRepository.fetchUserQuizHistoryByQuizId(userId, quizId);
+                // Format each session using your formatter
+                const formatted = sessions.map(session => game_repositories_1.GameRepository.formatSessionToQuizHistory(Object.assign(Object.assign({}, session), { quiz: session.quizId }), // quiz is populated as quizId
+                userId));
+                return res.status(200).json(formatted);
+            }
+            catch (error) {
+                console.error("Error fetching user quiz history for quiz:", error);
+                return res.status(500).json({ message: "Server error retrieving quiz history." });
+            }
+        });
+    }
 }
 exports.GameController = GameController;

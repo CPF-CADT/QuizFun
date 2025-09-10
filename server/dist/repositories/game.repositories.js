@@ -151,6 +151,16 @@ class GameRepository {
                 .lean();
         });
     }
+    static findSessionByQuizAndHost(quizId, hostId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!mongoose_1.Types.ObjectId.isValid(quizId) || !mongoose_1.Types.ObjectId.isValid(hostId))
+                return null;
+            return GameSession_1.GameSessionModel.find({
+                quizId: new mongoose_1.Types.ObjectId(quizId),
+                hostId: new mongoose_1.Types.ObjectId(hostId)
+            }).lean();
+        });
+    }
     static fetchGuestPerformanceInSession(sessionId, guestName) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!mongoose_1.Types.ObjectId.isValid(sessionId))
@@ -755,5 +765,71 @@ class GameRepository {
             ]);
         });
     }
+    static formatSessionToQuizHistory(session, userId) {
+        var _a;
+        const startedAt = session.startedAt ? new Date(session.startedAt) : null;
+        const endedAt = session.endedAt ? new Date(session.endedAt) : null;
+        // Calculate duration
+        let duration = "N/A";
+        if (startedAt && endedAt) {
+            const diffMs = endedAt.getTime() - startedAt.getTime();
+            const minutes = Math.floor(diffMs / 60000);
+            duration = `${minutes} min`;
+        }
+        // Find the user's score if available
+        let score = 0;
+        if (userId && Array.isArray(session.results)) {
+            const userResult = session.results.find((r) => { var _a; return ((_a = r.userId) === null || _a === void 0 ? void 0 : _a.toString()) === userId; });
+            score = (userResult === null || userResult === void 0 ? void 0 : userResult.finalScore) || 0;
+        }
+        // Fallbacks for quiz info
+        const quiz = session.quiz || {};
+        const title = quiz.title || "Untitled Quiz";
+        const category = Array.isArray(quiz.categories) && quiz.categories.length > 0
+            ? quiz.categories[0]
+            : (quiz.category || "General");
+        const totalQuestions = ((_a = quiz.questions) === null || _a === void 0 ? void 0 : _a.length) || 0;
+        const difficulty = quiz.difficulty || "Medium";
+        const rating = quiz.rating || 0; // Mocked or fallback
+        const description = quiz.description || "";
+        const lastUpdated = quiz.updatedAt
+            ? `${Math.round((Date.now() - new Date(quiz.updatedAt).getTime()) / (1000 * 60 * 60 * 24))} days ago`
+            : "Recently";
+        const participants = Array.isArray(session.results) ? session.results.length : 0;
+        return {
+            id: session._id.toString(),
+            title,
+            category,
+            date: startedAt
+                ? startedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                : "N/A",
+            score,
+            totalQuestions,
+            duration,
+            difficulty,
+            status: session.status === "in_progress" ? "In Progress" : "Completed",
+            rating,
+            participants,
+            lastUpdated,
+            description,
+        };
+    }
+    ;
+    static fetchUserQuizHistoryByQuizId(userId, quizId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!mongoose_1.Types.ObjectId.isValid(userId) || !mongoose_1.Types.ObjectId.isValid(quizId))
+                return [];
+            // Find all sessions for this user and quiz
+            const sessions = yield GameSession_1.GameSessionModel.find({
+                quizId: new mongoose_1.Types.ObjectId(quizId),
+                'hostId': new mongoose_1.Types.ObjectId(userId)
+            })
+                .populate('quizId')
+                .sort({ startedAt: -1 })
+                .lean();
+            return sessions;
+        });
+    }
+    ;
 }
 exports.GameRepository = GameRepository;

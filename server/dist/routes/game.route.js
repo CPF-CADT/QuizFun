@@ -10,6 +10,7 @@ const game_controller_1 = require("../controller/game.controller");
 const validate_1 = require("../middleware/validate");
 const game_schemas_1 = require("../validations/game.schemas");
 // import  quizRateLimit } from '../middleware/ratelimit.middleware';
+const quizzHistory_controller_1 = require("../controller/quizzHistory.controller");
 exports.gameRouter = express_1.default.Router();
 // Apply validation middleware to each route
 exports.gameRouter.get('/', (0, validate_1.validate)(game_schemas_1.gameSchemas.getSessions), game_controller_1.GameController.getSessions);
@@ -27,3 +28,6 @@ exports.gameRouter.get('/:sessionId/performance/:userId',
 // quizRateLimit,
 (0, validate_1.validate)(game_schemas_1.gameSchemas.userPerformanceParams), game_controller_1.GameController.getUserPerformanceInSession);
 exports.gameRouter.get('/:sessionId/analytics', (0, validate_1.validate)(game_schemas_1.gameSchemas.sessionIdParam), game_controller_1.GameController.getSessionAnalytics);
+exports.gameRouter.get('/:userId/quiz-history', quizzHistory_controller_1.getUserQuizHistory);
+exports.gameRouter.get('/:hostId/:quizId', game_controller_1.GameController.getSessionByQuizAndHost);
+exports.gameRouter.get('/:userId/quiz-history/:quizId', game_controller_1.GameController.getUserQuizHistoryForQuiz);
