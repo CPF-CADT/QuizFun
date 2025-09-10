@@ -31,6 +31,7 @@ import JoinTeamPage from "./pages/JoinTeamPage";
 import QuizHistoryPage from "./pages/QuizHistoryPage";
 import QuizzKHDocs from "./pages/DocsPage";
 import AboutUs from "./pages/AboutUs";
+import ScrollToTop from "./components/common/ScrollToTop";
 
 const PrivateRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -65,6 +66,7 @@ const NotFound: React.FC = () => (
 function App() {
   return (
     <>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<Homepage />} />
 
