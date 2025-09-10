@@ -2,12 +2,12 @@ import Joi from 'joi';
 
 // --- Reusable Base Schemas ---
 const mongoId = Joi.string().pattern(/^[0-9a-fA-F]{24}$/).messages({
-    'string.pattern.base': 'Invalid ID format'
+  'string.pattern.base': 'Invalid ID format'
 });
 
 const optionSchema = Joi.object({
-    text: Joi.string().trim().min(1).max(500).required(),
-    isCorrect: Joi.boolean().required()
+  text: Joi.string().trim().min(1).max(500).required(),
+  isCorrect: Joi.boolean().required()
 });
 
 const questionSchema = Joi.object({
@@ -105,19 +105,21 @@ export const quizSchemas = {
   },
   updateQuiz: {
     body: Joi.object({
-      title: Joi.string().trim().min(1).max(200),
-      description: Joi.string().trim().max(1000).allow(""),
-      visibility: Joi.string().valid("public", "private"),
-      dificulty: Joi.string().valid("Easy", "Medium", "Hard"),
+      title: Joi.string().trim().min(1).max(200).optional(),
+      description: Joi.string().trim().max(1000).allow("").optional(),
+      visibility: Joi.string().valid("public", "private").optional(),
+      dificulty: Joi.string().valid("Easy", "Medium", "Hard").optional(),
       tags: Joi.string()
         .trim()
         .pattern(/^[a-zA-Z0-9]+(,[a-zA-Z0-9]+)*$/)
         .max(500)
-        .allow(""),
+        .allow("")
+        .optional(),
     })
       .min(1)
       .messages({ "object.min": "At least one field is required to update." }),
-  },
+  }
+  ,
   addQuestion: {
     body: Joi.object({
       quizzId: mongoId.required(),

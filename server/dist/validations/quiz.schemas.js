@@ -102,15 +102,16 @@ exports.quizSchemas = {
     },
     updateQuiz: {
         body: joi_1.default.object({
-            title: joi_1.default.string().trim().min(1).max(200),
-            description: joi_1.default.string().trim().max(1000).allow(""),
-            visibility: joi_1.default.string().valid("public", "private"),
-            dificulty: joi_1.default.string().valid("Easy", "Medium", "Hard"),
+            title: joi_1.default.string().trim().min(1).max(200).optional(),
+            description: joi_1.default.string().trim().max(1000).allow("").optional(),
+            visibility: joi_1.default.string().valid("public", "private").optional(),
+            dificulty: joi_1.default.string().valid("Easy", "Medium", "Hard").optional(),
             tags: joi_1.default.string()
                 .trim()
                 .pattern(/^[a-zA-Z0-9]+(,[a-zA-Z0-9]+)*$/)
                 .max(500)
-                .allow(""),
+                .allow("")
+                .optional(),
         })
             .min(1)
             .messages({ "object.min": "At least one field is required to update." }),
