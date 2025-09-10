@@ -15,7 +15,12 @@ const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({ isOpen, onClose, 
   const [description, setDescription] = useState(quiz.description || '');
   const [dificulty, setDificulty] = useState<Dificulty>(quiz.dificulty);
   const [visibility, setVisibility] = useState<'public' | 'private'>(quiz.visibility);
-  const [tags, setTags] = useState(quiz.tags || ''); 
+
+  // store tags as string for input, but convert to array before saving
+  const [tags, setTags] = useState(
+    Array.isArray(quiz.tags) ? quiz.tags.join(',') : quiz.tags || ''
+  );
+
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -23,7 +28,7 @@ const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({ isOpen, onClose, 
     setDescription(quiz.description || '');
     setDificulty(quiz.dificulty);
     setVisibility(quiz.visibility);
-    setTags(quiz.tags || '');
+    setTags(Array.isArray(quiz.tags) ? quiz.tags.join(',') : quiz.tags || '');
   }, [quiz]);
 
   const handleSaveChanges = async (e: React.FormEvent) => {
@@ -32,7 +37,20 @@ const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({ isOpen, onClose, 
 
     setIsSaving(true);
     try {
-      const updatedQuizData = { title, description, dificulty, visibility, tags };
+      // convert string → array
+      const formattedTags = tags
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean);
+
+      const updatedQuizData = { 
+        title, 
+        description, 
+        dificulty, 
+        visibility, 
+        tags: formattedTags 
+      };
+
       const response = await quizApi.updateQuiz(quiz._id, updatedQuizData);
       onQuizUpdate(response.data.data);
       toast.success('Quiz details updated!');
@@ -63,6 +81,7 @@ const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({ isOpen, onClose, 
               required
             />
           </div>
+
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
             <textarea
@@ -73,6 +92,7 @@ const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({ isOpen, onClose, 
               rows={2}
             />
           </div>
+
           <div>
             <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
             <input
@@ -83,6 +103,7 @@ const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({ isOpen, onClose, 
               onChange={(e) => setTags(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
+            <p className="text-xs text-gray-500 mt-1">Example: math,science,history</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -99,6 +120,7 @@ const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({ isOpen, onClose, 
                 <option>Hard</option>
               </select>
             </div>
+
             <div>
               <label htmlFor="visibility" className="block text-sm font-medium text-gray-700 mb-1">Visibility</label>
               <select
