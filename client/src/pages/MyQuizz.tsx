@@ -11,6 +11,8 @@ import {
   Clock,
   Users,
   Loader,
+  Menu,
+  X,
 } from "lucide-react";
 import Sidebar from "../components/dashboard/Sidebar";
 import {
@@ -253,31 +255,47 @@ const MyQuizz: React.FC = () => {
   };
 
   return (
-    <>
-      <div className="flex min-h-screen bg-slate-50">
-        <Sidebar
-          activeSection="my-quizz"
-          setActiveSection={() => {}}
-          sidebarOpen={sidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-          currentTime={new Date()}
-        />
+    <div className="flex min-h-screen">
+      {/* Sidebar - always visible on large screens, hidden on small screens */}
+      <Sidebar
+        activeSection="my-quizz"
+        setActiveSection={() => {}}
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        currentTime={new Date()}
+      />
+      {/* Backdrop for mobile view */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          className="lg:hidden fixed inset-0 bg-black/50 z-40 transition-opacity duration-300"
+        ></div>
+      )}
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          {/* Header */}
-          <header className="flex flex-col sm:flex-row justify-center sm:items-center gap-4 mb-8">
-            <div className="text-center mb-10 ">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl shadow-2xl mb-6 transform rotate-3 hover:rotate-0 transition-transform duration-300">
-                <BookOpen className="w-10 h-10 text-white" />
-              </div>
-              <h1 className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-gray-900 via-indigo-800 to-purple-800 bg-clip-text text-transparent mb-4">
-                My Quiz Collection
-              </h1>
-              <p className="text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed">
-                Create, manage, and share your educational content with the
-                world
-              </p>
+      <div className="flex-1 flex flex-col">
+        {/* Hamburger menu for mobile, positioned on the left */}
+        <div className="lg:hidden sticky top-0 bg-white shadow-md p-4 flex items-center justify-start gap-4 z-50">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+          >
+            {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+          <h1 className="text-xl font-bold text-slate-800">My Quizzes</h1>
+        </div>
+
+        {/* Main content area */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 pt-20 lg:pt-8">
+          <header className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl shadow-2xl mb-6 transform rotate-3 hover:rotate-0 transition-transform duration-300">
+              <BookOpen className="w-10 h-10 text-white" />
             </div>
+            <h1 className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-gray-900 via-indigo-800 to-purple-800 bg-clip-text text-transparent mb-4">
+              My Quiz Collection
+            </h1>
+            <p className="text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed">
+              Create, manage, and share your educational content with the world
+            </p>
           </header>
 
           {/* Stats & Search Section */}
@@ -317,8 +335,6 @@ const MyQuizz: React.FC = () => {
               Create New Quiz
             </button>
           </section>
-
-          {/* Main Content */}
           {renderContent()}
         </main>
       </div>
@@ -333,7 +349,7 @@ const MyQuizz: React.FC = () => {
         isOpen={isCreateModalOpen}
         onClose={() => setCreateModalOpen(false)}
       />
-    </>
+    </div>
   );
 };
 

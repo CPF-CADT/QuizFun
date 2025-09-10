@@ -334,7 +334,7 @@ export class GameController {
         */
 
 
-     static async getUserHistory(req: Request, res: Response): Promise<Response> {
+    static async getUserHistory(req: Request, res: Response): Promise<Response> {
         try {
             const { userId } = req.params;
             const history = await GameRepository.fetchUserGameHistory(userId);
@@ -404,7 +404,7 @@ export class GameController {
     static async getUserPerformanceInSession(req: Request, res: Response): Promise<Response> {
         try {
             const { userId, sessionId } = req.params;
-            
+
             const cacheKey = `session-results:${sessionId}`;
             const cachedData = await redisClient.get(cacheKey);
 
@@ -636,7 +636,7 @@ export class GameController {
             if (cachedData) {
                 console.log(`[Cache] HIT for session results: ${sessionId}`);
                 const fullResults: IParticipantResult[] = JSON.parse(cachedData);
-                
+
                 const session = await GameSessionModel.findById(sessionId).select('hostId').lean();
                 if (!session) return res.status(404).json({ message: "Session not found." });
                 const isHost = !!(userId && session.hostId && session.hostId.equals(userId));
@@ -644,20 +644,21 @@ export class GameController {
 
                 const finalResults = fullResults.map(result => {
                     if (view === 'summary') {
-                        const { detailedPerformance, ...leaderboardData } = result;
+                        const { detailedPerformance, ...leaderboardData } = result as any; 
                         return leaderboardData;
                     }
                     const isSelf = (userId && result.participantId?.toString() === userId) || (guestName && result.name === guestName);
                     if (isHost || isSelf) return result;
-                    const { detailedPerformance, ...leaderboardData } = result;
+                    const { detailedPerformance, ...leaderboardData } = result as any;
                     return leaderboardData;
                 });
-                
+
                 return res.status(200).json({ viewType, results: finalResults });
             }
 
             console.log(`[Cache] MISS for session results: ${sessionId}. Falling back to DB.`);
-            const resultsPayload = await GameRepository.fetchFinalResults(sessionId, { userId, guestName });
+            const resultsPayload = await GameRepository.fetchFinalResults(sessionId, { userId, guestName }, view);
+
             if (!resultsPayload) {
                 return res.status(404).json({ message: 'Results for this game session could not be found.' });
             }
@@ -668,6 +669,7 @@ export class GameController {
             return res.status(500).json({ message: 'Server error retrieving session results.' });
         }
     }
+
 
 
     /**
@@ -727,12 +729,12 @@ export class GameController {
      *       500:
      *         description: Internal Server Error.
      */
-    
+
     static async getGuestPerformanceInSession(req: Request, res: Response): Promise<Response> {
         try {
             const { sessionId } = req.params;
             const { name } = req.query as { name: string };
-            
+
             const cacheKey = `session-results:${sessionId}`;
             const cachedData = await redisClient.get(cacheKey);
 

@@ -124,7 +124,7 @@ export const gameApi = {
       params: { name: guestName }
     });
   },
-  getSessionResults: (sessionId: string, params: { userId?: string; guestName?: string }) => {
+  getSessionResults: (sessionId: string, params: { userId?: string; guestName?: string; view:string }) => {
     return apiClient.get<ResultsPayload>(`/session/${sessionId}/results`, { params });
   },
   getSessionAnalytics: (sessionId: string) => {

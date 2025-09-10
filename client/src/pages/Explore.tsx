@@ -5,8 +5,9 @@ import type { IQuiz } from '../service/quizApi';
 import { useAuth } from '../context/AuthContext';
 import { userApi } from '../service/userApi';
 import {
-    Search, Star, TrendingUp, BookOpen, Users, Clock, GitFork, Zap, Loader, AlertCircle, Menu
+    Search, Star, TrendingUp, Users, GitFork, Zap, Loader, AlertCircle, Menu, PlayCircle
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface QuizPreview {
     id: string;
@@ -25,16 +26,6 @@ const difficultyConfig = {
     Easy: { bg: 'bg-gradient-to-r from-emerald-100 to-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
     Medium: { bg: 'bg-gradient-to-r from-amber-100 to-yellow-50', text: 'text-amber-700', border: 'border-amber-200' },
     Hard: { bg: 'bg-gradient-to-r from-red-100 to-rose-50', text: 'text-red-700', border: 'border-red-200' },
-};
-
-const categoryColors = {
-    Frontend: 'from-blue-500 to-cyan-500',
-    Design: 'from-purple-500 to-pink-500',
-    Programming: 'from-green-500 to-emerald-500',
-    Backend: 'from-orange-500 to-red-500',
-    'Data Science': 'from-indigo-500 to-blue-500',
-    'AI/ML': 'from-violet-500 to-purple-500',
-    Default: 'from-gray-500 to-slate-500',
 };
 
 const formatDistanceToNow = (dateString: string): string => {
@@ -70,6 +61,7 @@ const mapApiQuizToPreview = (apiQuiz: IQuiz): QuizPreview => ({
 
 const Explore: React.FC = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [quizzes, setQuizzes] = useState<QuizPreview[]>([]);
     const [allCategories, setAllCategories] = useState<string[]>([]);
     const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
@@ -91,6 +83,10 @@ const Explore: React.FC = () => {
         setSearchQuery(searchTerm);
         setCurrentPage(1);
         setQuizzes([]);
+    };
+
+    const handlePlaySolo = (quizId: string) => {
+        navigate(`/solo/${quizId}`);
     };
 
     useEffect(() => {
@@ -136,7 +132,7 @@ const Explore: React.FC = () => {
             }
         };
         if (quizzes.length > 0) fetchCreatorNames();
-    }, [quizzes]);
+    }, [quizzes, creatorNames]);
 
     useEffect(() => {
         const categories = [...new Set(quizzes.map(q => q.category))];
@@ -166,7 +162,19 @@ const Explore: React.FC = () => {
         return () => { if (sentinelRef.current) observer.unobserve(sentinelRef.current); };
     }, [hasNextPage, loadingMore]);
 
-    const getCategoryColor = (category: string) => categoryColors[category as keyof typeof categoryColors] || categoryColors.Default;
+    // utility function
+    const getCategoryColor = () => {
+        const colors = [
+            "bg-pink-500",
+            "bg-green-500",
+            "bg-indigo-500",
+            "bg-yellow-500",
+            "bg-cyan-500",
+        ];
+        // Pick a random index
+        const randomIndex = Math.floor(Math.random() * colors.length);
+        return colors[randomIndex];
+    };
 
     return (
         <div className="flex min-h-screen bg-slate-50">
@@ -228,7 +236,7 @@ const Explore: React.FC = () => {
                             </button>
                         </div>
                         <div className="flex flex-wrap gap-2 mt-4">
-                            <button onClick={() => { setSelectedCategory(''); setQuizzes([]); setCurrentPage(1); }} 
+                            <button onClick={() => { setSelectedCategory(''); setQuizzes([]); setCurrentPage(1); }}
                                 className={`px-3 py-1.5 lg:px-4 lg:py-2 rounded-full text-sm font-medium transition-all ${!selectedCategory ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                                 All Categories
                             </button>
@@ -255,7 +263,7 @@ const Explore: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
                                 {quizzes.map((quiz, index) => (
                                     <div key={`${quiz.id}-${index}`} className="group relative bg-white/80 backdrop-blur-sm rounded-3xl p-5 lg:p-6 shadow-lg border border-white/20 hover:shadow-2xl hover:scale-105 transform transition-all duration-500 overflow-hidden">
-                                        <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${getCategoryColor(quiz.category)}`}></div>
+                                        <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${getCategoryColor()}`}></div>
                                         <div className="absolute top-4 right-4 text-right">
                                             {quiz.popularity > 1000 && (
                                                 <div className="inline-flex items-center gap-1 bg-gradient-to-r from-orange-500 to-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold mb-1">
@@ -271,30 +279,29 @@ const Explore: React.FC = () => {
                                             <p className="text-gray-600 text-sm leading-relaxed line-clamp-3">{quiz.description}</p>
                                         </div>
                                         <div className="flex items-center justify-between mb-4">
-                                            <div className="flex items-center gap-2">
-                                                <div className={`w-8 h-8 bg-gradient-to-r ${getCategoryColor(quiz.category)} rounded-lg flex items-center justify-center`}>
-                                                    <BookOpen className="w-4 h-4 text-white" />
-                                                </div>
-                                                <span className="text-sm font-medium text-gray-700">{quiz.category}</span>
+                                            <div className="flex items-center gap-3 lg:gap-4">
+                                                <span className="flex items-center gap-1"><Users className="w-4 h-4" />{quiz.participants}</span>
+                                                <span className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-500 fill-current" />{quiz.rating.toFixed(1)}</span>
                                             </div>
                                             <div className={`px-3 py-1 rounded-full text-xs font-semibold border ${difficultyConfig[quiz.difficulty].bg} ${difficultyConfig[quiz.difficulty].text} ${difficultyConfig[quiz.difficulty].border}`}>
                                                 {quiz.difficulty}
                                             </div>
                                         </div>
-                                        <div className="flex justify-between items-center text-xs lg:text-sm text-gray-500 mb-4">
-                                            <div className="flex items-center gap-3 lg:gap-4">
-                                                <span className="flex items-center gap-1"><Users className="w-4 h-4" />{quiz.participants}</span>
-                                                <span className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-500 fill-current" />{quiz.rating.toFixed(1)}</span>
-                                            </div>
-                                            <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{quiz.lastUpdated}</span>
+                                        <div className="flex gap-2 w-full mt-4">
+                                            <button
+                                                onClick={() => handlePlaySolo(quiz.id)}
+                                                className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2.5 lg:py-3 px-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 group-hover:shadow-lg"
+                                            >
+                                                <PlayCircle className="w-4 h-4" />Play Solo
+                                            </button>
+                                            <button
+                                                onClick={() => handleForkQuiz(quiz.id)}
+                                                disabled={forkingQuizId === quiz.id}
+                                                className="flex-1 bg-violet-600 hover:bg-violet-700 text-white py-2.5 lg:py-3 px-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 group-hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
+                                            >
+                                                {forkingQuizId === quiz.id ? (<><Loader className="w-4 h-4 animate-spin" />Forking...</>) : (<><GitFork className="w-4 h-4" />Fork Quiz</>)}
+                                            </button>
                                         </div>
-                                        <button
-                                            onClick={() => handleForkQuiz(quiz.id)}
-                                            disabled={forkingQuizId === quiz.id}
-                                            className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white py-2.5 lg:py-3 px-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 group-hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
-                                        >
-                                            {forkingQuizId === quiz.id ? (<><Loader className="w-4 h-4 animate-spin" />Forking...</>) : (<><GitFork className="w-4 h-4" />Fork Quiz</>)}
-                                        </button>
                                     </div>
                                 ))}
                             </div>
@@ -312,4 +319,3 @@ const Explore: React.FC = () => {
 };
 
 export default Explore;
-

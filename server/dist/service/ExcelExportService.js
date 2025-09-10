@@ -113,7 +113,7 @@ class ExcelExportService {
                     const score = participant.score || 0;
                     const correctAnswers = ((_a = participant.detailedPerformance) === null || _a === void 0 ? void 0 : _a.filter(p => p.wasUltimatelyCorrect).length) || 0;
                     const totalQuestions = ((_b = quiz.questions) === null || _b === void 0 ? void 0 : _b.length) || 0;
-                    const percentage = totalQuestions > 0 ? ((score / totalQuestions) * 100).toFixed(1) + '%' : '0%';
+                    const percentage = totalQuestions > 0 ? ((correctAnswers / totalQuestions) * 100).toFixed(1) + '%' : '0%';
                     simpleSummaryData.push([
                         (index + 1).toString(), // Rank
                         participant.name || 'Anonymous',

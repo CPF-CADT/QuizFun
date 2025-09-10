@@ -32,14 +32,25 @@ export interface IQuizAnalytics {
     totalUniquePlayers: number;
     averageQuizScore: number;
     playerPerformance: {
+        passOrFail: {
+            passed: number;
+            failed: number;
+        };
+        scoreDistribution: {
+            '0-49%': number;
+            '50-69%': number;
+            '70-89%': number;
+            '90-100%': number;
+        };
+        fastResponses: number; 
+    };
+    engagementMetrics: {
+        uniquePlayers: number;
+        totalSessions: number;
         averageCompletionRate: number;
-        correctnessDistribution: {
-            below50Percent: number;
-            between50And70Percent: number;
-            above70Percent: number;
-        }
     };
 }
+
 
 export interface IActivitySession {
     _id: string;
@@ -66,19 +77,21 @@ export interface IActivityFeedResponse {
 }
 
 export interface ILeaderboardPlayer {
-    _id: string | object;
-    rank: number;
-    isGuest: boolean;
-    name: string;
-    profileUrl?: string;
-    averageScore: number;
-    totalGamesPlayed: number;
-    accuracy: number;
+  _id: string | object;   
+  rank: number;                   
+  isGuest: boolean;              
+  name: string;                   
+  profileUrl?: string;
+
+  totalGamesPlayed: number;      
+  totalScore: number;            
+  averageScore: number;           
+  averageAccuracy: number;     
 }
 
 export interface ILeaderboardResponse {
-    leaderboard: ILeaderboardPlayer[];
-    userRank?: ILeaderboardPlayer | null; 
+  leaderboard: ILeaderboardPlayer[];
+  userRank?: ILeaderboardPlayer | null;
 }
 
 export const reportApi = {

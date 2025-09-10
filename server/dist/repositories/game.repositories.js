@@ -356,7 +356,7 @@ class GameRepository {
             return GameSession_1.GameSessionModel.updateOne({ _id: new mongoose_1.Types.ObjectId(sessionId) }, { $push: { feedback } });
         });
     }
-    static fetchFinalResults(sessionId, identifier) {
+    static fetchFinalResults(sessionId, identifier, view) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
             const sessionObjectId = new mongoose_1.Types.ObjectId(sessionId);
@@ -367,6 +367,9 @@ class GameRepository {
                 return null;
             const isHost = !!(identifier.userId && session.hostId.equals(identifier.userId));
             const viewType = isHost ? 'host' : (identifier.guestName ? 'guest' : 'player');
+            // This is the core change: conditionally fetch detailed answers.
+            // We only need detailed answers if the view is not 'summary' AND the user is a host or the player themselves.
+            const shouldFetchDetailedAnswers = view !== 'summary';
             const pipeline = [
                 { $match: { gameSessionId: sessionObjectId } },
                 {
@@ -402,38 +405,40 @@ class GameRepository {
                 { $sort: { score: -1 } }
             ];
             let allResults = yield GameHistory_1.GameHistoryModel.aggregate(pipeline);
-            for (const result of allResults) {
-                const isSelf = (identifier.userId && ((_a = result.participantId) === null || _a === void 0 ? void 0 : _a.toString()) === identifier.userId) || (identifier.guestName && result.name === identifier.guestName);
-                if (isHost || isSelf) {
-                    const query = result.participantId ? { userId: result.participantId } : { guestNickname: result.name };
-                    const historyDocs = yield GameHistory_1.GameHistoryModel.find(Object.assign({ gameSessionId: sessionObjectId }, query)).lean();
-                    if (historyDocs.length === 0) {
-                        result.detailedAnswers = [];
-                        continue;
-                    }
-                    const quiz = yield Quiz_1.QuizModel.findById(historyDocs[0].quizId)
-                        .select('questions')
-                        .lean();
-                    const questionsMap = new Map(quiz === null || quiz === void 0 ? void 0 : quiz.questions.map(q => [q._id.toString(), q]));
-                    result.detailedAnswers = historyDocs.map((doc) => {
-                        const question = questionsMap.get(doc.questionId.toString());
-                        const detailedAttempts = doc.attempts.map(attempt => {
-                            const selectedOption = question === null || question === void 0 ? void 0 : question.options.find(opt => opt._id.equals(attempt.selectedOptionId));
+            if (shouldFetchDetailedAnswers) {
+                for (const result of allResults) {
+                    const isSelf = (identifier.userId && ((_a = result.participantId) === null || _a === void 0 ? void 0 : _a.toString()) === identifier.userId) || (identifier.guestName && result.name === identifier.guestName);
+                    if (isHost || isSelf) {
+                        const query = result.participantId ? { userId: result.participantId } : { guestNickname: result.name };
+                        const historyDocs = yield GameHistory_1.GameHistoryModel.find(Object.assign({ gameSessionId: sessionObjectId }, query)).lean();
+                        if (historyDocs.length === 0) {
+                            result.detailedAnswers = [];
+                            continue;
+                        }
+                        const quiz = yield Quiz_1.QuizModel.findById(historyDocs[0].quizId)
+                            .select('questions')
+                            .lean();
+                        const questionsMap = new Map(quiz === null || quiz === void 0 ? void 0 : quiz.questions.map(q => [q._id.toString(), q]));
+                        result.detailedAnswers = historyDocs.map((doc) => {
+                            const question = questionsMap.get(doc.questionId.toString());
+                            const detailedAttempts = doc.attempts.map(attempt => {
+                                const selectedOption = question === null || question === void 0 ? void 0 : question.options.find(opt => opt._id.equals(attempt.selectedOptionId));
+                                return {
+                                    selectedOptionText: (selectedOption === null || selectedOption === void 0 ? void 0 : selectedOption.text) || "N/A",
+                                    answerTimeMs: attempt.answerTimeMs,
+                                    isCorrect: attempt.isCorrect
+                                };
+                            });
                             return {
-                                selectedOptionText: (selectedOption === null || selectedOption === void 0 ? void 0 : selectedOption.text) || "N/A",
-                                answerTimeMs: attempt.answerTimeMs,
-                                isCorrect: attempt.isCorrect
+                                _id: doc._id.toString(),
+                                isUltimatelyCorrect: doc.isUltimatelyCorrect,
+                                questionId: {
+                                    questionText: (question === null || question === void 0 ? void 0 : question.questionText) || "Question not found",
+                                },
+                                attempts: detailedAttempts
                             };
                         });
-                        return {
-                            _id: doc._id.toString(),
-                            isUltimatelyCorrect: doc.isUltimatelyCorrect,
-                            questionId: {
-                                questionText: (question === null || question === void 0 ? void 0 : question.questionText) || "Question not found",
-                            },
-                            attempts: detailedAttempts
-                        };
-                    });
+                    }
                 }
             }
             const finalResults = isHost ? allResults : allResults.filter(r => {

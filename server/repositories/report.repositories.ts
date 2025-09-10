@@ -29,122 +29,109 @@ export interface IActivityFeedResponse {
 }
 
 export interface ILeaderboardPlayer {
-    _id: Types.ObjectId | string;
+    _id: string | object;
     rank: number;
     isGuest: boolean;
     name: string;
     profileUrl?: string;
-    averageScore: number;
     totalGamesPlayed: number;
-    accuracy: number; // <-- Added this new field
+    totalScore: number;
+    averageScore: number;
+    averageAccuracy: number;
 }
 
 export interface ILeaderboardResponse {
     leaderboard: ILeaderboardPlayer[];
-    userRank?: ILeaderboardPlayer | null; 
+    userRank?: ILeaderboardPlayer | null;
 }
 export class ReportRepository {
 
-
     static async getLeaderboardAndUserRank(limit: number, userId?: string): Promise<ILeaderboardResponse> {
-        try {
-            const aggregationPipeline: PipelineStage[] = [
-                // 1. Filter for completed games
-                { $match: { status: 'completed', 'results.0': { $exists: true } } },
+        const pipeline: PipelineStage[] = [
+            // 1) Only completed games
+            { $match: { status: "completed", "results.0": { $exists: true } } },
 
-                // 2. Unwind participants to process each one
-                { $unwind: '$results' },
+            // 2) Unwind participants
+            { $unwind: "$results" },
 
-                // 3. Group players: registered users by ID, guests by nickname
-                {
-                    $group: {
-                        _id: {
-                            id: { $ifNull: ['$results.userId', '$results.nickname'] },
-                            type: { $cond: { if: '$results.userId', then: 'user', else: 'guest' } }
-                        },
-                        name: { $first: '$results.nickname' },
-                        userId: { $first: '$results.userId' },
-                        totalScore: { $sum: '$results.finalScore' },
-                        totalGamesPlayed: { $sum: 1 },
-                    }
-                },
+            // 3) Group by userId (or nickname for guest)
+            {
+                $group: {
+                    _id: {
+                        id: { $ifNull: ["$results.userId", "$results.nickname"] },
+                        type: { $cond: { if: "$results.userId", then: "user", else: "guest" } }
+                    },
+                    name: { $first: "$results.nickname" },
+                    userId: { $first: "$results.userId" },
 
-                // 4. Calculate the average score for each player
-                {
-                    $addFields: {
-                        averageScore: {
-                            $cond: {
-                                if: { $gt: ['$totalGamesPlayed', 0] },
-                                then: { $round: [{ $divide: ['$totalScore', '$totalGamesPlayed'] }, 0] },
-                                else: 0
-                            }
-                        }
-                    }
-                },
+                    totalGamesPlayed: { $sum: 1 },
+                    totalScore: { $sum: "$results.finalScore" }
+                }
+            },
 
-                // 5. Sort by the 'averageScore' to ensure correct order
-                { $sort: { averageScore: -1, totalGamesPlayed: -1 } },
-
-                // 6. Group all players to create a ranked list
-                {
-                    $group: {
-                        _id: null,
-                        players: { $push: '$$ROOT' }
-                    }
-                },
-
-                // 7. Unwind the list to assign a rank based on the sorted order
-                {
-                    $unwind: {
-                        path: '$players',
-                        includeArrayIndex: 'rank'
-                    }
-                },
-                
-                // 8. Lookup user data for profile pictures
-                {
-                    $lookup: {
-                        from: 'users',
-                        localField: 'players.userId',
-                        foreignField: '_id',
-                        as: 'userData'
-                    }
-                },
-                
-                // 9. Shape the final output
-                {
-                    $project: {
-                        _id: '$players._id.id',
-                        rank: { $add: ['$rank', 1] }, // Make rank 1-based
-                        name: { $ifNull: [{ $first: '$userData.name' }, '$players.name'] },
-                        profileUrl: { $ifNull: [{ $first: '$userData.profileUrl' }, null] },
-                        averageScore: '$players.averageScore',
-                        totalGamesPlayed: '$players.totalGamesPlayed',
-                        isGuest: { $eq: ['$players._id.type', 'guest'] },
+            // 4) Compute average points per game
+            {
+                $addFields: {
+                    averageScore: {
+                        $cond: [
+                            { $gt: ["$totalGamesPlayed", 0] },
+                            { $round: [{ $divide: ["$totalScore", "$totalGamesPlayed"] }, 0] },
+                            0
+                        ]
                     }
                 }
-            ];
+            },
 
-            const allPlayersRanked: ILeaderboardPlayer[] = await GameSessionModel.aggregate(aggregationPipeline);
+            // 5) Sort purely by totalScore (descending)
+            { $sort: { totalScore: -1 } },
 
-            const leaderboard = allPlayersRanked.slice(0, limit);
-            let userRank: ILeaderboardPlayer | null = null;
+            // 6) Group to prepare ranking
+            { $group: { _id: null, players: { $push: "$$ROOT" } } },
+            { $unwind: { path: "$players", includeArrayIndex: "rank" } },
 
-            // Find the specific user's rank only if a userId was provided
-            if (userId) {
-                const userIdString = new Types.ObjectId(userId).toString();
-                userRank = allPlayersRanked.find(player => player._id.toString() === userIdString) || null;
+            // 7) Lookup user profile (optional)
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "players.userId",
+                    foreignField: "_id",
+                    as: "userData"
+                }
+            },
+
+            // 8) Final output
+            {
+                $project: {
+                    _id: "$players._id.id",
+                    rank: { $add: ["$rank", 1] }, // 1-based
+                    name: { $ifNull: [{ $first: "$userData.name" }, "$players.name"] },
+                    profileUrl: { $ifNull: [{ $first: "$userData.profileUrl" }, null] },
+
+                    totalGamesPlayed: "$players.totalGamesPlayed",
+                    totalScore: "$players.totalScore",
+                    averageScore: "$players.averageScore",
+
+                    isGuest: { $eq: ["$players._id.type", "guest"] }
+                }
             }
+        ];
 
-            const response: ILeaderboardResponse = { leaderboard, userRank };
-            
-            return response;
-        } catch (error) {
-            console.error("Error fetching leaderboard:", error);
-            throw error; // Re-throw to be caught by the controller
+        const allPlayers = await GameSessionModel.aggregate(pipeline);
+
+        const leaderboard = allPlayers.slice(0, limit);
+        let userRank: ILeaderboardPlayer | null = null;
+
+        if (userId) {
+            const userIdStr = new Types.ObjectId(userId).toString();
+            userRank = allPlayers.find(
+                p => p._id?.toString?.() === userIdStr || p._id === userIdStr
+            ) || null;
         }
+
+        return { leaderboard, userRank };
     }
-      
+
+
     static async findQuizzesByCreator(creatorId: string): Promise<IReportQuizListItem[]> {
         const results = await QuizModel.find({ creatorId: new Types.ObjectId(creatorId) })
             .select('title dificulty createdAt')
@@ -159,224 +146,276 @@ export class ReportRepository {
         }));
     }
 
-
     static async getQuizAnalytics(quizId: string, creatorId: string): Promise<IQuizAnalytics | null> {
-        const quizObjectId = new Types.ObjectId(quizId);
-        const creatorObjectId = new Types.ObjectId(creatorId);
+        try {
+            const quizObjectId = new Types.ObjectId(quizId);
+            const creatorObjectId = new Types.ObjectId(creatorId);
 
-        const quiz = await QuizModel.findOne({ _id: quizObjectId, creatorId: creatorObjectId }).lean();
-        if (!quiz) {
-            return null;
-        }
+            const quiz = await QuizModel.findOne({
+                _id: quizObjectId,
+                $or: [{ creatorId: creatorObjectId }, { forkBy: creatorObjectId }]
+            }).select('title questions').lean();
 
-        const historyAggregation = await GameHistoryModel.aggregate([
-            { $match: { quizId: quizObjectId } },
-            {
-                $group: {
-                    _id: "$userId",
-                    totalCorrect: { $sum: { $cond: ["$isUltimatelyCorrect", 1, 0] } },
-                    totalAnswers: { $sum: 1 }
+            if (!quiz) {
+                return null;
+            }
+
+            const totalQuestions = quiz.questions?.length || 0;
+            if (totalQuestions === 0) {
+                return {
+                    quizId: quiz._id.toString(),
+                    quizTitle: quiz.title,
+                    totalSessions: 0,
+                    totalUniquePlayers: 0,
+                    averageQuizScore: 0,
+                    playerPerformance: {
+                        passOrFail: { passed: 0, failed: 0 },
+                        scoreDistribution: { '0-49%': 0, '50-69%': 0, '70-89%': 0, '90-100%': 0 },
+                        fastResponses: 0,
+                    },
+                    engagementMetrics: {
+                        uniquePlayers: 0,
+                        totalSessions: 0,
+                        averageCompletionRate: 0,
+                    }
+                };
+            }
+
+            const questionTimeLimits = new Map<string, number>();
+            quiz.questions?.forEach(q => {
+                if (q.timeLimit) {
+                    questionTimeLimits.set(q._id.toString(), q.timeLimit * 1000 * 0.5); // 50% in milliseconds
                 }
-            },
-            {
-                $project: {
-                    _id: 0,
-                    userId: "$_id",
-                    correctnessPercentage: {
-                        $cond: [{ $eq: ["$totalAnswers", 0] }, 0, { $multiply: [{ $divide: ["$totalCorrect", "$totalAnswers"] }, 100] }]
+            });
+
+            const detailedHistory = await GameHistoryModel.find({ quizId: quizObjectId }).lean();
+
+            const playerMetricsMap = new Map<string, {
+                totalCorrect: number;
+                totalAnswered: number;
+                fastResponsesCount: number;
+                totalQuestions: number;
+            }>();
+
+            detailedHistory.forEach(historyItem => {
+                const playerId = historyItem.userId ? historyItem.userId.toString() : historyItem.guestNickname;
+                if (!playerId) return;
+
+                if (!playerMetricsMap.has(playerId)) {
+                    playerMetricsMap.set(playerId, { totalCorrect: 0, totalAnswered: 0, fastResponsesCount: 0, totalQuestions: totalQuestions });
+                }
+
+                const metrics = playerMetricsMap.get(playerId)!;
+
+                if (historyItem.isUltimatelyCorrect) {
+                    metrics.totalCorrect++;
+                }
+
+                if (historyItem.attempts && historyItem.attempts.length > 0) {
+                    const lastAttempt = historyItem.attempts[historyItem.attempts.length - 1];
+                    metrics.totalAnswered++;
+
+                    const questionId = historyItem.questionId.toString();
+                    const timeLimit = questionTimeLimits.get(questionId);
+
+                    if (timeLimit !== undefined && lastAttempt.answerTimeMs <= timeLimit) {
+                        metrics.fastResponsesCount++;
                     }
                 }
-            }
-        ]);
+            });
 
-        const sessionAggregation = await GameSessionModel.aggregate([
-            { $match: { quizId: quizObjectId, status: 'completed' } },
-            {
-                $facet: {
-                    "summary": [
-                        { $unwind: "$results" },
-                        {
-                            $group: {
-                                _id: null,
-                                totalPlayers: { $addToSet: "$results.userId" },
-                                totalSessions: { $addToSet: "$_id" },
-                                averageScore: { $avg: "$results.finalScore" }
-                            }
-                        },
-                        {
-                            $project: {
-                                _id: 0,
-                                totalPlayers: { $size: "$totalPlayers" },
-                                totalSessions: { $size: "$totalSessions" },
-                                averageScore: { $ifNull: ["$averageScore", 0] }
-                            }
-                        }
-                    ]
+            const playerMetrics = Array.from(playerMetricsMap.values());
+            const totalUniquePlayers = playerMetrics.length;
+            const totalSessions = await GameHistoryModel.distinct('gameSessionId', { quizId: quizObjectId }).then(ids => ids.length);
+
+            let passed = 0;
+            let failed = 0;
+            let fastThinkers = 0;
+            const allCorrectnessPercentages: number[] = [];
+            const fastThinkerThreshold = Math.floor(totalQuestions * 0.5);
+
+            const scoreDist: IQuizAnalytics['playerPerformance']['scoreDistribution'] = {
+                '0-49%': 0, '50-69%': 0, '70-89%': 0, '90-100%': 0
+            };
+
+            playerMetrics.forEach(p => {
+                const correctnessPercentage = p.totalQuestions > 0 ? (p.totalCorrect / p.totalQuestions) * 100 : 0;
+                allCorrectnessPercentages.push(correctnessPercentage);
+
+                // Check if player is a "fast thinker"
+                if (p.fastResponsesCount > fastThinkerThreshold) {
+                    fastThinkers++;
                 }
-            }
-        ]);
 
-        const summaryData = sessionAggregation[0]?.summary;
-        const summary = (summaryData && summaryData.length > 0)
-            ? summaryData[0]
-            : { totalPlayers: 0, totalSessions: 0, averageScore: 0 };
+                if (correctnessPercentage >= 50) { passed++; } else { failed++; }
+                if (correctnessPercentage >= 90) { scoreDist['90-100%']++; }
+                else if (correctnessPercentage >= 70) { scoreDist['70-89%']++; }
+                else if (correctnessPercentage >= 50) { scoreDist['50-69%']++; }
+                else { scoreDist['0-49%']++; }
+            });
 
-        let below50 = 0, between50and70 = 0, above70 = 0;
-        historyAggregation.forEach(p => {
-            if (p.correctnessPercentage < 50) below50++;
-            else if (p.correctnessPercentage <= 70) between50and70++;
-            else above70++;
-        });
-        const totalParticipantsWithHistory = historyAggregation.length;
+            const averageQuizScore = totalUniquePlayers > 0
+                ? allCorrectnessPercentages.reduce((sum, score) => sum + score, 0) / totalUniquePlayers
+                : 0;
 
-        return {
-            quizId: quiz._id.toString(),
-            quizTitle: quiz.title,
-            totalSessions: summary.totalSessions,
-            totalUniquePlayers: summary.totalPlayers,
-            averageQuizScore: Math.round(summary.averageScore),
-            playerPerformance: {
-                averageCompletionRate: totalParticipantsWithHistory > 0 ? Math.round(historyAggregation.reduce((acc, p) => acc + p.correctnessPercentage, 0) / totalParticipantsWithHistory) : 0,
-                correctnessDistribution: {
-                    below50Percent: totalParticipantsWithHistory > 0 ? Math.round((below50 / totalParticipantsWithHistory) * 100) : 0,
-                    between50And70Percent: totalParticipantsWithHistory > 0 ? Math.round((between50and70 / totalParticipantsWithHistory) * 100) : 0,
-                    above70Percent: totalParticipantsWithHistory > 0 ? Math.round((above70 / totalParticipantsWithHistory) * 100) : 0,
+            const averageCompletionRate = totalUniquePlayers > 0
+                ? playerMetrics.reduce((sum, p) => sum + (p.totalAnswered / p.totalQuestions) * 100, 0) / totalUniquePlayers
+                : 0;
+
+            return {
+                quizId: quiz._id.toString(),
+                quizTitle: quiz.title,
+                totalSessions: totalSessions,
+                totalUniquePlayers: totalUniquePlayers,
+                averageQuizScore: parseFloat(averageQuizScore.toFixed(2)),
+                playerPerformance: {
+                    passOrFail: { passed, failed },
+                    scoreDistribution: scoreDist,
+                    fastResponses: fastThinkers,
+                },
+                engagementMetrics: {
+                    uniquePlayers: totalUniquePlayers,
+                    totalSessions: totalSessions,
+                    averageCompletionRate: parseFloat(averageCompletionRate.toFixed(2)),
                 }
-            },
+            };
+        } catch (error) {
+            console.error("Error in getQuizAnalytics:", error);
+            return null;
+        }
+    }
+
+    static async fetchUserActivityFeed(userId: string, page: number, limit: number, roleFilter: string): Promise<IActivityFeedResponse> {
+        const userObjectId = new Types.ObjectId(userId);
+        const skip = (page - 1) * limit;
+
+        // --- DYNAMIC MATCH QUERY ---
+        const matchQuery: any = {
+            status: "completed",
         };
-    }
 
-    static async fetchUserActivityFeed(userId: string, page: number, limit: number, roleFilter:string): Promise<IActivityFeedResponse> {
-    const userObjectId = new Types.ObjectId(userId);
-    const skip = (page - 1) * limit;
+        const playerCondition = { "results.userId": userObjectId };
+        const hostCondition = { hostId: userObjectId, mode: { $ne: "solo" } };
 
-    // --- DYNAMIC MATCH QUERY ---
-    const matchQuery: any = {
-        status: "completed",
-    };
+        if (roleFilter === 'player') {
+            matchQuery.$or = [playerCondition];
+        } else if (roleFilter === 'host') {
+            matchQuery.$or = [hostCondition];
+        } else { // 'all' is the default
+            matchQuery.$or = [playerCondition, hostCondition];
+        }
+        // --- END DYNAMIC MATCH QUERY ---
 
-    const playerCondition = { "results.userId": userObjectId };
-    const hostCondition = { hostId: userObjectId, mode: { $ne: "solo" } };
-
-    if (roleFilter === 'player') {
-        matchQuery.$or = [playerCondition];
-    } else if (roleFilter === 'host') {
-        matchQuery.$or = [hostCondition];
-    } else { // 'all' is the default
-        matchQuery.$or = [playerCondition, hostCondition];
-    }
-    // --- END DYNAMIC MATCH QUERY ---
-
-    const [sessions, total] = await Promise.all([
-        GameSessionModel.aggregate([
-            { $match: matchQuery },
-            { $sort: { endedAt: -1 } },
-            { $skip: skip },
-            { $limit: limit },
-            { $unwind: "$results" },
-            {
-                $lookup: {
-                    from: "gamehistories",
-                    let: { sessionId: "$_id", participantId: "$results.userId" },
-                    pipeline: [
-                        {
-                            $match: {
-                                $expr: {
-                                    $and: [
-                                        { $eq: ["$gameSessionId", "$$sessionId"] },
-                                        { $eq: ["$userId", "$$participantId"] },
-                                        { $eq: ["$isUltimatelyCorrect", true] }
-                                    ]
-                                }
-                            }
-                        },
-                        { $count: "count" }
-                    ],
-                    as: "correctAnswersLookup"
-                }
-            },
-            {
-                $addFields: {
-                    "results.correctAnswers": { $ifNull: [{ $first: "$correctAnswersLookup.count" }, 0] }
-                }
-            },
-            {
-                $group: {
-                    _id: "$_id",
-                    hostId: { $first: "$hostId" },
-                    quizId: { $first: "$quizId" },
-                    endedAt: { $first: "$endedAt" },
-                    results: { $push: "$results" }
-                }
-            },
-            { $sort: { endedAt: -1 } },
-            {
-                $lookup: {
-                    from: "quizzes",
-                    localField: "quizId",
-                    foreignField: "_id",
-                    as: "quiz"
-                }
-            },
-            { $unwind: "$quiz" },
-            {
-                $addFields: {
-                    totalQuestions: { $size: "$quiz.questions" }
-                }
-            },
-            {
-                $project: {
-                    _id: 1,
-                    quizTitle: "$quiz.title",
-                    quizzId: "$quiz._id",
-                    endedAt: 1,
-                    role: { $cond: { if: { $eq: ["$hostId", userObjectId] }, then: "host", else: "player" } },
-                    playerCount: { $size: "$results" },
-                    averageScore: {
-                        $cond: {
-                            if: { $and: [{ $gt: ["$totalQuestions", 0] }, { $gt: [{ $size: "$results" }, 0] }] },
-                            then: {
-                                $avg: {
-                                    $map: {
-                                        input: "$results",
-                                        as: "r",
-                                        in: { $multiply: [{ $divide: ["$$r.correctAnswers", "$totalQuestions"] }, 100] }
+        const [sessions, total] = await Promise.all([
+            GameSessionModel.aggregate([
+                { $match: matchQuery },
+                { $sort: { endedAt: -1 } },
+                { $skip: skip },
+                { $limit: limit },
+                { $unwind: "$results" },
+                {
+                    $lookup: {
+                        from: "gamehistories",
+                        let: { sessionId: "$_id", participantId: "$results.userId" },
+                        pipeline: [
+                            {
+                                $match: {
+                                    $expr: {
+                                        $and: [
+                                            { $eq: ["$gameSessionId", "$$sessionId"] },
+                                            { $eq: ["$userId", "$$participantId"] },
+                                            { $eq: ["$isUltimatelyCorrect", true] }
+                                        ]
                                     }
                                 }
                             },
-                            else: 0
-                        }
-                    },
-                    playerResult: {
-                        $first: {
-                            $map: {
-                                input: { $filter: { input: "$results", as: "r", cond: { $eq: ["$$r.userId", userObjectId] } } },
-                                as: "self",
-                                in: {
-                                    finalScore: "$$self.finalScore",
-                                    finalRank: "$$self.finalRank"
+                            { $count: "count" }
+                        ],
+                        as: "correctAnswersLookup"
+                    }
+                },
+                {
+                    $addFields: {
+                        "results.correctAnswers": { $ifNull: [{ $first: "$correctAnswersLookup.count" }, 0] }
+                    }
+                },
+                {
+                    $group: {
+                        _id: "$_id",
+                        hostId: { $first: "$hostId" },
+                        quizId: { $first: "$quizId" },
+                        endedAt: { $first: "$endedAt" },
+                        results: { $push: "$results" }
+                    }
+                },
+                { $sort: { endedAt: -1 } },
+                {
+                    $lookup: {
+                        from: "quizzes",
+                        localField: "quizId",
+                        foreignField: "_id",
+                        as: "quiz"
+                    }
+                },
+                { $unwind: "$quiz" },
+                {
+                    $addFields: {
+                        totalQuestions: { $size: "$quiz.questions" }
+                    }
+                },
+                {
+                    $project: {
+                        _id: 1,
+                        quizTitle: "$quiz.title",
+                        quizzId: "$quiz._id",
+                        endedAt: 1,
+                        role: { $cond: { if: { $eq: ["$hostId", userObjectId] }, then: "host", else: "player" } },
+                        playerCount: { $size: "$results" },
+                        averageScore: {
+                            $cond: {
+                                if: { $and: [{ $gt: ["$totalQuestions", 0] }, { $gt: [{ $size: "$results" }, 0] }] },
+                                then: {
+                                    $avg: {
+                                        $map: {
+                                            input: "$results",
+                                            as: "r",
+                                            in: { $multiply: [{ $divide: ["$$r.correctAnswers", "$totalQuestions"] }, 100] }
+                                        }
+                                    }
+                                },
+                                else: 0
+                            }
+                        },
+                        playerResult: {
+                            $first: {
+                                $map: {
+                                    input: { $filter: { input: "$results", as: "r", cond: { $eq: ["$$r.userId", userObjectId] } } },
+                                    as: "self",
+                                    in: {
+                                        finalScore: "$$self.finalScore",
+                                        finalRank: "$$self.finalRank"
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-        ]),
-        // Count documents using the same dynamic query for accurate pagination
-        GameSessionModel.countDocuments(matchQuery)
-    ]);
+            ]),
+            // Count documents using the same dynamic query for accurate pagination
+            GameSessionModel.countDocuments(matchQuery)
+        ]);
 
-    const totalPages = Math.ceil(total / limit);
-    return {
-        activities: sessions,
-        total,
-        page,
-        limit,
-        totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1
-    };
-}
+        const totalPages = Math.ceil(total / limit);
+        return {
+            activities: sessions,
+            total,
+            page,
+            limit,
+            totalPages,
+            hasNext: page < totalPages,
+            hasPrev: page > 1
+        };
+    }
     static async fetchQuizFeedback(
         quizId: string,
         page: number,
