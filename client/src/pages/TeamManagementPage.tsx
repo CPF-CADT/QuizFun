@@ -96,7 +96,7 @@ const TeamManagementPage: React.FC = () => {
                         {/* Desktop Header */}
                         <header className="hidden lg:flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
                             <div>
-                                 <Link to={'/team'}  className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-gray-800 mb-3 transition-colors">
+                                 <Link to={'/teams'}  className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-gray-800 mb-3 transition-colors">
                                     <ArrowLeft size={16} />
                                     Back to Teams
                                 </Link>
