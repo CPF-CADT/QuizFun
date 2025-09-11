@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlusCircle, Users, Menu } from 'lucide-react';
 import Sidebar from '../components/dashboard/Sidebar';
@@ -13,6 +13,7 @@ const TeamDashboardPage: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const navigate = useNavigate();
 
+    // Fetches the initial list of teams when the component loads
     useEffect(() => {
         setIsLoading(true);
         teamApi.getUserTeams()
@@ -92,7 +93,7 @@ const TeamDashboardPage: React.FC = () => {
                     </div>
                 </main>
             </div>
-            <CreateTeamModal isOpen={isModalOpen} onClose={() => { /* Logic to refetch teams */ }} />
+            <CreateTeamModal isOpen={isModalOpen} onClose={() => setModalOpen(false)} />
         </>
     );
 };
