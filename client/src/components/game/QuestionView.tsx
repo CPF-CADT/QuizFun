@@ -1,8 +1,8 @@
-// QuestionView.tsx
-
 import React, { useEffect, useState, useMemo } from "react";
 import type { GameState } from "../../context/GameContext";
 import { Trophy } from "lucide-react";
+// 1. Import the SecureTextCanvas component
+import { SecureTextCanvas } from "./SecureTextCanvas";
 
 interface QuestionViewProps {
   gameState: GameState;
@@ -42,8 +42,7 @@ export const QuestionView: React.FC<QuestionViewProps> = ({
       return;
     }
     setSelectedOption(userSeleted);
-    // --- LOGIC FIX ---
-    setIsSubmitting(false); // Reset for new question
+    setIsSubmitting(false);
   }, [currentQuestionIndex, userSeleted]);
 
   useEffect(() => {
@@ -71,13 +70,9 @@ export const QuestionView: React.FC<QuestionViewProps> = ({
 
   const handlePlayerAnswer = (index: number) => {
     if (isHost || isAnswerLocked) return;
-
     if (settings.allowAnswerChange && index === selectedOption) return;
-
     setSelectedOption(index);
     onSubmitAnswer(index);
-
-    // --- LOGIC FIX ---
     if (!settings.allowAnswerChange) {
       setIsSubmitting(true);
     }
@@ -98,7 +93,6 @@ export const QuestionView: React.FC<QuestionViewProps> = ({
 
     const isSelected = index === selectedOption;
 
-    // This now uses the fixed `isAnswerLocked` logic
     if (isAnswerLocked) {
       return isSelected
         ? `${base} bg-gradient-to-br from-blue-500 to-blue-600 ring-4 ring-blue-300 scale-105 cursor-not-allowed`
@@ -116,7 +110,6 @@ export const QuestionView: React.FC<QuestionViewProps> = ({
     } cursor-pointer hover:scale-105 hover:-rotate-1`;
   };
 
-  // --- YOUR ORIGINAL UI HEADER (UNCHANGED) ---
   const renderHeader = () => (
     <header className="flex items-center justify-between p-6 bg-black/20 backdrop-blur-sm border-b border-white/10">
       <div className="flex items-center space-x-2 bg-white/10 rounded-full px-4 py-2">
@@ -146,7 +139,6 @@ export const QuestionView: React.FC<QuestionViewProps> = ({
     [participants]
   );
 
-  // --- YOUR ORIGINAL UI LAYOUT (UNCHANGED) ---
   return (
     <div className="w-full h-full min-h-screen flex flex-col">
       {renderHeader()}
@@ -158,9 +150,17 @@ export const QuestionView: React.FC<QuestionViewProps> = ({
         }`}
       >
         <div className="flex flex-col items-center justify-center space-y-8 flex-1">
-          <h1 className="text-3xl md:text-5xl font-bold text-center">
-            {question.questionText}
-          </h1>
+          {/* 2. Replaced the h1 with SecureTextCanvas */}
+          <div className="w-full max-w-5xl">
+            <SecureTextCanvas
+              text={question.questionText}
+              fontSize={40}
+              fontWeight="bold"
+              textAlign="center"
+              className="w-full"
+            />
+          </div>
+
           {question.imageUrl && (
             <div className="w-full max-w-md">
               <img
@@ -176,7 +176,6 @@ export const QuestionView: React.FC<QuestionViewProps> = ({
                 key={index}
                 onClick={() => handlePlayerAnswer(index)}
                 className={getAnswerButtonClass(index)}
-                // --- LOGIC FIX ---
                 disabled={
                   isHost ||
                   isAnswerLocked ||
@@ -187,9 +186,14 @@ export const QuestionView: React.FC<QuestionViewProps> = ({
                   <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-xl font-bold">
                     {String.fromCharCode(65 + index)}
                   </div>
-                  <span className="text-xl font-semibold flex-1">
-                    {answer.text}
-                  </span>
+                  {/* 3. Replaced the span with SecureTextCanvas and the layout fix */}
+                  <div className="flex-1 min-w-0">
+                    <SecureTextCanvas
+                      text={answer.text}
+                      fontSize={20}
+                      fontWeight="600"
+                    />
+                  </div>
                 </div>
               </button>
             ))}
